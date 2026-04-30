@@ -1,0 +1,49 @@
+---
+title: "brandkit report"
+author: "Your Name"
+format:
+  html:
+    theme: [brand, brandkit.scss]
+    toc: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(brandkit)
+library(ggplot2)
+brand_quarto_setup()  # or brand_quarto_setup("dark") for dark docs
+```
+
+## Overview
+
+This document inherits all styling from `_brand.yml` automatically.
+Quarto handles the document theme; brandkit handles ggplot2 plots.
+
+## Scatter Plot
+
+```{r}
+#| label: scatter
+#| fig-cap: "Auto-themed — no theme_brand() needed"
+ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) +
+  geom_point(size = 3) +
+  labs(title = "Iris Measurements")
+```
+
+## Sequential Palette
+
+```{r}
+#| label: heatmap
+#| fig-cap: "Warm sequential palette from brand colours"
+ggplot(faithfuld, aes(waiting, eruptions, fill = density)) +
+  geom_tile() +
+  scale_fill_brand_c(type = "warm") +
+  labs(title = "Old Faithful Eruptions")
+```
+
+## Brand Colours
+
+```{r}
+#| label: colours
+str(brand_colors())
+```

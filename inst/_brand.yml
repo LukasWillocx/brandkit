@@ -1,0 +1,43 @@
+meta:
+  name: My Brand
+color:
+  primary: "#570a10"
+  secondary: "#ad720a"
+  success: "#325106"
+  danger: "#d64550"
+  warning: "#cda029"
+  info: "#5a8cb5"
+  light: "#bad9cf"
+  dark: "#1a1c1a"
+  foreground: "#1a1c1a"
+  background: "#bad9cf"
+color-dark:
+  primary: "#cf8536"
+  secondary: "#30d9a0"
+  success: "#6aad3a"
+  danger: "#e8737b"
+  warning: "#e0c050"
+  info: "#7cb8d8"
+  light: "#1c1e26"
+  dark: "#d6e8e0"
+  foreground: "#d6e8e0"
+  background: "#1c1e26"
+theme:
+  border-radius: "0.75rem"
+  border-radius-sm: "0.5rem"
+  border-radius-lg: "1rem"
+typography:
+  fonts:
+    - family: Manrope
+      source: google
+    - family: Montserrat
+      source: google
+  base:
+    family: Manrope
+    size: 1rem
+    line-height: 1.65
+    weight: 400
+  headings:
+    family: Montserrat
+    weight: 700
+    line-height: 1.1

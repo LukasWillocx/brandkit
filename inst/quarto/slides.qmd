@@ -1,0 +1,56 @@
+---
+title: "brandkit slides"
+author: "Your Name"
+format:
+  revealjs:
+    theme: [brand, brandkit.scss]
+    slide-number: true
+    transition: fade
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(brandkit)
+library(ggplot2)
+brand_quarto_setup()
+```
+
+## Branded Presentation
+
+Colours, fonts, and styling come from `_brand.yml`.
+
+All ggplot2 plots are auto-themed.
+
+## Scatter Plot
+
+```{r}
+#| label: scatter
+#| fig-width: 8
+#| fig-height: 4
+ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
+  geom_point(size = 3) +
+  labs(title = "MPG vs Weight", color = "Cylinders")
+```
+
+## Palette Overview
+
+```{r}
+#| label: palette
+#| fig-width: 8
+#| fig-height: 3
+cols <- brand_pal_discrete(n = 8)
+barplot(rep(1, length(cols)), col = cols, border = NA, axes = FALSE,
+        main = "Brand discrete palette")
+```
+
+## Dark Mode Slides
+
+Set `brand-mode: dark` in the YAML header to render
+the entire deck using your dark palette:
+ 
+```yaml
+format:
+  revealjs:
+    brand-mode: dark
+```

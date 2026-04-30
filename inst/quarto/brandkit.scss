@@ -1,0 +1,69 @@
+/*-- scss:defaults --*/
+
+$border-radius: 0.75rem;
+$border-radius-sm: 0.5rem;
+$border-radius-lg: 1rem;
+
+/*-- scss:rules --*/
+
+/* ==========================================================================
+   brandkit: Quarto overrides
+   Styling for components that _brand.yml alone doesn't fully control.
+   Layered after brand in _quarto.yml theme so brand variables are available.
+   ========================================================================== */
+
+/* --- Transitions --- */
+.btn, .form-control, .form-select, .card {
+  transition: all 0.2s ease;
+}
+*:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+/* --- Cards --- */
+.card {
+  border: 1px solid color-mix(in srgb, var(--bs-border-color) 50%, transparent 50%);
+  box-shadow:
+    0 1px 3px color-mix(in srgb, var(--bs-body-color) 5%, transparent 95%),
+    0 8px 24px color-mix(in srgb, var(--bs-body-color) 8%, transparent 92%);
+}
+.card-header {
+  color: var(--bs-primary) !important;
+  font-weight: bold !important;
+}
+
+/* --- Headings --- */
+h1, h2, h3, h4, h5 {
+  color: var(--bs-primary);
+}
+
+/* --- Tables --- */
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--bs-light);
+}
+.table-striped > tbody > tr:nth-of-type(even) > * {
+  background-color: color-mix(in srgb, var(--bs-light) 92%, var(--bs-primary) 8%);
+}
+
+/* --- Scrollbars --- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: var(--bs-primary);
+  border-radius: 5px;
+}
+* {
+  scrollbar-color: var(--bs-primary) color-mix(in srgb, var(--bs-light) 85%, white 15%);
+}
+
+/* --- Nav pills / tabs --- */
+.nav-pills .nav-link.active {
+  background-color: var(--bs-primary);
+  color: var(--bs-light);
+  font-weight: bold;
+}
+.nav-tabs .nav-link.active {
+  color: var(--bs-primary) !important;
+  border-bottom-color: var(--bs-primary) !important;
+  font-weight: bold;
+}

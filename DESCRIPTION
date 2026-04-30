@@ -1,0 +1,32 @@
+Package: brandkit
+Title: Opinionated Brand Theming Toolkit for R
+Version: 0.2.0
+Authors@R: person("Luwi", "", role = c("aut", "cre"), email = "dev@example.com")
+Description: A convenience layer on top of the brand.yml ecosystem that
+    auto-applies consistent branding across Shiny, ggplot2, plotly, gt, DT,
+    Quarto, and R Markdown from a single '_brand.yml' file. Includes smart
+    palette generation and CSS overrides for third-party widgets that
+    Bootstrap 5 does not reach.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    bslib (>= 0.9.0),
+    colorspace,
+    ggplot2,
+    grDevices,
+    htmltools,
+    methods,
+    rlang,
+    yaml
+Suggests:
+    DT,
+    gt,
+    plotly,
+    quarto,
+    shiny,
+    showtext,
+    sysfonts,
+    thematic,
+    testthat (>= 3.0.0)
