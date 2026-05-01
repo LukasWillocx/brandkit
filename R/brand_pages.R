@@ -70,13 +70,13 @@ brand_page_navbar <- function(...,
   setup <- build_page_setup(dark_mode, dark_mode_id, theme_args)
   title <- build_branded_title(title, logo)
 
+  # page_navbar only accepts nav_panel items in ..., so inject
+  # head tags and toggle via the header parameter.
   bslib::page_navbar(
-    theme = setup$theme,
-    title = title,
-    setup$head_tags,
-    setup$toggle,
+    theme  = setup$theme,
+    title  = title,
+    header = htmltools::tagList(setup$head_tags, setup$toggle),
     ...,
-    setup$thematic_script
   )
 }
 
@@ -156,11 +156,17 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args) {
   # thematic_shiny() must run before the app starts, which is exactly
   # when page_*() functions evaluate. This gives every renderPlot()
   # automatic brand colours, fonts, and transparent backgrounds.
+  # We pass the brand discrete palette as qualitative so thematic
+  # uses our colours instead of its own defaults.
   thematic_script <- NULL
   if (requireNamespace("thematic", quietly = TRUE)) {
     tryCatch({
       font <- brand_fonts()$base
-      thematic::thematic_shiny(font = font)
+      pal  <- brand_pal_discrete()
+      thematic::thematic_shiny(
+        font = font,
+        qualitative = pal
+      )
     }, error = function(e) NULL)
   }
 
@@ -241,6 +247,7 @@ brand_activate_thematic <- function(font = NULL) {
   }
 
   font <- font %||% brand_fonts()$base
-  thematic::thematic_shiny(font = font)
+  pal  <- brand_pal_discrete()
+  thematic::thematic_shiny(font = font, qualitative = pal)
   invisible(NULL)
 }
