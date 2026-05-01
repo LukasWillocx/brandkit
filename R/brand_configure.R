@@ -255,7 +255,7 @@ configure_brand <- function(path = ".") {
               paste("Save to:", path),
               style = "margin-right: 1rem; color: #666;"
             ),
-            shiny::actionButton("save_brand", "Save _brand.yml",
+            shiny::actionButton("save_brand", "Save & Close",
                                 class = "btn-lg btn-success")
           )
         )
@@ -609,20 +609,26 @@ configure_brand <- function(path = ".") {
         file.copy(input$logo_file$datapath, logo_dest, overwrite = TRUE)
       }
 
-      shiny::showNotification(
-        paste("Saved _brand.yml to", dest),
-        type = "message", duration = 5
-      )
-
       # Reload the cache so subsequent brandkit calls use the new brand
       tryCatch(
         brand_init(dest, quiet = FALSE),
         error = function(e) NULL
       )
+
+      shiny::showNotification(
+        paste("\u2714 Saved _brand.yml to", dest, "\u2014 closing configurator..."),
+        type = "message", duration = 2
+      )
+
+      # Graceful shutdown after a brief pause for the notification
+      later::later(function() {
+        shiny::stopApp(returnValue = dest)
+      }, delay = 1.5)
     })
   }
 
-  shiny::runApp(shiny::shinyApp(ui, server), launch.browser = TRUE)
+  result <- shiny::runApp(shiny::shinyApp(ui, server), launch.browser = TRUE)
+  invisible(result)
 }
 
 
