@@ -36,9 +36,10 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
   ggplot2::theme_set(theme_brand(mode = mode))
 
   # Set default discrete scales
+  pal <- brand_pal_discrete(mode = mode)
   options(
-    ggplot2.discrete.colour = function(...) scale_color_brand_d(..., mode = mode),
-    ggplot2.discrete.fill   = function(...) scale_fill_brand_d(..., mode = mode)
+    ggplot2.discrete.colour = pal,
+    ggplot2.discrete.fill   = pal
   )
 
   # Set knitr device background to match brand — eliminates white
@@ -131,7 +132,7 @@ use_brand_quarto <- function(path = ".", examples = TRUE, overwrite = FALSE) {
 
   # --- Example files ---
   if (examples) {
-    for (qmd in c("example.qmd", "slides.qmd")) {
+    for (qmd in c("example.qmd", "slides.qmd", "showcase.qmd")) {
       src  <- system.file(file.path("quarto", qmd), package = "brandkit")
       dest <- file.path(path, qmd)
       if (nzchar(src) && (!file.exists(dest) || overwrite)) {
