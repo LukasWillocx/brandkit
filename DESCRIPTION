@@ -10,7 +10,7 @@ Description: A convenience layer on top of the brand.yml ecosystem that
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Imports:
     bslib (>= 0.9.0),
     colorspace,
