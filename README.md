@@ -7,7 +7,7 @@ brandkit turns a single `_brand.yml` file into consistent, polished theming acro
 ## Installation
 
 ```r
-devtools::install_github("yourusername/brandkit")
+devtools::install_github("LukasWillocx/brandkit")
 ```
 
 Required dependencies: `bslib (>= 0.9.0)`, `colorspace`, `ggplot2`, `htmltools`, `rlang`, `yaml`.
