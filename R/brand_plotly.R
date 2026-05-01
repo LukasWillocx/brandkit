@@ -37,7 +37,7 @@ brand_plotly <- function(p, mode = NULL, base_size = 14, tooltip = "y",
 
   grid_col <- hex_to_rgba(cols$primary, 0.25)
 
-  plotly::ggplotly(p, tooltip = tooltip, width = width, height = height) |>
+  widget <- plotly::ggplotly(p, tooltip = tooltip, width = width, height = height) |>
     plotly::config(displayModeBar = FALSE) |>
     plotly::layout(
       paper_bgcolor = "transparent",
@@ -65,4 +65,15 @@ brand_plotly <- function(p, mode = NULL, base_size = 14, tooltip = "y",
       ),
       hoverlabel = list(font = list(family = fonts$base, size = base_size))
     )
+
+  # Fix colorbar (continuous legend) text colour — use tryCatch
+  # since not all plots have a colorbar
+  tryCatch({
+    widget <- plotly::colorbar(widget,
+      tickfont = list(color = cols$foreground, family = fonts$base),
+      title    = list(font = list(color = cols$foreground, family = fonts$base))
+    )
+  }, error = function(e) NULL)
+
+  widget
 }
