@@ -1,4 +1,27 @@
+# R package
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+*.Rproj
+
+# renv
+renv/library/
+renv/local/
+renv/staging/
+renv/lock/
+renv/python/
+
+# Build artifacts
+src/*.o
+src/*.so
+src/*.dll
+*.tar.gz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
