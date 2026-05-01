@@ -109,3 +109,26 @@ textarea, select, .form-control, .form-select {
 .shiny-plot-output.brandkit-loading img {
   opacity: 0;
 }
+
+/* --- Leaflet: dark mode overrides for controls and legend --- */
+[data-bs-theme="dark"] .leaflet-control-zoom a {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+  border-color: color-mix(in srgb, var(--bs-body-color) 20%, transparent 80%) !important;
+}
+[data-bs-theme="dark"] .leaflet-control-attribution {
+  background-color: color-mix(in srgb, var(--bs-body-bg) 85%, transparent 15%) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .leaflet-control-attribution a {
+  color: var(--bs-primary) !important;
+}
+[data-bs-theme="dark"] .info.legend,
+[data-bs-theme="dark"] .leaflet-control.legend {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+  border-color: color-mix(in srgb, var(--bs-body-color) 20%, transparent 80%) !important;
+}
+[data-bs-theme="dark"] .info.legend i {
+  border-color: color-mix(in srgb, var(--bs-body-color) 30%, transparent 70%);
+}

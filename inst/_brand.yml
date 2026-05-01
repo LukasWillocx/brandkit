@@ -1,43 +1,43 @@
 meta:
   name: My Brand
 color:
-  primary: "#570a10"
-  secondary: "#ad720a"
-  success: "#325106"
-  danger: "#d64550"
-  warning: "#cda029"
-  info: "#5a8cb5"
-  light: "#bad9cf"
-  dark: "#1a1c1a"
-  foreground: "#1a1c1a"
-  background: "#bad9cf"
+  primary: '#2c3e50'
+  secondary: '#1abc9c'
+  success: '#27ae60'
+  danger: '#e74c3c'
+  warning: '#f39c12'
+  info: '#2980b9'
+  light: '#ecf0f1'
+  dark: '#1a252f'
+  foreground: '#1a252f'
+  background: '#ecf0f1'
 color-dark:
-  primary: "#cf8536"
-  secondary: "#30d9a0"
-  success: "#6aad3a"
-  danger: "#e8737b"
-  warning: "#e0c050"
-  info: "#7cb8d8"
-  light: "#1c1e26"
-  dark: "#d6e8e0"
-  foreground: "#d6e8e0"
-  background: "#1c1e26"
-theme:
-  border-radius: "0.75rem"
-  border-radius-sm: "0.5rem"
-  border-radius-lg: "1rem"
+  primary: '#5a8a9f'
+  secondary: '#4edfc0'
+  success: '#52c98a'
+  danger: '#f08a82'
+  warning: '#f7c056'
+  info: '#59ade0'
+  light: '#121a20'
+  dark: '#e8eff5'
+  foreground: '#e8eff5'
+  background: '#121a20'
 typography:
   fonts:
-    - family: Manrope
-      source: google
-    - family: Montserrat
-      source: google
+  - family: Inter
+    source: google
+  - family: Inter
+    source: google
   base:
-    family: Manrope
+    family: Inter
     size: 1rem
     line-height: 1.65
     weight: 400
   headings:
-    family: Montserrat
+    family: Inter
     weight: 700
     line-height: 1.1
+theme:
+  border-radius: 0.75rem
+  border-radius-sm: 0.5rem
+  border-radius-lg: 1rem
