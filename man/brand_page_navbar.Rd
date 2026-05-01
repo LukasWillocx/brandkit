@@ -7,6 +7,7 @@
 brand_page_navbar(
   ...,
   title = NULL,
+  logo = TRUE,
   dark_mode = TRUE,
   dark_mode_id = "dark_mode",
   theme_args = list()
@@ -16,6 +17,8 @@ brand_page_navbar(
 \item{...}{\code{bslib::nav_panel()} elements.}
 
 \item{title}{App title.}
+
+\item{logo}{Logical. Prepend the brand logo to the title? Default \code{TRUE}.}
 
 \item{dark_mode}{Include a dark-mode toggle in the navbar? Default \code{TRUE}.}
 

@@ -1,0 +1,47 @@
+meta:
+  name: test 2
+color:
+  primary: '#1B2A4A'
+  secondary: '#C0945B'
+  success: '#2E7D32'
+  danger: '#B71C1C'
+  warning: '#E6A817'
+  info: '#37718E'
+  light: '#F0F2F5'
+  dark: '#1A1D23'
+  foreground: '#1A1D23'
+  background: '#F0F2F5'
+typography:
+  fonts:
+  - family: Quicksand
+    source: google
+  - family: Quicksand
+    source: google
+  base:
+    family: Quicksand
+    size: 1.5rem
+    line-height: 1.2
+    weight: 400
+  headings:
+    family: Quicksand
+    weight: 700
+    line-height: 1.1
+theme:
+  border-radius: 0.75rem
+  border-radius-sm: 0.5rem
+  border-radius-lg: 1rem
+logo:
+  small: logo/ClhN1siN.png
+  medium: logo/ClhN1siN.png
+  large: logo/ClhN1siN.png
+color-dark:
+  primary: '#646D88'
+  secondary: '#E3B67F'
+  success: '#66AE69'
+  danger: '#F75F5F'
+  warning: '#FFC35B'
+  info: '#71A2BF'
+  light: '#000612'
+  dark: '#FBFCFF'
+  foreground: '#FBFCFF'
+  background: '#000612'

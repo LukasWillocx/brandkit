@@ -7,12 +7,13 @@
 #' Branded Page with Sidebar
 #'
 #' Drop-in replacement for `bslib::page_sidebar()` that auto-injects
-#' the brand theme, dark-mode CSS overrides, a dark-mode toggle, and
-#' thematic plot integration. The user writes zero theming code.
+#' the brand theme, dark-mode CSS overrides, a dark-mode toggle, logo,
+#' and thematic plot integration. The user writes zero theming code.
 #'
 #' @param ... UI elements passed to the main content area.
 #' @param title App title (character or UI element).
 #' @param sidebar A `bslib::sidebar()` object.
+#' @param logo Logical. Prepend the brand logo to the title? Default `TRUE`.
 #' @param dark_mode Logical. Include a dark-mode toggle? Default `TRUE`.
 #' @param dark_mode_id ID for the toggle widget. Default `"dark_mode"`.
 #' @param fillable Passed to `bslib::page_sidebar()`.
@@ -23,12 +24,14 @@
 brand_page_sidebar <- function(...,
                                title = NULL,
                                sidebar = NULL,
+                               logo = TRUE,
                                dark_mode = TRUE,
                                dark_mode_id = "dark_mode",
                                fillable = TRUE,
                                theme_args = list()) {
 
   setup <- build_page_setup(dark_mode, dark_mode_id, theme_args)
+  title <- build_branded_title(title, logo)
 
   bslib::page_sidebar(
     theme    = setup$theme,
@@ -50,6 +53,7 @@ brand_page_sidebar <- function(...,
 #'
 #' @param ... `bslib::nav_panel()` elements.
 #' @param title App title.
+#' @param logo Logical. Prepend the brand logo to the title? Default `TRUE`.
 #' @param dark_mode Include a dark-mode toggle in the navbar? Default `TRUE`.
 #' @param dark_mode_id ID for the toggle widget.
 #' @param theme_args Extra args passed to `brand_theme()`.
@@ -58,11 +62,13 @@ brand_page_sidebar <- function(...,
 #' @export
 brand_page_navbar <- function(...,
                               title = NULL,
+                              logo = TRUE,
                               dark_mode = TRUE,
                               dark_mode_id = "dark_mode",
                               theme_args = list()) {
 
   setup <- build_page_setup(dark_mode, dark_mode_id, theme_args)
+  title <- build_branded_title(title, logo)
 
   bslib::page_navbar(
     theme = setup$theme,
@@ -81,6 +87,7 @@ brand_page_navbar <- function(...,
 #'
 #' @param ... UI elements.
 #' @param title Page title.
+#' @param logo Logical. Prepend the brand logo to the title? Default `TRUE`.
 #' @param dark_mode Include a dark-mode toggle? Default `TRUE`.
 #' @param dark_mode_id ID for the toggle widget.
 #' @param theme_args Extra args passed to `brand_theme()`.
@@ -89,11 +96,13 @@ brand_page_navbar <- function(...,
 #' @export
 brand_page_fluid <- function(...,
                              title = NULL,
+                             logo = TRUE,
                              dark_mode = TRUE,
                              dark_mode_id = "dark_mode",
                              theme_args = list()) {
 
   setup <- build_page_setup(dark_mode, dark_mode_id, theme_args)
+  title <- build_branded_title(title, logo)
 
   bslib::page_fluid(
     theme = setup$theme,
@@ -102,6 +111,26 @@ brand_page_fluid <- function(...,
     setup$toggle,
     ...,
     setup$thematic_script
+  )
+}
+
+
+# --------------------------------------------------------------------------
+# Internal: branded title with logo
+# --------------------------------------------------------------------------
+
+build_branded_title <- function(title, logo) {
+  if (!isTRUE(logo) || is.null(title)) return(title)
+
+  logo_tag <- brand_logo_tag(height = "1.8em")
+  if (is.null(logo_tag)) return(title)
+
+  htmltools::tagList(
+    htmltools::div(
+      style = "display: flex; align-items: center;",
+      logo_tag,
+      htmltools::span(title)
+    )
   )
 }
 

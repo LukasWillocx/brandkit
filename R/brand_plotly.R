@@ -6,21 +6,30 @@
 #' Convert ggplot to Branded Plotly
 #'
 #' Applies `theme_brand()` then converts to an interactive plotly widget
-#' with branded fonts, transparent background, and styled grid.
+#' with branded fonts, correct background, and styled grid. Automatically
+#' detects the active mode set by `brand_quarto_setup()`.
 #'
 #' @param p A ggplot2 object.
-#' @param mode `"light"` or `"dark"`.
+#' @param mode `"light"`, `"dark"`, or `NULL` (auto-detect from
+#'   `brand_quarto_setup()` / `.onAttach`). Default `NULL`.
 #' @param base_size Font size in points.
 #' @param tooltip Aesthetics to show on hover.
+#' @param width Widget width in pixels. Default `NULL` (automatic).
+#'   For revealjs slides, `1000` works well.
+#' @param height Widget height in pixels. Default `NULL` (automatic).
+#'   For revealjs slides, `600` works well.
 #'
 #' @return A plotly htmlwidget.
 #' @export
-brand_plotly <- function(p, mode = "light", base_size = 14, tooltip = "y") {
+brand_plotly <- function(p, mode = NULL, base_size = 14, tooltip = "y",
+                         width = NULL, height = NULL) {
 
   if (!requireNamespace("plotly", quietly = TRUE)) {
     stop("Install the plotly package to use brand_plotly().", call. = FALSE)
   }
 
+  # Auto-detect mode from brand_quarto_setup() or default to light
+  mode  <- mode %||% brand_env$active_mode %||% "light"
   cols  <- brand_colors(mode)
   fonts <- brand_fonts()
 
@@ -28,7 +37,7 @@ brand_plotly <- function(p, mode = "light", base_size = 14, tooltip = "y") {
 
   grid_col <- hex_to_rgba(cols$primary, 0.25)
 
-  plotly::ggplotly(p, tooltip = tooltip) |>
+  plotly::ggplotly(p, tooltip = tooltip, width = width, height = height) |>
     plotly::config(displayModeBar = FALSE) |>
     plotly::layout(
       paper_bgcolor = "transparent",
@@ -50,7 +59,10 @@ brand_plotly <- function(p, mode = "light", base_size = 14, tooltip = "y") {
         gridcolor = grid_col, gridwidth = 0.4, griddash = "dash",
         showgrid = TRUE, zeroline = FALSE
       ),
-      legend     = list(font = list(family = fonts$base, color = cols$foreground)),
+      legend = list(
+        font    = list(family = fonts$base, color = cols$foreground),
+        bgcolor = "transparent"
+      ),
       hoverlabel = list(font = list(family = fonts$base, size = base_size))
     )
 }

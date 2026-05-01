@@ -4,21 +4,36 @@
 \alias{brand_plotly}
 \title{Convert ggplot to Branded Plotly}
 \usage{
-brand_plotly(p, mode = "light", base_size = 14, tooltip = "y")
+brand_plotly(
+  p,
+  mode = NULL,
+  base_size = 14,
+  tooltip = "y",
+  width = NULL,
+  height = NULL
+)
 }
 \arguments{
 \item{p}{A ggplot2 object.}
 
-\item{mode}{\code{"light"} or \code{"dark"}.}
+\item{mode}{\code{"light"}, \code{"dark"}, or \code{NULL} (auto-detect from
+\code{brand_quarto_setup()} / \code{.onAttach}). Default \code{NULL}.}
 
 \item{base_size}{Font size in points.}
 
 \item{tooltip}{Aesthetics to show on hover.}
+
+\item{width}{Widget width in pixels. Default \code{NULL} (automatic).
+For revealjs slides, \code{1000} works well.}
+
+\item{height}{Widget height in pixels. Default \code{NULL} (automatic).
+For revealjs slides, \code{600} works well.}
 }
 \value{
 A plotly htmlwidget.
 }
 \description{
 Applies \code{theme_brand()} then converts to an interactive plotly widget
-with branded fonts, transparent background, and styled grid.
+with branded fonts, correct background, and styled grid. Automatically
+detects the active mode set by \code{brand_quarto_setup()}.
 }

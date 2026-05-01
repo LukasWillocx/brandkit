@@ -29,6 +29,9 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
 
   cols <- brand_colors(mode)
 
+  # Store active mode so brand_plotly() auto-detects
+  brand_env$active_mode <- mode
+
   # Set ggplot2 theme for this mode
   ggplot2::theme_set(theme_brand(mode = mode))
 
@@ -39,11 +42,26 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
   )
 
   # Set knitr device background to match brand — eliminates white
-  # canvas bleeding through plot margins.
+  # canvas bleeding through plot margins. Also register a hook to
+  # set base R par() colours before each chunk so barplot, hist,
+  # etc. follow the brand.
   if (requireNamespace("knitr", quietly = TRUE)) {
     knitr::opts_chunk$set(
       dev.args = list(bg = cols$background)
     )
+
+    # Hook sets par() before each chunk's graphics device
+    fg <- cols$foreground
+    bg <- cols$background
+    knitr::knit_hooks$set(brandkit_par = function(before, options, envir) {
+      if (before) {
+        par(
+          col.main = fg, col.sub = fg, col.lab = fg,
+          col.axis = fg, fg = fg
+        )
+      }
+    })
+    knitr::opts_chunk$set(brandkit_par = TRUE)
   }
 
   invisible(NULL)
@@ -127,6 +145,9 @@ use_brand_quarto <- function(path = ".", examples = TRUE, overwrite = FALSE) {
   # --- Font files (if local fonts are defined) ---
   copy_brand_fonts(path, overwrite)
 
+  # --- Logo files ---
+  copy_brand_logo(path, overwrite)
+
   message("\nDone. In your .qmd YAML, use:")
   message('  theme: [brand, brandkit.scss]')
   message('Then add library(brandkit) in a setup chunk for ggplot2 theming.')
@@ -208,4 +229,40 @@ write_quarto_brand_yml <- function(dest) {
   if (!is.null(cfg$typography)) out$typography  <- cfg$typography
 
   yaml::write_yaml(out, dest)
+}
+
+
+# --------------------------------------------------------------------------
+# Copy logo files referenced in _brand.yml
+# --------------------------------------------------------------------------
+
+copy_brand_logo <- function(dest_dir, overwrite = FALSE) {
+  logo <- brand_env$logo
+  if (length(logo) == 0) return(invisible(NULL))
+
+  brand_dir <- dirname(brand_env$path)
+
+  # Collect all logo paths (small, medium, large, or bare string)
+  paths <- if (is.character(logo)) {
+    logo
+  } else {
+    unique(unlist(lapply(logo[c("small", "medium", "large")], function(x) {
+      if (is.character(x)) x else if (is.list(x)) c(x$light, x$dark)
+    })))
+  }
+  paths <- paths[!is.null(paths)]
+
+  for (p in paths) {
+    src <- file.path(brand_dir, p)
+    if (!file.exists(src)) next
+
+    dest <- file.path(dest_dir, p)
+    dest_subdir <- dirname(dest)
+    if (!dir.exists(dest_subdir)) dir.create(dest_subdir, recursive = TRUE)
+
+    if (!file.exists(dest) || overwrite) {
+      file.copy(src, dest, overwrite = overwrite)
+      message("Copied logo: ", p)
+    }
+  }
 }

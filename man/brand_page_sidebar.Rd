@@ -8,6 +8,7 @@ brand_page_sidebar(
   ...,
   title = NULL,
   sidebar = NULL,
+  logo = TRUE,
   dark_mode = TRUE,
   dark_mode_id = "dark_mode",
   fillable = TRUE,
@@ -20,6 +21,8 @@ brand_page_sidebar(
 \item{title}{App title (character or UI element).}
 
 \item{sidebar}{A \code{bslib::sidebar()} object.}
+
+\item{logo}{Logical. Prepend the brand logo to the title? Default \code{TRUE}.}
 
 \item{dark_mode}{Logical. Include a dark-mode toggle? Default \code{TRUE}.}
 
@@ -34,6 +37,6 @@ A Shiny UI definition.
 }
 \description{
 Drop-in replacement for \code{bslib::page_sidebar()} that auto-injects
-the brand theme, dark-mode CSS overrides, a dark-mode toggle, and
-thematic plot integration. The user writes zero theming code.
+the brand theme, dark-mode CSS overrides, a dark-mode toggle, logo,
+and thematic plot integration. The user writes zero theming code.
 }

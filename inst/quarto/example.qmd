@@ -3,24 +3,35 @@ title: "brandkit report"
 author: "Your Name"
 format:
   html:
-    theme: [brand, brandkit.scss]
+    theme:
+      light: [brand, brandkit.scss]
+      dark: [brand, brandkit.scss]
     toc: true
 ---
+
+::: {.brand-logo-container}
+{{< brand logo medium >}}
+:::
 
 ```{r}
 #| label: setup
 #| include: false
 library(brandkit)
 library(ggplot2)
-brand_quarto_setup()  # or brand_quarto_setup("dark") for dark docs
+library(plotly)
+brand_quarto_setup()  # or brand_quarto_setup("dark") for dark-only docs
 ```
 
 ## Overview
 
 This document inherits all styling from `_brand.yml` automatically.
-Quarto handles the document theme; brandkit handles ggplot2 plots.
+Quarto handles the document theme; brandkit handles ggplot2 and plotly.
 
-## Scatter Plot
+Use the toggle in the navbar to switch between light and dark mode.
+Note: plots are rendered once at build time, so they match whichever
+mode you pass to `brand_quarto_setup()`.
+
+## Static ggplot2
 
 ```{r}
 #| label: scatter
@@ -30,15 +41,38 @@ ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) +
   labs(title = "Iris Measurements")
 ```
 
-## Sequential Palette
+## Interactive Plotly
+
+```{r}
+#| label: plotly-scatter
+p <- ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
+  geom_point(size = 3) +
+  labs(title = "MPG vs Weight", color = "Cylinders")
+
+brand_plotly(p, tooltip = c("x", "y", "colour"))
+```
+
+## Plotly with Sequential Palette
+
+```{r}
+#| label: plotly-heatmap
+p <- ggplot(faithfuld, aes(waiting, eruptions, fill = density)) +
+  geom_tile() +
+  scale_fill_brand_c(type = "warm") +
+  labs(title = "Old Faithful Eruptions")
+
+brand_plotly(p)
+```
+
+## Static Heatmap
 
 ```{r}
 #| label: heatmap
 #| fig-cap: "Warm sequential palette from brand colours"
 ggplot(faithfuld, aes(waiting, eruptions, fill = density)) +
   geom_tile() +
-  scale_fill_brand_c(type = "warm") +
-  labs(title = "Old Faithful Eruptions")
+  scale_fill_brand_c(type = "cool") +
+  labs(title = "Old Faithful — Cool Palette")
 ```
 
 ## Brand Colours

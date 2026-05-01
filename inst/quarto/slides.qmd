@@ -6,6 +6,7 @@ format:
     theme: [brand, brandkit.scss]
     slide-number: true
     transition: fade
+    logo: medium
 ---
 
 ```{r}
@@ -13,6 +14,7 @@ format:
 #| include: false
 library(brandkit)
 library(ggplot2)
+library(plotly)
 brand_quarto_setup()
 ```
 
@@ -20,9 +22,9 @@ brand_quarto_setup()
 
 Colours, fonts, and styling come from `_brand.yml`.
 
-All ggplot2 plots are auto-themed.
+All ggplot2 and plotly output is auto-themed.
 
-## Scatter Plot
+## Static Plot
 
 ```{r}
 #| label: scatter
@@ -31,6 +33,17 @@ All ggplot2 plots are auto-themed.
 ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
   geom_point(size = 3) +
   labs(title = "MPG vs Weight", color = "Cylinders")
+```
+
+## Interactive Plotly
+
+```{r}
+#| label: plotly
+p <- ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) +
+  geom_point(size = 3) +
+  labs(title = "Iris — Hover for Details")
+
+brand_plotly(p, tooltip = c("x", "y", "colour"), width = 1000, height = 600)
 ```
 
 ## Palette Overview
@@ -48,9 +61,15 @@ barplot(rep(1, length(cols)), col = cols, border = NA, axes = FALSE,
 
 Set `brand-mode: dark` in the YAML header to render
 the entire deck using your dark palette:
- 
+
 ```yaml
 format:
   revealjs:
     brand-mode: dark
+```
+
+And update the setup chunk:
+
+```r
+brand_quarto_setup("dark")
 ```

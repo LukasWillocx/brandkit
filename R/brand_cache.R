@@ -182,6 +182,69 @@ brand_raw <- function() {
  brand_env$raw
 }
 
+#' Get Brand Logo Path
+#'
+#' Returns the resolved file path to the brand logo. Tries `medium`,
+#' then `small`, then `large`, then a bare string.
+#'
+#' @param size `"medium"`, `"small"`, or `"large"`.
+#' @return Absolute file path to the logo, or `NULL` if none configured.
+#' @export
+brand_logo <- function(size = "medium") {
+ ensure_cache()
+ logo <- brand_env$logo
+ if (length(logo) == 0) return(NULL)
+
+ # Bare string: logo: "path/to/logo.png"
+ if (is.character(logo)) {
+   path <- logo
+ } else {
+   path <- logo[[size]] %||% logo$medium %||% logo$small %||% logo$large
+ }
+
+ if (is.null(path)) return(NULL)
+
+ # Resolve relative to _brand.yml location
+ base_dir <- dirname(brand_env$path)
+ full <- file.path(base_dir, path)
+ if (file.exists(full)) return(normalizePath(full))
+
+ # Try as-is
+ if (file.exists(path)) return(normalizePath(path))
+
+ NULL
+}
+
+#' Build Logo HTML Tag for Shiny Titles
+#'
+#' Returns an `img` tag sized for inline use next to a title, or `NULL`
+#' if no logo is configured.
+#'
+#' @param height CSS height. Default `"1.8em"`.
+#' @param size Which logo size to use from `_brand.yml`.
+#'
+#' @return An `htmltools::img()` tag or `NULL`.
+#' @export
+brand_logo_tag <- function(height = "1.8em", size = "medium") {
+ logo_path <- brand_logo(size)
+ if (is.null(logo_path)) return(NULL)
+
+ # Serve via Shiny resource path
+ if (requireNamespace("shiny", quietly = TRUE)) {
+   logo_dir  <- dirname(logo_path)
+   logo_file <- basename(logo_path)
+   shiny::addResourcePath("brandkit-logo", logo_dir)
+   return(htmltools::img(
+     src = paste0("brandkit-logo/", logo_file),
+     style = paste0(
+       "height:", height, "; vertical-align: middle; margin-right: 8px;"
+     )
+   ))
+ }
+
+ NULL
+}
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------

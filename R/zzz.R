@@ -28,6 +28,8 @@
   }
 
   # --- Auto-apply ggplot2 theme ---
+  brand_env$active_mode <- "light"
+
   if (requireNamespace("ggplot2", quietly = TRUE)) {
     ggplot2::theme_set(theme_brand())
 

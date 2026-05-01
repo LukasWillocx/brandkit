@@ -67,3 +67,23 @@ h1, h2, h3, h4, h5 {
   border-bottom-color: var(--bs-primary) !important;
   font-weight: bold;
 }
+
+/* --- Plotly --- */
+/* Handled via R layout config (horizontal legend, responsive mode) */
+
+/* --- Logo (brand shortcode) in HTML documents --- */
+.brand-logo-container img,
+.brand-logo {
+  max-height: 48px;
+  width: auto;
+  margin-bottom: 0.5rem;
+}
+.brand-logo-container {
+  margin-bottom: 1rem;
+  line-height: 1;
+}
+
+/* --- Logo in revealjs slides --- */
+.reveal .slide-logo {
+  max-height: 40px !important;
+}
