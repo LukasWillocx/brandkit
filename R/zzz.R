@@ -33,13 +33,12 @@
   if (requireNamespace("ggplot2", quietly = TRUE)) {
     ggplot2::theme_set(theme_brand())
 
-    # Register default discrete scales via options so every ggplot
+    # Register default discrete palette via options so every ggplot
     # that maps colour/fill to a discrete variable uses brand colours.
+    pal <- brand_pal_discrete()
     options(
-      ggplot2.discrete.colour = function(...)
-        scale_color_brand_d(...),
-      ggplot2.discrete.fill = function(...)
-        scale_fill_brand_d(...)
+      ggplot2.discrete.colour = pal,
+      ggplot2.discrete.fill   = pal
     )
   }
 
