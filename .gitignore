@@ -4,6 +4,8 @@
 .RData
 .Ruserdata
 *.Rproj
+logo/
+.gitignore
 
 # renv
 renv/library/
