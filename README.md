@@ -8,7 +8,7 @@ brandkit turns a single `_brand.yml` file into consistent, polished theming acro
 
 ```r
 # Install from GitHub
-devtools::install_github("yourusername/brandkit")
+devtools::install_github("LukasWillocx/brandkit")
 ```
 
 ## Quick start
