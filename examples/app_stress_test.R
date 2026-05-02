@@ -50,7 +50,6 @@ ui <- brand_page_sidebar(
 
   # Main content
   navset_card_pill(
-    title = "Output Tests",
 
     nav_panel(
       "Widgets State",
