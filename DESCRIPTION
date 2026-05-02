@@ -19,16 +19,16 @@ Imports:
     htmltools,
     methods,
     rlang,
-    yaml
-Suggests:
+    yaml,
     colourpicker,
+    shiny,
+    thematic
+Suggests:
     DT,
     gt,
     knitr,
     plotly,
     quarto,
-    shiny,
     showtext,
     sysfonts,
-    thematic,
     testthat (>= 3.0.0)
