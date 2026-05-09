@@ -1,43 +1,47 @@
 meta:
   name: My Brand
 color:
-  primary: '#7E57C2'
-  secondary: '#EC407A'
-  success: '#66BB6A'
-  danger: '#EF5350'
-  warning: '#FFCA28'
-  info: '#42A5F5'
-  light: '#F3F0FA'
-  dark: '#1E1730'
-  foreground: '#1E1730'
-  background: '#F3F0FA'
+  primary: '#E65100'
+  secondary: '#AD1457'
+  success: '#2E7D32'
+  danger: '#C62828'
+  warning: '#FF8F00'
+  info: '#0277BD'
+  light: '#FFF3E5'
+  dark: '#192829'
+  foreground: '#192829'
+  background: '#FFF3E5'
 typography:
   fonts:
-  - family: Roboto
+  - family: Quicksand
     source: google
-  - family: Roboto Slab
+  - family: Quicksand
     source: google
   base:
-    family: Roboto
-    size: 1rem
-    line-height: 1.65
+    family: Quicksand
+    size: 1.1rem
+    line-height: 1.4
     weight: 400
   headings:
-    family: Roboto Slab
+    family: Quicksand
     weight: 700
     line-height: 1.1
 theme:
-  border-radius: 0.75rem
-  border-radius-sm: 0.5rem
-  border-radius-lg: 1rem
+  border-radius: 1.25rem
+  border-radius-sm: 1rem
+  border-radius-lg: 1.5rem
+logo:
+  small: logo/pngegg.png
+  medium: logo/pngegg.png
+  large: logo/pngegg.png
 color-dark:
-  primary: '#AD8BF2'
-  secondary: '#FF88A7'
-  success: '#85D989'
-  danger: '#FF9291'
-  warning: '#FFDD9A'
-  info: '#90C4FF'
-  light: '#0A0020'
-  dark: '#FDFCFF'
-  foreground: '#FDFCFF'
-  background: '#0A0020'
+  primary: '#FF8D75'
+  secondary: '#EB5F8D'
+  success: '#66AE69'
+  danger: '#FF6868'
+  warning: '#FFB891'
+  info: '#60A6EC'
+  light: '#000B0B'
+  dark: '#FFFDFA'
+  foreground: '#FFFDFA'
+  background: '#000B0B'
