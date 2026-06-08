@@ -1,7 +1,7 @@
 Package: brandkit
 Title: Opinionated Brand Theming Toolkit for R
 Version: 0.2.0
-Authors@R: person("Luwi", "", role = c("aut", "cre"), email = "  ")
+Authors@R: person("Luwi", "", role = c("aut", "cre"), email = "lukaswillocx@gmail.com")
 Description: A convenience layer on top of the brand.yml ecosystem that
     auto-applies consistent branding across Shiny, ggplot2, plotly, gt, DT,
     Quarto, and R Markdown from a single '_brand.yml' file. Includes smart
