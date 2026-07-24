@@ -255,6 +255,22 @@ ensure_cache <- function() {
  }
 }
 
+# Prefer a specific directory's own _brand.yml as the source of truth, if
+# one exists there. `ensure_cache()` only ever initialises once per
+# session and otherwise ignores which directory is being worked on — fine
+# for accessors like brand_colors(), but wrong for scaffolding functions
+# that copy assets (fonts, logo) relative to whatever _brand.yml happens
+# to be cached. Without this, copy_brand_logo()/copy_brand_fonts() can
+# silently resolve source paths against an unrelated, stale brand.
+ensure_cache_for_path <- function(path) {
+ candidate <- file.path(path, "_brand.yml")
+ if (file.exists(candidate)) {
+   brand_init(candidate, quiet = TRUE)
+ } else {
+   ensure_cache()
+ }
+}
+
 find_brand_yml <- function() {
  # 1. Working directory (+ parent walk like bslib does)
  candidates <- c(

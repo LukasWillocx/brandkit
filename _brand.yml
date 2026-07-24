@@ -1,0 +1,47 @@
+meta:
+  name: My Brand
+color:
+  primary: '#1B2A4A'
+  secondary: '#C0945B'
+  success: '#2E7D32'
+  danger: '#B71C1C'
+  warning: '#E6A817'
+  info: '#37718E'
+  light: '#F0F2F5'
+  dark: '#1A1D23'
+  foreground: '#1A1D23'
+  background: '#F0F2F5'
+typography:
+  fonts:
+  - family: Karla
+    source: google
+  - family: Bungee
+    source: google
+  base:
+    family: Karla
+    size: 1.2rem
+    line-height: 1.25
+    weight: 400
+  headings:
+    family: Bungee
+    weight: 700
+    line-height: 1.1
+  monospace:
+    family: Karla
+    size: 1.2rem
+    weight: 400
+theme:
+  border-radius: 2rem
+  border-radius-sm: 1.75rem
+  border-radius-lg: 2.25rem
+color-dark:
+  primary: '#646D88'
+  secondary: '#E3B67F'
+  success: '#66AE69'
+  danger: '#F75F5F'
+  warning: '#FFC35B'
+  info: '#71A2BF'
+  light: '#0A1321'
+  dark: '#FBFCFF'
+  foreground: '#FBFCFF'
+  background: '#0A1321'

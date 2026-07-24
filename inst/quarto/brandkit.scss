@@ -87,3 +87,158 @@ h1, h2, h3, h4, h5 {
 .reveal .slide-logo {
   max-height: 40px !important;
 }
+
+/* --- Suppress Quarto/pandoc's own auto-generated title block ---
+   title:/subtitle:/author:/date: stay in the YAML so {{< meta ... >}}
+   has values to pull into .brand-banner below, but that same metadata
+   also makes pandoc's html writer emit its own #title-block-header
+   unconditionally — title-block-style: none only turns off Quarto's
+   *extra* processing on top of that, it doesn't stop pandoc's base
+   writer from emitting the header in the first place. Hiding it here is
+   the reliable way to avoid a second, duplicate title/subtitle/author/
+   date appearing above the banner. */
+#title-block-header {
+  display: none !important;
+}
+
+/* brandkit: establishes an inline-size container on <body> so the
+   full-bleed banner below can size itself with cqi (container query
+   units, a plain measurement of body's own rendered content width)
+   instead of vw (viewport width). vw is measured against the *window*,
+   which in several browsers includes the strip reserved for a vertical
+   scrollbar, while the visible/scrollable content area does not — a
+   "full width" element sized in vw ends up very slightly wider than the
+   page actually is, which both introduces a permanent horizontal
+   scrollbar and leaves a sliver at one edge where the oversized,
+   slightly-misaligned box doesn't quite reach the true edge, showing
+   the page's own background colour instead of the banner's. cqi has no
+   such quirk — it's a normal box measurement. overflow-x: hidden is
+   kept as a defensive fallback for any residual sub-pixel rounding. */
+body {
+  container-type: inline-size;
+  overflow-x: hidden;
+}
+
+/* --- Title banner (HTML report) ---
+   Full-bleed (breaks out of Quarto's centered content column to span the
+   full viewport width) so the primary colour fills edge-to-edge with no
+   seam. `width: 100cqi` is load-bearing here — `width: 100%` (an earlier
+   version of this rule used it) resolves against the *immediate parent's*
+   width, which is exactly the narrower, centered column this rule is
+   trying to escape, so it can never actually stretch past it no matter
+   what the margins do; only a container-relative width escapes it. The
+   wedges and text content
+   live in a centred .brand-banner-inner capped at 1140px (Bootstrap's
+   own container-xl max-width, since Quarto's grid is Bootstrap
+   underneath) — anchoring the wedges to the viewport's raw edges
+   instead would leave them stranded far from the centred text on a wide
+   monitor. Unlike the PDF banner (which is asymmetric — logo/title/
+   subtitle left-aligned against a single right-hand wedge), this one is
+   symmetric: a secondary-colour wedge cut into BOTH the left and right
+   edges (::before mirrors ::after), with title/subtitle centred in the
+   primary field between them. Each wedge is only 22% wide, not 36% —
+   the clip-path shape fills nearly all of its own box (it only notches
+   out one corner), so at 36% a mirrored pair leaves primary squeezed to
+   a narrow strip at the bottom of the banner. At 22% each, primary stays
+   ≥56% wide at every height, comfortably clearing the 52%-wide centred
+   content. Below 700px both wedges are dropped — the angle reads as a
+   sliver rather than a deliberate shape at that size, so a flat banner
+   looks more intentional. The negative margin-top pulls the banner up
+   into the blank space Quarto's own content wrapper reserves above the
+   first element (independent of the title-block-header suppression
+   above) — -1.5rem is an approximation tuned against the default theme;
+   nudge it if your theme's own top spacing differs. */
+.brand-banner {
+  position: relative;
+  width: 100cqi;
+  left: 50%;
+  margin-left: -50cqi;
+  background: var(--bs-primary);
+  color: white;
+  margin-top: -1.5rem;
+  margin-bottom: 2.5rem;
+}
+.brand-banner-inner {
+  position: relative;
+  overflow: hidden;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 3.5rem 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+.brand-banner-inner::before,
+.brand-banner-inner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 22%;
+  height: 100%;
+  background: var(--bs-secondary);
+}
+.brand-banner-inner::after {
+  right: 0;
+  clip-path: polygon(38% 0, 100% 0, 100% 100%, 0 100%);
+}
+.brand-banner-inner::before {
+  left: 0;
+  clip-path: polygon(0 0, 62% 0, 100% 100%, 0 100%);
+}
+.brand-banner-content {
+  position: relative;
+  z-index: 1;
+  max-width: 52%;
+  text-align: center;
+}
+.brand-banner img,
+.brand-banner .brand-logo {
+  max-height: 44px;
+  width: auto;
+  margin: 0 auto 1rem;
+}
+.brand-banner-title {
+  font-family: var(--bs-headings-font-family, inherit);
+  font-weight: 700;
+  font-size: 2rem;
+  color: white;
+  line-height: 1.15;
+}
+.brand-banner-subtitle {
+  font-size: 1.15rem;
+  opacity: 0.85;
+  margin-top: 0.4rem;
+}
+@media (max-width: 700px) {
+  .brand-banner-inner::before,
+  .brand-banner-inner::after { display: none; }
+  .brand-banner-content { max-width: 100%; }
+  .brand-banner-inner { padding: 2.5rem 1.5rem; }
+}
+
+/* --- Title slide banner (revealjs) --- */
+/* Background colour is set via title-slide-attributes: data-background-color
+   in the .qmd YAML, blended 35% toward black so it's always dark enough
+   for white text regardless of how light the brand's primary colour is —
+   white text here is only safe because that blend guarantees it. */
+.reveal .slides > section:first-of-type h1,
+.reveal .slides > section:first-of-type .subtitle,
+.reveal .slides > section:first-of-type p.author,
+.reveal .slides > section:first-of-type p.date {
+  color: white;
+}
+
+/* --- Footer (HTML report + revealjs slides) --- */
+.brand-footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color, var(--bs-body-color));
+}
+.reveal .footer {
+  color: var(--bs-primary);
+  font-size: 0.6em;
+}

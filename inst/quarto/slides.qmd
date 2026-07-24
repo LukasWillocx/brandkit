@@ -1,12 +1,17 @@
 ---
-title: "brandkit slides"
+title: "Brand Report"
+subtitle: "A polished starting point for branded revealjs slides"
 author: "Your Name"
+date: today
+title-slide-attributes:
+  data-background-color: "__BRANDKIT_TITLE_BG__"
 format:
   revealjs:
     theme: [brand, brandkit.scss]
     slide-number: true
     transition: fade
     logo: medium
+    footer: "{{< meta title >}}"
 ---
 
 ```{r}
@@ -18,41 +23,40 @@ library(plotly)
 brand_quarto_setup()
 ```
 
-## Branded Presentation
+## Overview
 
-Colours, fonts, and styling come from `_brand.yml`.
+This deck was scaffolded by `create_brand_quarto_slides()`. Colours,
+fonts, and styling come from `_brand.yml`; all ggplot2 and plotly
+output is auto-themed.
 
-All ggplot2 and plotly output is auto-themed.
-
-## Static Plot
+## Branded Plot
 
 ```{r}
 #| label: scatter
 #| fig-width: 8
 #| fig-height: 4
-ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
+p <- ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
   geom_point(size = 3) +
   labs(title = "MPG vs Weight", color = "Cylinders")
+p
 ```
 
-## Interactive Plotly
+## Interactive Version
+
+The same plot, made interactive with one extra function call:
 
 ```{r}
 #| label: plotly
-p <- ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) +
-  geom_point(size = 3) +
-  labs(title = "Iris — Hover for Details")
-
 brand_plotly(p, tooltip = c("x", "y", "colour"), width = 1000, height = 600)
 ```
 
-## Palette Overview
+## Brand Palette
 
 ```{r}
 #| label: palette
 #| fig-width: 8
 #| fig-height: 3
-cols <- brand_pal_discrete(n = 8)
+cols <- brand_pal_discrete()
 barplot(rep(1, length(cols)), col = cols, border = NA, axes = FALSE,
         main = "Brand discrete palette")
 ```

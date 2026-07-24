@@ -9,6 +9,13 @@
 #' font choice, logo upload, and live preview. On save, writes a complete
 #' `_brand.yml` (and optional font/logo assets) to a target directory.
 #'
+#' The `_brand.yml` this writes uses the Shiny/bslib format (`color-dark:`,
+#' `theme:` sections) — Quarto's own renderer does not accept those keys.
+#' If `path` is also used for a Quarto project, re-run whichever of
+#' [create_brand_quarto_html()], [create_brand_quarto_slides()], or
+#' [create_brand_quarto_pdf()] you use after saving here; they detect and
+#' convert a bslib-format `_brand.yml` automatically.
+#'
 #' @param path Directory to write the generated `_brand.yml` and assets.
 #'   Default is the current working directory.
 #'
@@ -116,147 +123,135 @@ configure_brand <- function(path = ".") {
     "Quicksand / Quicksand"            = list(base = "Quicksand", heading = "Quicksand"),
     "Nunito Sans / Nunito"             = list(base = "Nunito Sans", heading = "Nunito"),
     "Rubik / Rubik"                    = list(base = "Rubik", heading = "Rubik"),
+    # --- Unconventional (still readable) ---
+    "Space Mono / Space Grotesk"       = list(base = "Space Mono", heading = "Space Grotesk"),
+    "Karla / Bungee"                   = list(base = "Karla", heading = "Bungee"),
     "Custom"                           = NULL
   )
 
   # ===== UI =====
-  ui <- bslib::page_fluid(
-    theme = bslib::bs_theme(version = 5, preset = "flatly"),
+  ui <- bslib::page_sidebar(
     title = "brandkit configurator",
+    theme = bslib::bs_theme(version = 5, preset = "flatly", brand = FALSE),
 
-    htmltools::tags$head(htmltools::tags$style(htmltools::HTML('
-      .color-preview {
-        width: 100%; height: 36px; border-radius: 6px;
-        border: 1px solid #ddd; margin-bottom: 8px;
-      }
-      .step-panel { min-height: 400px; }
-      .preview-card { border: 2px solid var(--bs-primary); }
-      body { padding: 1rem 2rem; }
-    '))),
+    sidebar = bslib::sidebar(
+      width = 380,
+      bslib::accordion(
+        id = "config_accordion",
+        open = FALSE,
+
+        bslib::accordion_panel(
+          "Colours",
+          shiny::selectInput("preset", "Start from a preset:",
+                             names(presets), selected = "Wine & Sage"),
+          htmltools::hr(),
+          colourpicker::colourInput("col_primary", "Primary", "#570a10"),
+          colourpicker::colourInput("col_secondary", "Secondary", "#ad720a"),
+          colourpicker::colourInput("col_success", "Success", "#325106"),
+          colourpicker::colourInput("col_danger", "Danger", "#d64550"),
+          colourpicker::colourInput("col_warning", "Warning", "#cda029"),
+          colourpicker::colourInput("col_info", "Info", "#5a8cb5"),
+          htmltools::hr(),
+          colourpicker::colourInput("col_light", "Background (light)", "#bad9cf"),
+          colourpicker::colourInput("col_dark", "Foreground (dark)", "#1a1c1a"),
+          htmltools::hr(),
+          shiny::checkboxInput("auto_dark", "Auto-generate dark mode palette", TRUE)
+        ),
+
+        bslib::accordion_panel(
+          "Fonts",
+          shiny::selectInput(
+            "font_pair",
+            label = htmltools::tagList(
+              "Font pairing:",
+              bslib::popover(
+                htmltools::tags$span(
+                  "ⓘ",
+                  style = paste0(
+                    "cursor: pointer; font-weight: bold; margin-left: 6px; ",
+                    "color: var(--bs-primary);"
+                  )
+                ),
+                title = "Using your own system fonts",
+                htmltools::tags$p(
+                  "Want a font already installed on this computer instead ",
+                  "of a Google Font? Pick \"Custom\" above, then type its ",
+                  "exact name into the Body font / Heading font boxes below."
+                ),
+                htmltools::tags$p(htmltools::strong("Where to look it up:")),
+                htmltools::tags$ul(
+                  htmltools::tags$li("Windows: Settings → Personalization → Fonts"),
+                  htmltools::tags$li("macOS: Font Book (Cmd+Space, search \"Font Book\")"),
+                  htmltools::tags$li("Linux: run ", htmltools::code("fc-list"), " in a terminal")
+                ),
+                htmltools::tags$p(
+                  htmltools::em(
+                    "A system font only renders correctly on machines that ",
+                    "have it installed — it won't carry over to Quarto/PDF ",
+                    "rendering unless you also supply the font file."
+                  )
+                )
+              )
+            ),
+            choices = names(font_pairs), selected = "Manrope / Montserrat"
+          ),
+          htmltools::hr(),
+          shiny::textInput("font_base", "Body font:", "Manrope"),
+          shiny::textInput("font_heading", "Heading font:", "Montserrat"),
+          shiny::textInput("font_mono", "Code font:", "Manrope"),
+          htmltools::hr(),
+          shiny::numericInput("font_size", "Base size (rem):", 1, min = 0.7, max = 1.5, step = 0.05),
+          shiny::numericInput("line_height", "Line height:", 1.65, min = 1.2, max = 2, step = 0.05)
+        ),
+
+        bslib::accordion_panel(
+          "Meta & Logo",
+          shiny::textInput("brand_name", "Brand name:", "My Brand"),
+          shiny::fileInput("logo_file", "Logo (optional):",
+                           accept = c("image/png", "image/svg+xml", "image/jpeg")),
+          htmltools::hr(),
+          shiny::numericInput("border_radius", "Border radius (rem):", 0.75,
+                             min = 0, max = 2, step = 0.25)
+        )
+      ),
+
+      htmltools::hr(),
+      htmltools::div(
+        style = "font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;",
+        paste("Save to:", path)
+      ),
+      shiny::actionButton("save_brand", "Save & Close",
+                          class = "btn-lg btn-success w-100")
+    ),
 
     # Reactive font loader — injected into head, updated from server
     shiny::uiOutput("font_loader"),
 
-    htmltools::h2("brandkit configurator", style = "margin-bottom: 1.5rem;"),
+    bslib::navset_tab(
+      id = "main_tabs",
 
-    bslib::navset_pill(
-      id = "wizard_step",
-
-      # ----- Step 1: Colours -----
+      # ----- Live preview (default) -----
       bslib::nav_panel(
-        "1. Colours",
+        "Live Preview",
         htmltools::div(
-          class = "step-panel",
-          bslib::layout_columns(
-            col_widths = c(4, 8),
-
-            # Left: controls
-            bslib::card(
-              bslib::card_header("Colour palette"),
-              shiny::selectInput("preset", "Start from a preset:",
-                                 names(presets), selected = "Wine & Sage"),
-              htmltools::hr(),
-              colourpicker::colourInput("col_primary", "Primary", "#570a10"),
-              colourpicker::colourInput("col_secondary", "Secondary", "#ad720a"),
-              colourpicker::colourInput("col_success", "Success", "#325106"),
-              colourpicker::colourInput("col_danger", "Danger", "#d64550"),
-              colourpicker::colourInput("col_warning", "Warning", "#cda029"),
-              colourpicker::colourInput("col_info", "Info", "#5a8cb5"),
-              htmltools::hr(),
-              colourpicker::colourInput("col_light", "Background (light)", "#bad9cf"),
-              colourpicker::colourInput("col_dark", "Foreground (dark)", "#1a1c1a"),
-              htmltools::hr(),
-              shiny::checkboxInput("auto_dark", "Auto-generate dark mode palette", TRUE)
-            ),
-
-            # Right: preview
-            bslib::card(
-              bslib::card_header("Preview"),
-              shiny::uiOutput("colour_preview"),
-              htmltools::hr(),
-              htmltools::h5("Dark mode (auto-generated):"),
-              shiny::uiOutput("dark_preview")
-            )
-          )
-        )
-      ),
-
-      # ----- Step 2: Fonts -----
-      bslib::nav_panel(
-        "2. Fonts",
-        htmltools::div(
-          class = "step-panel",
-          bslib::layout_columns(
-            col_widths = c(4, 8),
-            bslib::card(
-              bslib::card_header("Typography"),
-              shiny::selectInput("font_pair", "Font pairing:",
-                                 names(font_pairs), selected = "Manrope / Montserrat"),
-              htmltools::hr(),
-              shiny::textInput("font_base", "Body font:", "Manrope"),
-              shiny::textInput("font_heading", "Heading font:", "Montserrat"),
-              htmltools::hr(),
-              shiny::numericInput("font_size", "Base size (rem):", 1, min = 0.7, max = 1.5, step = 0.05),
-              shiny::numericInput("line_height", "Line height:", 1.65, min = 1.2, max = 2, step = 0.05)
-            ),
-            bslib::card(
-              bslib::card_header("Preview"),
-              shiny::uiOutput("font_preview")
-            )
-          )
-        )
-      ),
-
-      # ----- Step 3: Meta & Logo -----
-      bslib::nav_panel(
-        "3. Meta & Logo",
-        htmltools::div(
-          class = "step-panel",
-          bslib::layout_columns(
-            col_widths = c(4, 8),
-            bslib::card(
-              bslib::card_header("Brand identity"),
-              shiny::textInput("brand_name", "Brand name:", "My Brand"),
-              shiny::fileInput("logo_file", "Logo (optional):",
-                               accept = c("image/png", "image/svg+xml", "image/jpeg")),
-              htmltools::hr(),
-              shiny::numericInput("border_radius", "Border radius (rem):", 0.75,
-                                 min = 0, max = 2, step = 0.25)
-            ),
-            bslib::card(
-              bslib::card_header("Preview"),
-              shiny::uiOutput("meta_preview")
-            )
-          )
-        )
-      ),
-
-      # ----- Step 4: Review & Save -----
-      bslib::nav_panel(
-        "4. Save",
-        htmltools::div(
-          class = "step-panel",
+          style = "padding-top: 1rem;",
+          shiny::uiOutput("preview_banner"),
           bslib::layout_columns(
             col_widths = c(6, 6),
-            bslib::card(
-              bslib::card_header("Generated _brand.yml"),
-              shiny::verbatimTextOutput("yml_preview")
-            ),
-            bslib::card(
-              bslib::card_header("Live preview"),
-              shiny::plotOutput("final_plot", height = "250px"),
-              htmltools::hr(),
-              shiny::uiOutput("final_card_preview")
-            )
-          ),
-          htmltools::div(
-            style = "margin-top: 1rem; text-align: right;",
-            htmltools::tags$label(
-              paste("Save to:", path),
-              style = "margin-right: 1rem; color: #666;"
-            ),
-            shiny::actionButton("save_brand", "Save & Close",
-                                class = "btn-lg btn-success")
+            shiny::uiOutput("preview_light"),
+            shiny::uiOutput("preview_dark")
+          )
+        )
+      ),
+
+      # ----- Raw YAML -----
+      bslib::nav_panel(
+        "YAML",
+        htmltools::div(
+          style = "padding-top: 1rem;",
+          bslib::card(
+            bslib::card_header("Generated _brand.yml"),
+            shiny::verbatimTextOutput("yml_preview")
           )
         )
       )
@@ -282,11 +277,15 @@ configure_brand <- function(path = ".") {
     })
 
     # -- Font pair sync --
+    # Code font defaults to the body font on every pairing switch (kept a
+    # freely-editable text input afterward, same as font_base/font_heading,
+    # so it's still a default, not a lock).
     shiny::observeEvent(input$font_pair, {
       fp <- font_pairs[[input$font_pair]]
       if (!is.null(fp)) {
         shiny::updateTextInput(session, "font_base", value = fp$base)
         shiny::updateTextInput(session, "font_heading", value = fp$heading)
+        shiny::updateTextInput(session, "font_mono", value = fp$base)
       }
     })
 
@@ -294,7 +293,8 @@ configure_brand <- function(path = ".") {
     output$font_loader <- shiny::renderUI({
       base <- input$font_base
       heading <- input$font_heading
-      families <- unique(c(base, heading))
+      mono <- input$font_mono
+      families <- unique(c(base, heading, mono))
       url <- paste0(
         "https://fonts.googleapis.com/css2?",
         paste0("family=", gsub(" ", "+", families), ":wght@400;700", collapse = "&"),
@@ -304,7 +304,14 @@ configure_brand <- function(path = ".") {
     })
 
     # -- Reactive colours --
-    light_cols <- shiny::reactive({
+    # Debounced: colourpicker's updateColourInput() round-trips each
+    # input through its JS widget individually, so applying a preset
+    # (8 inputs at once) arrives back on the server as a staggered burst
+    # of separate changes rather than one atomic update — visible as the
+    # preview flickering through intermediate combinations before it
+    # settles. Debouncing waits for the burst to finish before any
+    # downstream output (banner/cards/plot/YAML) recomputes.
+    light_cols_raw <- shiny::reactive({
       list(
         primary = input$col_primary, secondary = input$col_secondary,
         success = input$col_success, danger = input$col_danger,
@@ -313,6 +320,7 @@ configure_brand <- function(path = ".") {
         foreground = input$col_dark, background = input$col_light
       )
     })
+    light_cols <- shiny::debounce(light_cols_raw, millis = 200)
 
     dark_cols <- shiny::reactive({
       if (!input$auto_dark) return(NULL)
@@ -331,153 +339,114 @@ configure_brand <- function(path = ".") {
       )
     })
 
-    # -- Colour preview --
-    output$colour_preview <- shiny::renderUI({
+    # -- Logo tag (shared by banner preview) --
+    logo_tag <- shiny::reactive({
+      if (is.null(input$logo_file)) return(NULL)
+      # Serve logo via Shiny resource path
+      logo_dir <- dirname(input$logo_file$datapath)
+      logo_name <- basename(input$logo_file$datapath)
+      shiny::addResourcePath("brandkit-preview-logo", logo_dir)
+      htmltools::img(
+        src = paste0("brandkit-preview-logo/", logo_name),
+        style = "max-height: 56px; margin-bottom: 10px;"
+      )
+    })
+
+    # -- Banner preview (mirrors the .brand-banner used in the scaffolded
+    #    HTML report, so this preview matches what create_brand_quarto_html()
+    #    actually produces) --
+    output$preview_banner <- shiny::renderUI({
       lc <- light_cols()
-      swatch <- function(nm, hex) {
-        htmltools::div(
-          style = paste0(
-            "flex: 1; min-width: 60px; text-align: center; ",
-            "padding: 12px 4px; border-radius: 6px; ",
-            "background:", hex, "; ",
-            "color:", if (is_dark_colour(hex)) "white" else "black", "; ",
-            "font-size: 11px; font-weight: bold;"
-          ),
-          nm
-        )
-      }
       htmltools::div(
-        style = paste0("background:", lc$light, "; padding: 16px; border-radius: 8px;"),
-        htmltools::div(
-          style = "display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;",
-          swatch("primary", lc$primary), swatch("secondary", lc$secondary),
-          swatch("success", lc$success), swatch("danger", lc$danger),
-          swatch("warning", lc$warning), swatch("info", lc$info)
+        style = paste0(
+          "background:", lc$primary, "; color: white; text-align: center; ",
+          "padding: 2rem 1rem; border-radius:", input$border_radius, "rem; ",
+          "margin-bottom: 1rem;"
         ),
-        htmltools::div(
-          style = "display: flex; gap: 6px;",
-          htmltools::div(
-            style = paste0(
-              "flex: 1; padding: 10px; border-radius: 6px; text-align: center; ",
-              "background:", lc$light, "; color:", lc$dark, "; ",
-              "border: 1px solid ", lc$dark, "; font-size: 11px; font-weight: bold;"
-            ),
-            paste0("background: ", lc$light)
-          ),
-          htmltools::div(
-            style = paste0(
-              "flex: 1; padding: 10px; border-radius: 6px; text-align: center; ",
-              "background:", lc$dark, "; color:", lc$light, "; ",
-              "font-size: 11px; font-weight: bold;"
-            ),
-            paste0("foreground: ", lc$dark)
+        logo_tag(),
+        htmltools::h2(
+          input$brand_name,
+          style = paste0(
+            "font-family:'", input$font_heading, "', sans-serif;",
+            " font-weight: 700; margin: 0; color: white;"
           )
         )
       )
     })
 
-    output$dark_preview <- shiny::renderUI({
-      dc <- dark_cols()
-      if (is.null(dc)) return(htmltools::p("Dark mode auto-generation disabled."))
+    # -- Light / dark mode previews: one bordered surface per mode,
+    #    holding swatches and a stress-test line chart — no nested
+    #    boxes-within-boxes.
+    output$preview_light <- shiny::renderUI({
+      lc <- light_cols()
       htmltools::div(
-        style = paste0("background:", dc$background,
-                       "; padding: 16px; border-radius: 8px;"),
+        style = paste0(
+          "background:", lc$background, "; padding: 16px; ",
+          "border-radius:", input$border_radius, "rem; ",
+          "box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);"
+        ),
+        brandkit_mode_label(lc, "Light Mode"),
+        brandkit_swatches(lc),
         htmltools::div(
-          style = "display: flex; gap: 6px; flex-wrap: wrap;",
-          lapply(c("primary", "secondary", "success", "danger", "warning", "info"),
-                 function(nm) {
-                   htmltools::div(
-                     style = paste0(
-                       "flex: 1; min-width: 60px; text-align: center; ",
-                       "padding: 12px 4px; border-radius: 6px; ",
-                       "background:", dc[[nm]], "; ",
-                       "color:", if (is_dark_colour(dc[[nm]])) "white" else "black", "; ",
-                       "font-size: 11px; font-weight: bold;"
-                     ),
-                     nm
-                   )
-                 })
+          style = "margin-top: 14px;",
+          brandkit_typography_sample(lc, input$font_base, input$font_heading,
+                                     input$font_mono, input$brand_name,
+                                     input$font_size, input$line_height)
+        ),
+        htmltools::div(
+          style = "margin-top: 10px;",
+          shiny::plotOutput("preview_plot_light", height = "220px")
         )
       )
     })
 
-    # -- Font preview --
-    output$font_preview <- shiny::renderUI({
-      base <- input$font_base
-      heading <- input$font_heading
-      lc <- light_cols()
-      htmltools::div(
-        style = paste0("padding: 20px; background:", lc$light,
-                       "; border-radius: 8px;"),
-        htmltools::h2(
-          "Heading in ", heading,
-          style = paste0("font-family:'", heading, "', sans-serif;",
-                         " color:", lc$primary, "; font-weight: 700;")
-        ),
-        htmltools::p(
-          "Body text in ", base, ". This is what your paragraphs, labels, ",
-          "and general content will look like across Shiny, Quarto, and plots.",
-          style = paste0("font-family:'", base, "', sans-serif;",
-                         " color:", lc$dark,
-                         "; font-size:", input$font_size, "rem;",
-                         " line-height:", input$line_height, ";")
-        ),
-        htmltools::p(
-          htmltools::strong("Bold text"), " and ",
-          htmltools::em("italic text"), " samples.",
-          style = paste0("font-family:'", base, "', sans-serif; color:", lc$dark, ";")
-        ),
-        htmltools::h4(
-          "Card header sample",
-          style = paste0("font-family:'", heading, "', sans-serif;",
-                         " color:", lc$primary, "; font-weight: 700;",
-                         " margin-top: 16px;")
-        ),
-        htmltools::p(
-          "This shows how card headers and titles will render with your heading font.",
-          style = paste0("font-family:'", base, "', sans-serif; color:", lc$dark, ";")
-        )
-      )
-    })
-
-    # -- Meta preview --
-    output$meta_preview <- shiny::renderUI({
-      lc <- light_cols()
-      base <- input$font_base
-      heading <- input$font_heading
-      logo_tag <- NULL
-      if (!is.null(input$logo_file)) {
-        # Serve logo via Shiny resource path
-        logo_dir <- dirname(input$logo_file$datapath)
-        logo_name <- basename(input$logo_file$datapath)
-        shiny::addResourcePath("brandkit-preview-logo", logo_dir)
-        logo_tag <- htmltools::img(
-          src = paste0("brandkit-preview-logo/", logo_name),
-          style = "max-height: 80px; margin-bottom: 12px;"
-        )
+    output$preview_dark <- shiny::renderUI({
+      dc <- dark_cols()
+      if (is.null(dc)) {
+        return(htmltools::div(
+          style = "padding: 20px; text-align: center; color: #999; font-style: italic;",
+          "Dark mode auto-generation disabled."
+        ))
       }
       htmltools::div(
-        style = paste0("padding: 20px; background:", lc$light,
-                       "; border-radius: ", input$border_radius, "rem;",
-                       " font-family:'", base, "', sans-serif;"),
-        logo_tag,
-        htmltools::h3(input$brand_name,
-                      style = paste0("color:", lc$primary,
-                                     "; font-family:'", heading, "', sans-serif;",
-                                     " font-weight: 700;")),
-        htmltools::p("Cards, buttons, and containers will use this border radius.",
-                     style = paste0("color:", lc$dark, ";")),
+        style = paste0(
+          "background:", dc$background, "; padding: 16px; ",
+          "border-radius:", input$border_radius, "rem; ",
+          "box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);"
+        ),
+        brandkit_mode_label(dc, "Dark Mode"),
+        brandkit_swatches(dc),
         htmltools::div(
-          style = paste0(
-            "display: inline-block; padding: 8px 20px; ",
-            "background:", lc$primary, "; color: white; ",
-            "border-radius:", input$border_radius, "rem; font-weight: bold;",
-            " font-family:'", base, "', sans-serif;"
-          ),
-          "Sample Button"
+          style = "margin-top: 14px;",
+          brandkit_typography_sample(dc, input$font_base, input$font_heading,
+                                     input$font_mono, input$brand_name,
+                                     input$font_size, input$line_height)
+        ),
+        htmltools::div(
+          style = "margin-top: 10px;",
+          shiny::plotOutput("preview_plot_dark", height = "220px")
         )
       )
     })
+
+    # -- Stress-test line charts: several jittery, overlapping series in
+    #    the palette colours, so two colours that are too close to tell
+    #    apart (or don't stand out against the background) show up
+    #    immediately, the way flat swatches never reveal. The underlying
+    #    random walks are seeded so only the colours change on tweak —
+    #    a stable "same bad case, different palette" comparison.
+    output$preview_plot_light <- shiny::renderPlot({
+      lc <- light_cols()
+      pal <- c(lc$primary, lc$secondary, lc$success, lc$danger, lc$warning, lc$info)
+      brandkit_stress_plot(pal, bg = lc$background, fg = lc$foreground)
+    }, res = 96)
+
+    output$preview_plot_dark <- shiny::renderPlot({
+      dc <- dark_cols()
+      shiny::req(dc)
+      pal <- c(dc$primary, dc$secondary, dc$success, dc$danger, dc$warning, dc$info)
+      brandkit_stress_plot(pal, bg = dc$background, fg = dc$foreground)
+    }, res = 96)
 
     # -- Build YAML --
     brand_yml <- shiny::reactive({
@@ -494,9 +463,13 @@ configure_brand <- function(path = ".") {
           foreground = lc$dark, background = lc$light
         ),
         typography = list(
-          fonts = list(
-            list(family = input$font_base, source = "google"),
-            list(family = input$font_heading, source = "google")
+          # Deduplicated by family — code font defaults to the body font
+          # (see the font_pair sync above), so base/heading/mono commonly
+          # repeat the same family, and Quarto would otherwise be told to
+          # fetch the identical Google Font two or three times over.
+          fonts = lapply(
+            unique(c(input$font_base, input$font_heading, input$font_mono)),
+            function(fam) list(family = fam, source = "google")
           ),
           base = list(
             family = input$font_base,
@@ -508,6 +481,11 @@ configure_brand <- function(path = ".") {
             family = input$font_heading,
             weight = 700L,
             `line-height` = 1.1
+          ),
+          monospace = list(
+            family = input$font_mono,
+            size = paste0(input$font_size, "rem"),
+            weight = 400L
           )
         ),
         theme = list(
@@ -544,61 +522,30 @@ configure_brand <- function(path = ".") {
       cat(yaml::as.yaml(brand_yml()))
     })
 
-    # -- Final preview plot --
-    output$final_plot <- shiny::renderPlot({
-      lc <- light_cols()
-      base <- input$font_base
-      heading <- input$font_heading
-      pal <- c(lc$primary, lc$secondary, lc$success, lc$danger, lc$warning, lc$info)
-
-      # Try to register the selected font for plot text
-      font_family <- ""
-      if (requireNamespace("sysfonts", quietly = TRUE) &&
-          requireNamespace("showtext", quietly = TRUE)) {
-        tryCatch({
-          sysfonts::font_add_google(heading, heading)
-          sysfonts::font_add_google(base, base)
-          showtext::showtext_auto()
-          font_family <- base
-        }, error = function(e) NULL)
-      }
-
-      par(bg = lc$light, mar = c(2, 2, 3, 1),
-          family = if (nzchar(font_family)) font_family else "sans")
-      barplot(
-        c(8, 6, 5, 4, 3, 2), col = pal, border = NA,
-        names.arg = c("Primary", "Sec.", "Success", "Danger", "Warn.", "Info"),
-        main = paste(input$brand_name, "\u2014 palette"),
-        col.main = lc$dark, col.axis = lc$dark, col.lab = lc$dark,
-        font.main = 2  # bold
-      )
-    })
-
-    output$final_card_preview <- shiny::renderUI({
-      lc <- light_cols()
-      base <- input$font_base
-      heading <- input$font_heading
-      htmltools::div(
-        style = paste0(
-          "background:", lc$light, "; padding: 16px; ",
-          "border-radius:", input$border_radius, "rem; ",
-          "border: 1px solid ", lc$primary, ";",
-          " font-family:'", base, "', sans-serif;"
-        ),
-        htmltools::h4(input$brand_name,
-                      style = paste0("color:", lc$primary,
-                                     "; margin: 0 0 8px 0;",
-                                     " font-family:'", heading, "', sans-serif;",
-                                     " font-weight: 700;")),
-        htmltools::p("This is how a branded card will look.",
-                     style = paste0("color:", lc$dark, "; margin: 0;"))
-      )
-    })
+    # Shiny suspends computation for outputs inside a hidden tab panel by
+    # default, so the whole Live Preview / YAML tab's outputs invalidate
+    # and recompute together the moment you switch onto it — visible as a
+    # burst of updates that then settles once each has caught up. Keeping
+    # them live avoids that stagger; none of these are expensive enough
+    # to justify suspending them while off-screen.
+    shiny::outputOptions(output, "preview_banner", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "preview_light", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "preview_dark", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "preview_plot_light", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "preview_plot_dark", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "yml_preview", suspendWhenHidden = FALSE)
 
     # -- Save --
     shiny::observeEvent(input$save_brand, {
       cfg <- brand_yml()
       dest <- file.path(path, "_brand.yml")
+
+      # This always writes the Shiny/bslib format (color-dark:, theme:),
+      # which Quarto's own renderer rejects. If a Quarto project was
+      # already scaffolded here, its _brand.yml is about to be clobbered
+      # with a format Quarto can't read.
+      was_quarto_format <- file.exists(dest) && is_quarto_compatible_brand_yml(dest)
+
       yaml::write_yaml(cfg, dest)
 
       # Copy logo file if uploaded
@@ -615,6 +562,16 @@ configure_brand <- function(path = ".") {
         error = function(e) NULL
       )
 
+      if (was_quarto_format) {
+        message(
+          "Note: _brand.yml at ", dest, " was in Quarto-compatible format ",
+          "and has been replaced with the Shiny/bslib format. Re-run ",
+          "create_brand_quarto_html()/create_brand_quarto_slides()/",
+          "create_brand_quarto_pdf() (they'll auto-convert it back) before ",
+          "rendering any Quarto document in this project again."
+        )
+      }
+
       shiny::showNotification(
         paste("\u2714 Saved _brand.yml to", dest, "\u2014 closing configurator..."),
         type = "message", duration = 2
@@ -625,6 +582,30 @@ configure_brand <- function(path = ".") {
         shiny::stopApp(returnValue = dest)
       }, delay = 1.5)
     })
+  }
+
+  # bslib auto-discovers _brand.yml by walking up from the working
+  # directory, and does so from more than one internal call site (passing
+  # brand = FALSE to our own bs_theme() call above only covers that one
+  # call — Shiny's own tag-rendering pipeline independently constructs a
+  # default bs_theme() elsewhere, with no way for us to intercept it).
+  # The only fully reliable way to keep the configurator's UI from ever
+  # hitting an incompatible _brand.yml is to make sure none is
+  # discoverable at all: run the app with the working directory
+  # temporarily pointed somewhere brand-free, and always restore it.
+  old_wd <- getwd()
+  setwd(tempdir())
+  on.exit(setwd(old_wd), add = TRUE)
+
+  # If a previous configure_brand() call was interrupted while still
+  # starting up (e.g. Ctrl-C/Escape hit right after launch, before the
+  # app finished initialising), Shiny's own internal "an app is running"
+  # flag can be left stuck, and every later runApp() call fails with
+  # "Can't call runApp() from within runApp()" even though nothing is
+  # actually running. Proactively stopping any orphaned httpuv server
+  # first clears that out via the public API, rather than restarting R.
+  if (requireNamespace("httpuv", quietly = TRUE)) {
+    tryCatch(httpuv::stopAllServers(), error = function(e) NULL)
   }
 
   result <- shiny::runApp(shiny::shinyApp(ui, server), launch.browser = TRUE)
@@ -647,7 +628,11 @@ auto_dark_variant <- function(hex) {
 #' Generate dark background from light foreground
 #' @keywords internal
 auto_dark_bg <- function(hex) {
-  colorspace::darken(hex, amount = 0.85)
+  # hex is already the light mode's dark/foreground colour, so it's
+  # already quite dark to begin with — darkening it further by 0.85
+  # crushed almost any input toward pure black, losing the brand's hue.
+  # A lighter touch keeps more of that colour's character.
+  colorspace::darken(hex, amount = 0.45)
 }
 
 #' Generate light foreground from dark background
@@ -663,4 +648,113 @@ is_dark_colour <- function(hex) {
   # Relative luminance approximation
   lum <- (0.299 * rgb[1] + 0.587 * rgb[2] + 0.114 * rgb[3]) / 255
   lum < 0.5
+}
+
+
+# --------------------------------------------------------------------------
+# Internal: shared live-preview building blocks (used for both light and
+# dark mode in the configurator's Live Preview tab)
+# --------------------------------------------------------------------------
+
+#' Row of semantic colour swatches
+#' @keywords internal
+brandkit_swatches <- function(cols) {
+  swatch <- function(nm, hex) {
+    htmltools::div(
+      style = paste0(
+        "flex: 1; min-width: 60px; text-align: center; ",
+        "padding: 12px 4px; border-radius: 6px; ",
+        "background:", hex, "; ",
+        "color:", if (is_dark_colour(hex)) "white" else "black", "; ",
+        "font-size: 11px; font-weight: bold;"
+      ),
+      nm
+    )
+  }
+  htmltools::div(
+    style = "display: flex; gap: 6px; flex-wrap: wrap;",
+    swatch("primary", cols$primary), swatch("secondary", cols$secondary),
+    swatch("success", cols$success), swatch("danger", cols$danger),
+    swatch("warning", cols$warning), swatch("info", cols$info)
+  )
+}
+
+#' Section label + heading/body/code sample, to actually evaluate the
+#' chosen font trio (not just name it) — heading rendered in the heading
+#' font, body copy rendered in the base font at the configured size and
+#' line height, and a code snippet rendered in the monospace font (the
+#' same one that reaches code chunks in the Quarto Typst PDF via
+#' `typography.monospace.family`).
+#' @keywords internal
+brandkit_typography_sample <- function(cols, base, heading, mono, brand_name,
+                                       font_size = 1, line_height = 1.5) {
+  htmltools::div(
+    htmltools::h4(
+      brand_name,
+      style = paste0(
+        "color:", cols$primary, "; margin: 0 0 4px 0;",
+        " font-family:'", heading, "', sans-serif; font-weight: 700;"
+      )
+    ),
+    htmltools::p(
+      "Regular text sits alongside ",
+      htmltools::strong("bold emphasis"), ", ",
+      htmltools::em("italic emphasis"), ", and even ",
+      htmltools::tags$small("a quieter aside"),
+      " — enough to eyeball before shipping a report.",
+      style = paste0(
+        "color:", cols$foreground, "; margin: 0 0 6px 0;",
+        " font-family:'", base, "', sans-serif;",
+        " font-size:", font_size, "rem; line-height:", line_height, ";"
+      )
+    ),
+    htmltools::tags$code(
+      "brand_pal_discrete()",
+      style = paste0(
+        "display: inline-block; color:", cols$foreground, "; background:",
+        cols$light, "; padding: 2px 6px; border-radius: 4px;",
+        " font-family:'", mono, "', monospace;",
+        " font-size:", font_size, "rem;"
+      )
+    )
+  )
+}
+
+#' Small, unobtrusive mode label — replaces a bslib::card_header() now
+#' that the coloured surface itself is the card, not something nested
+#' inside a separate neutral one
+#' @keywords internal
+brandkit_mode_label <- function(cols, label) {
+  htmltools::div(
+    label,
+    style = paste0(
+      "font-size: 12px; font-weight: 700; text-transform: uppercase; ",
+      "letter-spacing: 0.04em; color:", cols$foreground, "; opacity: 0.55; ",
+      "margin-bottom: 10px;"
+    )
+  )
+}
+
+#' "Bad case scenario" stress-test chart: several erratic, overlapping
+#' random-walk lines in the given palette colours. Flat swatches never
+#' reveal when two colours are too close to tell apart, or too weak
+#' against the background — busy, realistic chart data does. The walks
+#' are seeded so only the colours change when the palette is tweaked, a
+#' stable "same bad case, different palette" comparison.
+#' @keywords internal
+brandkit_stress_plot <- function(pal, bg, fg) {
+  n <- 60
+  walks <- lapply(seq_along(pal), function(i) {
+    set.seed(100 + i)
+    cumsum(stats::rnorm(n, sd = 1))
+  })
+  y_range <- range(unlist(walks))
+
+  par(bg = bg, mar = c(2.5, 2.5, 0.5, 0.5))
+  plot(NULL, xlim = c(1, n), ylim = y_range, axes = FALSE, xlab = "", ylab = "")
+  axis(1, col = fg, col.axis = fg, cex.axis = 0.7)
+  axis(2, col = fg, col.axis = fg, cex.axis = 0.7)
+  for (i in seq_along(pal)) {
+    lines(seq_len(n), walks[[i]], col = pal[i], lwd = 2)
+  }
 }

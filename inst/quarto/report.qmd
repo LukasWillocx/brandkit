@@ -1,0 +1,83 @@
+---
+title: "Brand Report"
+subtitle: "A polished starting point for branded HTML reports"
+author: "Your Name"
+date: today
+format:
+  html:
+    title-block-style: none
+    theme: [brand, brandkit.scss]
+    toc: false
+---
+
+::: {.brand-banner}
+::: {.brand-banner-inner}
+::: {.brand-banner-content}
+{{< brand logo medium >}}
+
+::: {.brand-banner-title}
+{{< meta title >}}
+:::
+
+::: {.brand-banner-subtitle}
+{{< meta subtitle >}}
+:::
+:::
+:::
+:::
+
+```{r}
+#| label: setup
+#| include: false
+library(brandkit)
+library(ggplot2)
+library(plotly)
+brand_quarto_setup()
+```
+
+## Overview
+
+This report was scaffolded by `create_brand_quarto_html()`. It inherits
+all styling from `_brand.yml` automatically — Quarto handles the
+document theme, brandkit handles ggplot2 and plotly.
+
+## Branded Plot
+
+```{r}
+#| label: scatter
+#| fig-cap: "Auto-themed via theme_brand() — no manual styling needed"
+p <- ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
+  geom_point(size = 3) +
+  labs(title = "MPG vs Weight", color = "Cylinders")
+p
+```
+
+## Interactive Version
+
+The same plot, made interactive with one extra function call:
+
+```{r}
+#| label: plotly-scatter
+brand_plotly(p, tooltip = c("x", "y", "colour"))
+```
+
+## Branded Table
+
+```{r}
+#| label: table
+knitr::kable(head(mtcars[, 1:6], 8))
+```
+
+## Brand Palette
+
+```{r}
+#| label: palette
+#| fig-cap: "Discrete brand palette"
+#| fig-height: 2
+cols <- brand_pal_discrete()
+barplot(rep(1, length(cols)), col = cols, border = NA, axes = FALSE)
+```
+
+::: {.brand-footer}
+Made with [brandkit](https://github.com/LukasWillocx/brandkit) · {{< meta author >}} · {{< meta date >}}
+:::

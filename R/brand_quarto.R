@@ -69,16 +69,19 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
 }
 
 
-#' Set Up brandkit for a Quarto Project
+#' Set Up a Quarto HTML Project
 #'
-#' Copies `_brand.yml`, custom SCSS overrides, and optionally example
-#' documents into a Quarto project directory. After running this, Quarto
-#' auto-detects `_brand.yml` and applies it to HTML, dashboard, revealjs,
-#' and typst formats. The SCSS file layers additional polish on top.
+#' Copies `_brand.yml`, custom SCSS overrides, and an example HTML report
+#' into a Quarto project directory. After running this, Quarto
+#' auto-detects `_brand.yml` and applies it to HTML and dashboard
+#' formats. The SCSS file layers additional polish on top.
+#'
+#' For a revealjs slide deck, see [create_brand_quarto_slides()]. For a
+#' PDF starting point rendered via Quarto's Typst engine, see
+#' [create_brand_quarto_pdf()].
 #'
 #' @param path Project directory. Defaults to the current working directory.
-#' @param examples Logical. Copy example `.qmd` files (report + slides)?
-#'   Default `TRUE`.
+#' @param examples Logical. Copy the example `report.qmd`? Default `TRUE`.
 #' @param overwrite Logical. Overwrite existing files? Default `FALSE`.
 #'
 #' @details
@@ -88,8 +91,7 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
 #'   \item{`brandkit.scss`}{Custom SCSS overrides for cards, tables,
 #'     scrollbars, and nav components — layered after brand in the
 #'     Quarto theme.}
-#'   \item{`example.qmd`}{Sample HTML report (if `examples = TRUE`).}
-#'   \item{`slides.qmd`}{Sample revealjs presentation (if `examples = TRUE`).}
+#'   \item{`report.qmd`}{Sample HTML report (if `examples = TRUE`).}
 #' }
 #'
 #' In your `.qmd` YAML header, reference the SCSS like this:
@@ -102,24 +104,30 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
 #' For ggplot2 theming, just add `library(brandkit)` in a setup chunk —
 #' the auto-applied theme and scales handle the rest.
 #'
+#' If `path` already has a `_brand.yml` written by [configure_brand()]
+#' (the Shiny/bslib format, with `color-dark:`/`theme:` keys), it is
+#' converted to the Quarto-compatible format regardless of `overwrite` —
+#' Quarto's own renderer rejects those bslib-only keys outright, so a
+#' leftover bslib-format file always needs fixing. An already
+#' Quarto-compatible `_brand.yml` is left alone unless `overwrite = TRUE`.
+#'
+#' If the cached brand references a logo whose file can't actually be
+#' found (e.g. a stale cache pointing at a different project), the
+#' `logo:` section is omitted from the written `_brand.yml` rather than
+#' pointing at a file that will never be copied.
+#'
 #' @return Invisibly returns a character vector of copied file paths.
 #' @export
-use_brand_quarto <- function(path = ".", examples = TRUE, overwrite = FALSE) {
+create_brand_quarto_html <- function(path = ".", examples = TRUE, overwrite = FALSE) {
 
-  ensure_cache()
   path <- normalizePath(path, mustWork = TRUE)
+  ensure_cache_for_path(path)
 
   copied <- character(0)
 
   # --- _brand.yml (Quarto-compatible) ---
-  brand_dest <- file.path(path, "_brand.yml")
-  if (!file.exists(brand_dest) || overwrite) {
-    write_quarto_brand_yml(brand_dest)
-    copied <- c(copied, brand_dest)
-    message("Wrote _brand.yml (Quarto-compatible)")
-  } else {
-    message("_brand.yml already exists (use overwrite = TRUE to replace)")
-  }
+  brand_dest <- write_brand_yml_for_quarto(path, overwrite)
+  if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
 
   # --- brandkit.scss ---
   scss_src  <- system.file("quarto/brandkit.scss", package = "brandkit")
@@ -130,16 +138,14 @@ use_brand_quarto <- function(path = ".", examples = TRUE, overwrite = FALSE) {
     message("Copied brandkit.scss")
   }
 
-  # --- Example files ---
+  # --- Example report ---
   if (examples) {
-    for (qmd in c("example.qmd", "slides.qmd", "showcase.qmd")) {
-      src  <- system.file(file.path("quarto", qmd), package = "brandkit")
-      dest <- file.path(path, qmd)
-      if (nzchar(src) && (!file.exists(dest) || overwrite)) {
-        file.copy(src, dest, overwrite = overwrite)
-        copied <- c(copied, dest)
-        message("Copied ", qmd)
-      }
+    src  <- system.file("quarto/report.qmd", package = "brandkit")
+    dest <- file.path(path, "report.qmd")
+    if (nzchar(src) && (!file.exists(dest) || overwrite)) {
+      file.copy(src, dest, overwrite = overwrite)
+      copied <- c(copied, dest)
+      message("Copied report.qmd")
     }
   }
 
@@ -152,6 +158,255 @@ use_brand_quarto <- function(path = ".", examples = TRUE, overwrite = FALSE) {
   message("\nDone. In your .qmd YAML, use:")
   message('  theme: [brand, brandkit.scss]')
   message('Then add library(brandkit) in a setup chunk for ggplot2 theming.')
+
+  invisible(copied)
+}
+
+
+#' Set Up a Quarto Revealjs Slides Project
+#'
+#' Copies `_brand.yml`, custom SCSS overrides, and an example revealjs
+#' presentation into a Quarto project directory. After running this,
+#' Quarto auto-detects `_brand.yml` and applies it to the revealjs
+#' format. The SCSS file layers additional polish (logo sizing, nav
+#' pills, scrollbars) on top.
+#'
+#' @param path Project directory. Defaults to the current working directory.
+#' @param examples Logical. Copy the example `slides.qmd`? Default `TRUE`.
+#' @param overwrite Logical. Overwrite existing files? Default `FALSE`.
+#'
+#' @details
+#' This function copies the following into `path`:
+#' \describe{
+#'   \item{`_brand.yml`}{From the brandkit cache (your configured brand).}
+#'   \item{`brandkit.scss`}{Custom SCSS overrides — layered after brand in
+#'     the Quarto theme.}
+#'   \item{`slides.qmd`}{Sample revealjs presentation (if `examples = TRUE`).
+#'     Its title slide background is written as a literal hex colour —
+#'     the brand's primary colour darkened — computed at copy time so
+#'     the deck's white title/subtitle/author/date text stays legible
+#'     regardless of the brand's actual primary colour.}
+#' }
+#'
+#' In your `.qmd` YAML header, reference the SCSS like this:
+#' ```yaml
+#' format:
+#'   revealjs:
+#'     theme: [brand, brandkit.scss]
+#'     logo: medium
+#' ```
+#'
+#' For dark mode slides, add `brand-mode: dark` and call
+#' `brand_quarto_setup("dark")` in the setup chunk. For plotly in slides,
+#' always pass fixed dimensions: `brand_plotly(p, width = 1000, height = 600)`.
+#'
+#' If `path` already has a `_brand.yml` written by [configure_brand()]
+#' (the Shiny/bslib format, with `color-dark:`/`theme:` keys), it is
+#' converted to the Quarto-compatible format regardless of `overwrite` —
+#' Quarto's own renderer rejects those bslib-only keys outright, so a
+#' leftover bslib-format file always needs fixing. An already
+#' Quarto-compatible `_brand.yml` is left alone unless `overwrite = TRUE`.
+#'
+#' If the cached brand references a logo whose file can't actually be
+#' found (e.g. a stale cache pointing at a different project), the
+#' `logo:` section is omitted from the written `_brand.yml` rather than
+#' pointing at a file that will never be copied.
+#'
+#' @return Invisibly returns a character vector of copied file paths.
+#' @export
+create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = FALSE) {
+
+  path <- normalizePath(path, mustWork = TRUE)
+  ensure_cache_for_path(path)
+
+  copied <- character(0)
+
+  # --- _brand.yml (Quarto-compatible) ---
+  brand_dest <- write_brand_yml_for_quarto(path, overwrite)
+  if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
+
+  # --- brandkit.scss ---
+  scss_src  <- system.file("quarto/brandkit.scss", package = "brandkit")
+  scss_dest <- file.path(path, "brandkit.scss")
+  if (nzchar(scss_src) && (!file.exists(scss_dest) || overwrite)) {
+    file.copy(scss_src, scss_dest, overwrite = overwrite)
+    copied <- c(copied, scss_dest)
+    message("Copied brandkit.scss")
+  }
+
+  # --- Example slides ---
+  if (examples) {
+    src  <- system.file("quarto/slides.qmd", package = "brandkit")
+    dest <- file.path(path, "slides.qmd")
+    if (nzchar(src) && (!file.exists(dest) || overwrite)) {
+      # Substitute a literal, pre-darkened hex colour for the title
+      # slide background — passing a CSS color-mix()/var() expression
+      # through revealjs's data-background-color attribute depends on
+      # its own JS accepting arbitrary CSS functions there, which isn't
+      # reliable; a plain hex value has no such uncertainty.
+      lines <- readLines(src, warn = FALSE)
+      lines <- gsub(
+        "__BRANDKIT_TITLE_BG__", title_slide_bg_color(), lines,
+        fixed = TRUE
+      )
+      # Drop the `logo: medium` line entirely when no logo is configured
+      # — left in place, revealjs still tries to render a logo image
+      # that doesn't exist, showing a broken-image icon in its corner
+      # instead of just omitting it.
+      if (length(brand_env$logo) == 0) {
+        lines <- lines[!grepl("^\\s*logo:\\s*medium\\s*$", lines)]
+      }
+      writeLines(lines, dest)
+      copied <- c(copied, dest)
+      message("Copied slides.qmd")
+    }
+  }
+
+  # --- Font files (if local fonts are defined) ---
+  copy_brand_fonts(path, overwrite)
+
+  # --- Logo files ---
+  copy_brand_logo(path, overwrite)
+
+  message("\nDone. In your .qmd YAML, use:")
+  message('  theme: [brand, brandkit.scss]')
+  message('Then add library(brandkit) and brand_quarto_setup() in a setup chunk.')
+
+  invisible(copied)
+}
+
+
+#' Set Up a Quarto Typst PDF Project
+#'
+#' Copies `_brand.yml`, a branded Typst format extension, and an example
+#' report into a Quarto project directory, configured to render to PDF
+#' via Quarto's Typst engine. Quarto's own `_brand.yml` integration
+#' already applies brand colours and fonts to headings, links, and body
+#' text in Typst output — but not to code, so the `_extensions/brandkit/`
+#' extension this function installs closes that gap: both inline code
+#' spans and fenced code blocks pick up the brand's configured monospace
+#' font, sized to match the surrounding body text (Typst has no
+#' root-relative unit equivalent to CSS `rem`, so this is resolved to an
+#' absolute length rather than left to compound), and inline code spans
+#' additionally get a colour of their own — a blend of the brand's
+#' secondary accent and foreground colour — so they stand out in running
+#' text. The extension also layers a full-bleed title banner on top — a
+#' diagonal-stripe field (Linux Mint wallpaper style, drawn as Typst
+#' polygons, no image asset) that runs primary-coloured behind the
+#' title/subtitle and switches to secondary-coloured stripes past an
+#' angled seam — plus coloured headings, a coloured footer, and a
+#' code-block corner radius matching the brand's configured
+#' border-radius, none of which the default Typst article template
+#' provides on its own.
+#'
+#' @param path Project directory. Defaults to the current working directory.
+#' @param examples Logical. Copy an example `.qmd` report? Default `TRUE`.
+#' @param overwrite Logical. Overwrite existing files? Default `FALSE`.
+#'
+#' @details
+#' This function copies the following into `path`:
+#' \describe{
+#'   \item{`_brand.yml`}{From the brandkit cache (your configured brand).}
+#'   \item{`_extensions/brandkit/`}{A Quarto Typst format extension
+#'     (`_extension.yml` generated with a brand-derived code-block radius
+#'     and an absolute base font size; `template.typ`, `typst-template.typ`,
+#'     `typst-show.typ`, `page.typ`, and Quarto's own supporting partials)
+#'     that adds a full-bleed diagonal-stripe title banner (with the logo,
+#'     if configured, placed inline in it), coloured headings, a coloured
+#'     footer, and brand-matched code styling (monospace font and body-
+#'     matched size for inline code and fenced blocks alike, plus a
+#'     secondary/foreground colour blend on inline code) on top of
+#'     Quarto's default Typst article template. When there's no title,
+#'     the banner is skipped and the logo falls back to a plain
+#'     page-corner mark instead.}
+#'   \item{`report-pdf.qmd`}{Sample Typst PDF report (if `examples = TRUE`).}
+#' }
+#'
+#' In your `.qmd` YAML header, use the extension's format:
+#' ```yaml
+#' format:
+#'   brandkit-typst:
+#'     toc: true
+#' ```
+#'
+#' Render with `quarto render report-pdf.qmd` to produce a PDF. Requires
+#' Quarto >= 1.8 (brand.yml support for the Typst format); Quarto bundles
+#' the Typst compiler itself, so no separate Typst installation is needed.
+#'
+#' If `path` already has a `_brand.yml` written by [configure_brand()]
+#' (the Shiny/bslib format, with `color-dark:`/`theme:` keys), it is
+#' converted to the Quarto-compatible format regardless of `overwrite` —
+#' Quarto's own renderer rejects those bslib-only keys outright, so a
+#' leftover bslib-format file always needs fixing. An already
+#' Quarto-compatible `_brand.yml` is left alone unless `overwrite = TRUE`.
+#'
+#' If the cached brand references a logo whose file can't actually be
+#' found (e.g. a stale cache pointing at a different project), the
+#' `logo:` section is omitted from the written `_brand.yml` rather than
+#' pointing at a file that will never be copied.
+#'
+#' @return Invisibly returns a character vector of copied file paths.
+#' @export
+create_brand_quarto_pdf <- function(path = ".", examples = TRUE, overwrite = FALSE) {
+
+  path <- normalizePath(path, mustWork = TRUE)
+  ensure_cache_for_path(path)
+
+  copied <- character(0)
+
+  # --- _brand.yml (Quarto-compatible) ---
+  brand_dest <- write_brand_yml_for_quarto(path, overwrite)
+  if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
+
+  # --- _extensions/brandkit/ (Typst format extension) ---
+  ext_src_dir  <- system.file("quarto/typst/_extensions/brandkit", package = "brandkit")
+  ext_dest_dir <- file.path(path, "_extensions", "brandkit")
+
+  if (nzchar(ext_src_dir)) {
+    if (!dir.exists(ext_dest_dir)) dir.create(ext_dest_dir, recursive = TRUE)
+
+    # _extension.yml is generated, not copied, so it can embed a
+    # brand-derived code-block corner radius for the typst template
+    ext_yml_dest <- file.path(ext_dest_dir, "_extension.yml")
+    if (!file.exists(ext_yml_dest) || overwrite) {
+      write_extension_yml_for_quarto(ext_yml_dest)
+      copied <- c(copied, ext_yml_dest)
+      message("Wrote _extensions/brandkit/_extension.yml")
+    }
+
+    for (f in setdiff(list.files(ext_src_dir), "_extension.yml")) {
+      src  <- file.path(ext_src_dir, f)
+      dest <- file.path(ext_dest_dir, f)
+      if (!file.exists(dest) || overwrite) {
+        file.copy(src, dest, overwrite = overwrite)
+        copied <- c(copied, dest)
+        message("Copied _extensions/brandkit/", f)
+      }
+    }
+  } else {
+    warning("brandkit Typst extension not found in package installation.")
+  }
+
+  # --- Example report ---
+  if (examples) {
+    src  <- system.file("quarto/pdf-report.qmd", package = "brandkit")
+    dest <- file.path(path, "report-pdf.qmd")
+    if (nzchar(src) && (!file.exists(dest) || overwrite)) {
+      file.copy(src, dest, overwrite = overwrite)
+      copied <- c(copied, dest)
+      message("Copied report-pdf.qmd")
+    }
+  }
+
+  # --- Font files (if local fonts are defined) ---
+  copy_brand_fonts(path, overwrite)
+
+  # --- Logo files ---
+  copy_brand_logo(path, overwrite)
+
+  message("\nDone. In your .qmd YAML, use:")
+  message('  format: brandkit-typst')
+  message('Then run `quarto render report-pdf.qmd` to produce a branded PDF.')
 
   invisible(copied)
 }
@@ -186,6 +441,171 @@ copy_brand_fonts <- function(dest_dir, overwrite = FALSE) {
       }
     }
   }
+}
+
+
+# --------------------------------------------------------------------------
+# Ensure a Quarto-compatible _brand.yml exists at path/_brand.yml.
+#
+# configure_brand() always writes the bslib/Shiny format (color-dark:,
+# theme: keys), which Quarto's own renderer schema rejects outright. A
+# plain existence check isn't enough here — a leftover bslib-format file
+# needs to be converted regardless of `overwrite`, or every render breaks
+# with a "readAndValidateYamlFromFile" error from Quarto itself. Only an
+# already-Quarto-compatible file is left alone unless overwrite = TRUE.
+# --------------------------------------------------------------------------
+
+write_brand_yml_for_quarto <- function(path, overwrite = FALSE) {
+  brand_dest <- file.path(path, "_brand.yml")
+
+  needs_conversion <- file.exists(brand_dest) &&
+    !is_quarto_compatible_brand_yml(brand_dest)
+
+  if (!file.exists(brand_dest) || overwrite || needs_conversion) {
+    write_quarto_brand_yml(brand_dest)
+    if (needs_conversion && !overwrite) {
+      message(
+        "Converted _brand.yml to Quarto-compatible format (it was in the ",
+        "Shiny/bslib format — color-dark:/theme: — which Quarto's ",
+        "renderer rejects)"
+      )
+    } else {
+      message("Wrote _brand.yml (Quarto-compatible)")
+    }
+    return(brand_dest)
+  }
+
+  message(
+    "_brand.yml already exists and is Quarto-compatible ",
+    "(use overwrite = TRUE to regenerate)"
+  )
+  NULL
+}
+
+is_quarto_compatible_brand_yml <- function(path) {
+  cfg <- tryCatch(yaml::read_yaml(path), error = function(e) NULL)
+  if (is.null(cfg)) return(FALSE)
+  is.null(cfg[["color-dark"]]) && is.null(cfg[["theme"]])
+}
+
+
+
+
+# --------------------------------------------------------------------------
+# Write the brandkit-typst extension's _extension.yml
+#
+# Generated rather than copied so it can embed a brand-derived code-block
+# corner radius: _brand.yml's Quarto-compatible format has no room for
+# bslib's theme: border-radius (that section is bslib-only and gets
+# stripped — see write_quarto_brand_yml()), so there is no other channel
+# for it to reach the typst template. Format-level keys under
+# contributes: formats: typst: become pandoc template variables like any
+# other format option (the same mechanism that makes `margin:` below
+# reach the template), so `code-radius` here is readable in definitions.typ
+# as $code-radius$.
+# --------------------------------------------------------------------------
+
+write_extension_yml_for_quarto <- function(dest) {
+  radius <- css_rem_to_typst_em(brand_env$theme_vars[["border-radius"]])
+
+  typst_fmt <- list(
+    template = "template.typ",
+    `template-partials` = list(
+      "typst-template.typ", "typst-show.typ",
+      "numbering.typ", "definitions.typ",
+      "page.typ", "notes.typ", "biblio.typ"
+    ),
+    margin = list(x = "2.5cm", y = "2.5cm"),
+    # width is also the size used inline inside the title banner
+    # (page.typ) when a title is present; location/padding-* only
+    # apply to the plain corner-mark fallback used when there's no
+    # title (and so no banner) — see page.typ.
+    logo = list(
+      location = "right-top",
+      width = "0.5in",
+      `padding-right` = "0.5in",
+      `padding-top` = "0.25in"
+    ),
+    `code-radius` = radius
+  )
+
+  # An explicit absolute `fontsize:` here takes the $if(fontsize)$ branch
+  # in typst-show.typ, pre-empting the $elseif(brand.typography.base.size)$
+  # fallback entirely. That fallback matters because Quarto's own rem-to-
+  # typst conversion for brand.typography.base.size doesn't compute an
+  # absolute length — it just renames the unit (Typst warns "brand.
+  # typography.base.size in rem units, changing to em"), leaving the
+  # article() template's `fontsize` parameter holding a *relative* Typst
+  # em value. That's fine the first time it's consumed (`set text(size:
+  # fontsize)` at the top of article(), scaling once off Typst's own
+  # baseline) but toxic anywhere it gets reused afterward — e.g. the
+  # `show raw: set text(size: fontsize)` rule that pins code text to the
+  # body size — because by then the ambient size is already scaled by
+  # that same relative factor, so reapplying it compounds
+  # multiplicatively instead of matching. Resolving to an absolute pt
+  # value here, once, keeps every later reuse of `fontsize` exact.
+  fontsize <- css_length_to_typst_pt(brand_env$typography$base$size)
+  if (!is.null(fontsize)) {
+    typst_fmt$fontsize <- fontsize
+  }
+
+  cfg <- list(
+    title = "brandkit Typst Report",
+    author = "brandkit",
+    version = "1.0.0",
+    `quarto-required` = ">=1.8.0",
+    contributes = list(formats = list(typst = typst_fmt))
+  )
+
+  yaml::write_yaml(cfg, dest)
+}
+
+# Convert a CSS-style base font size (rem/em/px/pt) to an absolute Typst
+# length in pt. Unlike css_rem_to_typst_em() below (which deliberately
+# keeps border-radius relative to the current text size, in the same
+# spirit as CSS rem), a *font size* must resolve to an absolute value —
+# see the comment above its call site in write_extension_yml_for_quarto()
+# for why a relative unit compounds when reused for code text sizing.
+# rem/em are both treated as relative to a 16px root (1rem = 16px =
+# 12pt), matching typical browser defaults; unrecognised units fall back
+# to NULL so the caller leaves Quarto's own (relative) handling in place
+# rather than silently producing a wrong absolute value.
+css_length_to_typst_pt <- function(css_length, fallback = NULL) {
+  if (is.null(css_length) || !nzchar(css_length)) return(fallback)
+  m <- regmatches(css_length, regexec("^([0-9.]+)(rem|em|px|pt)$", css_length))[[1]]
+  if (length(m) != 3) return(fallback)
+  num  <- as.numeric(m[2])
+  pt <- switch(m[3],
+    pt  = num,
+    px  = num * 0.75,
+    rem = num * 12,
+    em  = num * 12,
+    NA_real_
+  )
+  if (is.na(pt)) return(fallback)
+  paste0(round(pt, 2), "pt")
+}
+
+# Convert a bslib border-radius (e.g. "0.75rem") to a typst-native length.
+# Typst has no "rem" unit; "em" is the closest equivalent (relative to
+# current text size, same spirit as CSS rem being relative to root size).
+css_rem_to_typst_em <- function(css_length, fallback = "0.3em") {
+  if (is.null(css_length) || !nzchar(css_length)) return(fallback)
+  num <- suppressWarnings(as.numeric(sub("rem$", "", css_length)))
+  if (is.na(num)) return(fallback)
+  paste0(num, "em")
+}
+
+# Darkened hex colour for the revealjs title slide background — dark
+# enough that the slide's white title/subtitle/author/date text (set in
+# brandkit.scss) stays legible regardless of how light the brand's own
+# primary colour is.
+title_slide_bg_color <- function() {
+  primary <- brand_env$colors$primary %||% "#2c3e50"
+  tryCatch(
+    unname(colorspace::darken(primary, amount = 0.4)),
+    error = function(e) primary
+  )
 }
 
 
@@ -225,11 +645,48 @@ write_quarto_brand_yml <- function(dest) {
   # Build output structure — only Quarto-supported keys
   out <- list()
   if (!is.null(cfg$meta))       out$meta       <- cfg$meta
-  if (!is.null(cfg$logo))       out$logo       <- cfg$logo
+  # Only reference a logo if its file(s) will actually be copied
+  # alongside this _brand.yml — otherwise a stale or cross-project cache
+  # can produce a scaffold that references a logo Quarto can never find.
+  if (!is.null(cfg$logo)) {
+    if (logo_files_exist(cfg$logo)) {
+      out$logo <- cfg$logo
+    } else {
+      message(
+        "Note: the cached brand references a logo, but its file could ",
+        "not be found — omitting logo: from _brand.yml. Run ",
+        "configure_brand() in this project (or copy the logo file in ",
+        "manually) if you want a logo here."
+      )
+    }
+  }
   if (length(qcolor))           out$color      <- qcolor
   if (!is.null(cfg$typography)) out$typography  <- cfg$typography
 
   yaml::write_yaml(out, dest)
+}
+
+
+# --------------------------------------------------------------------------
+# Check whether a brand.yml logo: section's referenced file(s) actually
+# exist relative to the currently cached _brand.yml's directory.
+# --------------------------------------------------------------------------
+
+logo_files_exist <- function(logo) {
+  if (length(logo) == 0) return(FALSE)
+  brand_dir <- dirname(brand_env$path)
+
+  paths <- if (is.character(logo)) {
+    logo
+  } else {
+    unique(unlist(lapply(logo[c("small", "medium", "large")], function(x) {
+      if (is.character(x)) x else if (is.list(x)) c(x$light, x$dark)
+    })))
+  }
+  paths <- paths[!is.null(paths)]
+  if (length(paths) == 0) return(FALSE)
+
+  all(file.exists(file.path(brand_dir, paths)))
 }
 
 

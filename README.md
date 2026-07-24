@@ -61,7 +61,9 @@ No `theme =`, no `+ theme_brand()`, no `scale_color_brand_d()`, no dark mode plu
 ### 3. Use in Quarto
 
 ```r
-use_brand_quarto(path = "my-report")
+create_brand_quarto_html(path = "my-report")     # HTML report
+create_brand_quarto_slides(path = "my-report")   # revealjs slides
+create_brand_quarto_pdf(path = "my-report")      # PDF via Typst
 ```
 
 Then in your `.qmd` file, add `library(brandkit)` and `brand_quarto_setup()` in a setup chunk.
@@ -124,7 +126,7 @@ theme:                       # bslib-specific Bootstrap Sass overrides
 
 **Important format notes:**
 
-- The `color-dark:` and `theme:` sections are bslib-specific and not recognized by Quarto. When scaffolding for Quarto via `use_brand_quarto()`, brandkit automatically converts to the Quarto-compatible format (nested `light:`/`dark:` under each colour key).
+- The `color-dark:` and `theme:` sections are bslib-specific and not recognized by Quarto. When scaffolding for Quarto via `create_brand_quarto_html()` or `create_brand_quarto_pdf()`, brandkit automatically converts to the Quarto-compatible format (nested `light:`/`dark:` under each colour key).
 - The `logo:` section uses `small`, `medium`, and `large` keys (not `light`/`dark`).
 - `source: google` loads fonts from Google Fonts at runtime. `source: file` requires `.ttf` files at the paths specified in `files:`.
 
@@ -454,9 +456,19 @@ output$map <- renderLeaflet({
 ### Setup
 
 ```r
-use_brand_quarto(path = "my-project")
-# Copies: _brand.yml (Quarto-compatible), brandkit.scss, example .qmd files, fonts, logo
+create_brand_quarto_html(path = "my-project")
+# Copies: _brand.yml (Quarto-compatible), brandkit.scss, report.qmd, fonts, logo
+
+create_brand_quarto_slides(path = "my-project")
+# Copies: _brand.yml (Quarto-compatible), brandkit.scss, slides.qmd, fonts, logo
+
+create_brand_quarto_pdf(path = "my-project")
+# Copies: _brand.yml (Quarto-compatible), _extensions/brandkit/ (Typst format), report-pdf.qmd, fonts, logo
 ```
+
+Each function is standalone and copies only its one example `.qmd` — run whichever ones you need in the same project directory; they share `_brand.yml`, fonts, and logo without overwriting each other's files.
+
+**`configure_brand()` and the `create_brand_quarto_*()` functions write two different `_brand.yml` formats to the same filename.** `configure_brand()` writes the Shiny/bslib format (`color-dark:`, `theme:` sections), which Quarto's own renderer rejects outright — rendering a `.qmd` against that file fails with a Quarto-side YAML validation error, not an R error. The `create_brand_quarto_*()` functions detect this and auto-convert a leftover bslib-format `_brand.yml` regardless of `overwrite`, so the fix is just to (re-)run whichever `create_brand_quarto_*()` function matches your project after configuring the brand. Going the other direction — running `configure_brand()` in a directory that already has a Quarto-compatible `_brand.yml` — will overwrite it with the bslib format again; re-run the `create_brand_quarto_*()` function afterward to convert it back.
 
 ### HTML documents
 
@@ -465,10 +477,8 @@ use_brand_quarto(path = "my-project")
 title: "My Report"
 format:
   html:
-    theme:
-      light: [brand, brandkit.scss]
-      dark: [brand, brandkit.scss]
-    toc: true
+    theme: [brand, brandkit.scss]
+    toc: false
 ---
 ```
 
@@ -476,28 +486,69 @@ format:
 #| label: setup
 #| include: false
 library(brandkit)
-brand_quarto_setup()           # light mode
-# brand_quarto_setup("dark")   # for dark-only documents
+brand_quarto_setup()
 ```
 
-The light/dark theme structure enables a reader-facing toggle. Note that plots are static images baked at render time — they match whichever mode you pass to `brand_quarto_setup()`.
+`report.qmd` is single-mode (light) by design — no dark-mode toggle, no `brand_quarto_setup("dark")` branching. If you want a light/dark reader toggle on an HTML report, switch `theme:` to the `light: [...]` / `dark: [...]` nested form yourself; plots are still static images baked in at render time either way, matching whichever mode you pass to `brand_quarto_setup()`. Revealjs slides keep both modes available — see below.
+
+`report.qmd` opens with a `.brand-banner` div and closes with a `.brand-footer` div — the same footer styling as the other templates, so all three read as one family, though the banner itself is HTML-specific: a full-bleed primary-colour field, breaking out to the full browser width, with a secondary-colour wedge cut into *both* the left and right edges and the logo/title/subtitle centred between them. (The PDF banner, described below, uses a related but distinct asymmetric layout — a diagonal-stripe field with content left-aligned — better suited to a printed page than a browser window.)
 
 ### Revealjs slides
+
+Scaffolded by `create_brand_quarto_slides()`.
 
 ```yaml
 ---
 title: "My Slides"
+title-slide-attributes:
+  data-background-color: "#1a252f"   # brand primary, darkened — see below
 format:
   revealjs:
     theme: [brand, brandkit.scss]
     logo: medium
     slide-number: true
+    footer: "{{< meta title >}}"
 ---
 ```
+
+The title slide's background comes from `title-slide-attributes` (a native revealjs option). `create_brand_quarto_slides()` writes it as a literal hex colour — the brand's primary colour darkened via `colorspace::darken()` — computed at scaffold time, not a runtime CSS expression. That's deliberate: revealjs reads `data-background-color` as a plain colour value, so a `color-mix()`/`var()` expression there isn't reliable, and a plain hex value is guaranteed to give the deck's white title/subtitle/author/date text (styled in `brandkit.scss`) enough contrast regardless of how light the brand's primary colour is. The persistent `footer:` mirrors the title text on every other slide, and the PDF template's footer, for a consistent look across formats.
 
 For dark mode slides, add `brand-mode: dark` and use `brand_quarto_setup("dark")`.
 
 For plotly in slides, always pass fixed dimensions: `brand_plotly(p, width = 1000, height = 600)`.
+
+### PDF documents (Typst)
+
+`create_brand_quarto_pdf()` scaffolds a project that renders to PDF via Quarto's built-in Typst engine — no LaTeX required. Quarto's `_brand.yml` integration already applies brand colours and fonts to Typst output. brandkit's `brandkit-typst` format extension (installed at `_extensions/brandkit/`) adds a full-bleed title banner on page 1 — a diagonal-stripe field, drawn as Typst polygons (no image asset), that runs primary-coloured behind the title/subtitle and switches to secondary-coloured stripes past an angled seam, echoing the HTML report's `.brand-banner` — with the logo (if configured) placed inline in it, plus coloured headings, a coloured footer showing the document title and page number, and rounded code-block corners matching the brand's configured `theme.border-radius` (`_extension.yml` is generated per-brand at scaffold time for these — re-run with `overwrite = TRUE` after changing the brand). If the document has no title, the banner is skipped and the logo falls back to a plain top-right corner mark on page 1 instead (Quarto's own default repeats a logo on every page as a watermark; brandkit restricts it to page 1 either way).
+
+```yaml
+---
+title: "My Report"
+subtitle: "A branded PDF"
+author: "Your Name"
+date: today
+format:
+  brandkit-typst:
+    toc: false
+---
+```
+
+```r
+#| label: setup
+#| include: false
+library(brandkit)
+brand_quarto_setup()   # PDFs have no dark mode toggle — pick one mode
+```
+
+Render with:
+
+```r
+quarto::quarto_render("report-pdf.qmd")
+```
+
+Since a PDF has no light/dark toggle, plots are baked in at render time in whichever mode you pass to `brand_quarto_setup()`. Widget-based outputs (plotly, DT, leaflet) don't apply to PDF — use static ggplot2 plots and `knitr::kable()` or `gt` tables instead.
+
+To customise the layout further (margins, title page, footer), edit `_extensions/brandkit/typst-template.typ` directly — it's a plain-text Typst file copied into your project, not a package internal.
 
 ### Logo in documents
 
@@ -624,7 +675,11 @@ brandkit/
 +-- inst/
 |   +-- _brand.yml           # Bundled default brand (Slate & Teal / Inter)
 |   +-- css/overrides.css    # Static CSS for BS5 gaps + leaflet dark mode
-|   +-- quarto/              # SCSS, example .qmd (report, slides, showcase)
+|   +-- quarto/              # SCSS + one example .qmd per create_brand_quarto_*()
+|       +-- report.qmd       # Example HTML report
+|       +-- slides.qmd       # Example revealjs slides
+|       +-- pdf-report.qmd   # Example Typst PDF report
+|       +-- typst/_extensions/brandkit/  # brandkit-typst format extension
 +-- examples/
     +-- app.R                # Zero-boilerplate sidebar demo
     +-- app_navbar.R         # Navbar layout, DT, value boxes, distributions
@@ -718,7 +773,7 @@ brand_plotly(p, width = 1000, height = 600)
 
 ### Pitfall: `_brand.yml` format for Quarto vs Shiny
 
-The `color-dark:` and `theme:` sections are bslib-specific. If you copy a Shiny `_brand.yml` into a Quarto project, Quarto will error. Always use `use_brand_quarto()` to scaffold — it converts to the Quarto-compatible format automatically.
+The `color-dark:` and `theme:` sections are bslib-specific. If you copy a Shiny `_brand.yml` into a Quarto project, Quarto will error. Always use `create_brand_quarto_html()` or `create_brand_quarto_pdf()` to scaffold — they convert to the Quarto-compatible format automatically.
 
 ### Pitfall: gt tables don't respond to dark mode CSS
 

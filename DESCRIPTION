@@ -19,6 +19,7 @@ Imports:
     htmltools,
     methods,
     rlang,
+    stats,
     yaml,
     colourpicker,
     shiny,
@@ -26,6 +27,7 @@ Imports:
 Suggests:
     DT,
     gt,
+    httpuv,
     knitr,
     plotly,
     quarto,

@@ -1,0 +1,66 @@
+---
+title: "Brand Report"
+subtitle: "A polished starting point for branded Typst PDFs"
+author: "Your Name"
+date: today
+format:
+  brandkit-typst:
+    toc: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(brandkit)
+library(ggplot2)
+brand_quarto_setup()
+```
+
+## Overview
+
+This report was scaffolded by `create_brand_quarto_pdf()`. It renders to
+PDF through Quarto's Typst engine using the `brandkit-typst` format
+defined in `_extensions/brandkit/`. That extension layers a branded
+title page (with logo), coloured headings, and a coloured footer rule
+on top of Quarto's default Typst article template — on top of the
+colour and font theming Quarto's own `_brand.yml` integration already
+applies automatically.
+
+Because a PDF has no light/dark toggle, plots are baked in at render
+time using whichever mode you pass to `brand_quarto_setup()`.
+
+## Branded Plot
+
+```{r}
+#| label: scatter
+#| fig-cap: "Auto-themed via theme_brand() — no manual styling needed"
+p <- ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
+  geom_point(size = 3) +
+  labs(title = "MPG vs Weight", color = "Cylinders")
+p
+```
+
+## Branded Table
+
+```{r}
+#| label: table
+knitr::kable(head(mtcars[, 1:6], 8))
+```
+
+## Brand Palette
+
+```{r}
+#| label: palette
+#| fig-cap: "Discrete brand palette"
+#| fig-height: 2
+cols <- brand_pal_discrete()
+barplot(rep(1, length(cols)), col = cols, border = NA, axes = FALSE)
+```
+
+## Next Steps
+
+- Edit the YAML title block above for your own report.
+- Add sections, tables, and ggplot2 plots as needed — they inherit
+  brand colours and fonts automatically.
+- Customise `_extensions/brandkit/typst-template.typ` for further
+  layout changes (margins, title page, footer).
