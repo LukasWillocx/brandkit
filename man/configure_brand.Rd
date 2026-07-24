@@ -19,3 +19,11 @@ Opens an interactive Shiny app that walks you through palette selection,
 font choice, logo upload, and live preview. On save, writes a complete
 \verb{_brand.yml} (and optional font/logo assets) to a target directory.
 }
+\details{
+The \verb{_brand.yml} this writes uses the Shiny/bslib format (\verb{color-dark:},
+\verb{theme:} sections) — Quarto's own renderer does not accept those keys.
+If \code{path} is also used for a Quarto project, re-run whichever of
+\code{\link[=create_brand_quarto_html]{create_brand_quarto_html()}}, \code{\link[=create_brand_quarto_slides]{create_brand_quarto_slides()}}, or
+\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}} you use after saving here; they detect and
+convert a bslib-format \verb{_brand.yml} automatically.
+}
