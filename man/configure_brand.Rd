@@ -4,11 +4,22 @@
 \alias{configure_brand}
 \title{Launch the Brand Configurator}
 \usage{
-configure_brand(path = ".")
+configure_brand(
+  path = ".",
+  format = c("auto", "bslib", "quarto"),
+  reset = FALSE
+)
 }
 \arguments{
 \item{path}{Directory to write the generated \verb{_brand.yml} and assets.
 Default is the current working directory.}
+
+\item{format}{Initial setting for the output-format toggle: \code{"auto"}
+(default) to match the \verb{_brand.yml} already in \code{path}, or \code{"bslib"} /
+\code{"quarto"} to force one. Changeable in the app either way.}
+
+\item{reset}{Logical. Start from the built-in defaults even when \code{path}
+already has a \verb{_brand.yml}. Default \code{FALSE}.}
 }
 \value{
 Called for side effect (launches Shiny app). Invisibly returns
@@ -19,11 +30,38 @@ Opens an interactive Shiny app that walks you through palette selection,
 font choice, logo upload, and live preview. On save, writes a complete
 \verb{_brand.yml} (and optional font/logo assets) to a target directory.
 }
-\details{
-The \verb{_brand.yml} this writes uses the Shiny/bslib format (\verb{color-dark:},
-\verb{theme:} sections) — Quarto's own renderer does not accept those keys.
-If \code{path} is also used for a Quarto project, re-run whichever of
-\code{\link[=create_brand_quarto_html]{create_brand_quarto_html()}}, \code{\link[=create_brand_quarto_slides]{create_brand_quarto_slides()}}, or
-\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}} you use after saving here; they detect and
-convert a bslib-format \verb{_brand.yml} automatically.
+\section{Starting from the brand already in \code{path}}{
+
+If \code{path} already contains a \verb{_brand.yml}, every input starts on that
+brand's current values — colours, font pairing, sizes, border radius,
+brand name, logo — rather than on the built-in defaults, so opening the
+configurator on a configured project is a way to make small adjustments
+instead of redoing the whole wizard. Both \verb{_brand.yml} formats are read
+back. Pass \code{reset = TRUE} to ignore the existing file and start from the
+built-in defaults.
+
+The dark palette is always re-derived from the light colours (that is
+what the "Auto-generate dark mode palette" box does), so hand-edited
+dark colours in an existing file are not preserved — but the box starts
+ticked whenever the file has dark colours at all.
 }
+
+\section{Output format}{
+
+The "Output format" toggle in the sidebar decides which of the two
+\verb{_brand.yml} dialects gets written:
+\describe{
+\item{Shiny / bslib}{\verb{color-dark:} and \verb{theme:} sections. What bslib
+reads; Quarto's renderer rejects those keys outright.}
+\item{Quarto}{Dark colours folded into nested \verb{light:}/\verb{dark:} values
+and the Bootstrap variables moved under
+\verb{defaults: bootstrap: defaults:}. Readable by Quarto and bslib
+alike.}
+}
+It defaults to whichever format the existing \verb{_brand.yml} in \code{path} is
+already in, so re-configuring a Quarto project no longer clobbers it
+with a file Quarto can't read. The \verb{create_brand_quarto_*()} functions
+still convert a bslib-format file on their own, so writing Shiny/bslib
+here and converting later also remains a valid route.
+}
+

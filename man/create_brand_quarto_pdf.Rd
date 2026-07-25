@@ -68,9 +68,10 @@ Render with \verb{quarto render report-pdf.qmd} to produce a PDF. Requires
 Quarto >= 1.8 (brand.yml support for the Typst format); Quarto bundles
 the Typst compiler itself, so no separate Typst installation is needed.
 
-If \code{path} already has a \verb{_brand.yml} written by \code{\link[=configure_brand]{configure_brand()}}
-(the Shiny/bslib format, with \verb{color-dark:}/\verb{theme:} keys), it is
-converted to the Quarto-compatible format regardless of \code{overwrite} —
+If \code{path} already has a \verb{_brand.yml} in the Shiny/bslib format (with
+\verb{color-dark:}/\verb{theme:} keys — what \code{\link[=configure_brand]{configure_brand()}} writes unless
+its output-format toggle is set to Quarto), it is converted to the
+Quarto-compatible format regardless of \code{overwrite} —
 Quarto's own renderer rejects those bslib-only keys outright, so a
 leftover bslib-format file always needs fixing. An already
 Quarto-compatible \verb{_brand.yml} is left alone unless \code{overwrite = TRUE}.

@@ -48,9 +48,10 @@ For dark mode slides, add \code{brand-mode: dark} and call
 \code{brand_quarto_setup("dark")} in the setup chunk. For plotly in slides,
 always pass fixed dimensions: \code{brand_plotly(p, width = 1000, height = 600)}.
 
-If \code{path} already has a \verb{_brand.yml} written by \code{\link[=configure_brand]{configure_brand()}}
-(the Shiny/bslib format, with \verb{color-dark:}/\verb{theme:} keys), it is
-converted to the Quarto-compatible format regardless of \code{overwrite} —
+If \code{path} already has a \verb{_brand.yml} in the Shiny/bslib format (with
+\verb{color-dark:}/\verb{theme:} keys — what \code{\link[=configure_brand]{configure_brand()}} writes unless
+its output-format toggle is set to Quarto), it is converted to the
+Quarto-compatible format regardless of \code{overwrite} —
 Quarto's own renderer rejects those bslib-only keys outright, so a
 leftover bslib-format file always needs fixing. An already
 Quarto-compatible \verb{_brand.yml} is left alone unless \code{overwrite = TRUE}.

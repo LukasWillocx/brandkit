@@ -20,7 +20,13 @@ Invisibly returns a character vector of copied file paths.
 Copies \verb{_brand.yml}, custom SCSS overrides, and an example HTML report
 into a Quarto project directory. After running this, Quarto
 auto-detects \verb{_brand.yml} and applies it to HTML and dashboard
-formats. The SCSS file layers additional polish on top.
+formats. The SCSS file layers additional polish on top, including a
+full-bleed title banner drawing the same diagonal-stripe field as the
+Typst PDF template's (\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}) — a flat
+primary-coloured field behind the logo, title, subtitle, and
+author/date, switching to secondary-coloured stripes past an angled
+seam — but centred and mirrored rather than left-anchored, since an
+HTML page has no fixed width to anchor an asymmetric composition to.
 }
 \details{
 For a revealjs slide deck, see \code{\link[=create_brand_quarto_slides]{create_brand_quarto_slides()}}. For a
@@ -30,25 +36,41 @@ PDF starting point rendered via Quarto's Typst engine, see
 This function copies the following into \code{path}:
 \describe{
 \item{\verb{_brand.yml}}{From the brandkit cache (your configured brand).}
-\item{\code{brandkit.scss}}{Custom SCSS overrides for cards, tables,
-scrollbars, and nav components — layered after brand in the
-Quarto theme.}
-\item{\code{report.qmd}}{Sample HTML report (if \code{examples = TRUE}).}
+\item{\code{brandkit.scss}}{Custom SCSS overrides for the title banner and
+footer, plus cards, tables, scrollbars, and nav components —
+layered after brand in the Quarto theme. The banner's geometry is
+exposed as \verb{--brand-banner-*} custom properties at the top of the
+\code{.brand-banner} rule if you want to retune it.}
+\item{\code{report.qmd}}{Sample HTML report (if \code{examples = TRUE}), whose
+banner and footer divs pull title/subtitle/author/date from the
+YAML header via \verb{\\\{\\\{< meta ... >\\\}\\\}}.}
 }
 
 In your \code{.qmd} YAML header, reference the SCSS like this:
 
 \if{html}{\out{<div class="sourceCode yaml">}}\preformatted{format:
   html:
-    theme: [brand, brandkit.scss]
+    theme:
+      light: [brand, brandkit.scss]
+      dark: [brand, brandkit.scss]
 }\if{html}{\out{</div>}}
+
+The nested \verb{light:}/\verb{dark:} form is what gives readers a working
+light/dark toggle — Quarto compiles a Bootstrap stylesheet per mode
+from \verb{_brand.yml}'s \verb{color:}/\verb{color-dark:} entries and the toggle swaps
+between them. The flat \verb{theme: [brand, brandkit.scss]} form still shows
+a toggle but only switches syntax highlighting, leaving the Bootstrap
+layer light. Plots can't follow the toggle either way: they're static
+images baked in at render time in whichever mode you pass to
+\code{\link[=brand_quarto_setup]{brand_quarto_setup()}}.
 
 For ggplot2 theming, just add \code{library(brandkit)} in a setup chunk —
 the auto-applied theme and scales handle the rest.
 
-If \code{path} already has a \verb{_brand.yml} written by \code{\link[=configure_brand]{configure_brand()}}
-(the Shiny/bslib format, with \verb{color-dark:}/\verb{theme:} keys), it is
-converted to the Quarto-compatible format regardless of \code{overwrite} —
+If \code{path} already has a \verb{_brand.yml} in the Shiny/bslib format (with
+\verb{color-dark:}/\verb{theme:} keys — what \code{\link[=configure_brand]{configure_brand()}} writes unless
+its output-format toggle is set to Quarto), it is converted to the
+Quarto-compatible format regardless of \code{overwrite} —
 Quarto's own renderer rejects those bslib-only keys outright, so a
 leftover bslib-format file always needs fixing. An already
 Quarto-compatible \verb{_brand.yml} is left alone unless \code{overwrite = TRUE}.
