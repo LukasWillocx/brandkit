@@ -5,7 +5,6 @@
 .Ruserdata
 *.Rproj
 logo/
-.gitignore
 
 # renv
 renv/library/
@@ -27,3 +26,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Custom brand — local scratch only; the packaged default lives in inst/
+/_brand.yml

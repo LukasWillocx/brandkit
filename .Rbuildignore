@@ -4,6 +4,7 @@
 ^examples$
 ^README\.md$
 ^\.gitignore$
+^_brand\.yml$
 ^renv$
 ^renv\.lock$
 ^man/figures$

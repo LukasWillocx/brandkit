@@ -1,43 +1,45 @@
 meta:
-  name: My Brand
+  name: Default
 color:
-  primary: '#2c3e50'
-  secondary: '#1abc9c'
-  success: '#27ae60'
-  danger: '#e74c3c'
-  warning: '#f39c12'
-  info: '#2980b9'
-  light: '#ecf0f1'
-  dark: '#1a252f'
-  foreground: '#1a252f'
-  background: '#ecf0f1'
-color-dark:
-  primary: '#5a8a9f'
-  secondary: '#4edfc0'
-  success: '#52c98a'
-  danger: '#f08a82'
-  warning: '#f7c056'
-  info: '#59ade0'
-  light: '#121a20'
-  dark: '#e8eff5'
-  foreground: '#e8eff5'
-  background: '#121a20'
+  primary: '#1B2A4A'
+  secondary: '#C0945B'
+  success: '#2E7D32'
+  danger: '#B71C1C'
+  warning: '#E6A817'
+  info: '#37718E'
+  light: '#F0F2F5'
+  dark: '#1A1D23'
+  foreground: '#1A1D23'
+  background: '#F0F2F5'
 typography:
   fonts:
   - family: Inter
     source: google
-  - family: Inter
-    source: google
   base:
     family: Inter
-    size: 1rem
-    line-height: 1.65
+    size: 1.2rem
+    line-height: 1.2
     weight: 400
   headings:
     family: Inter
     weight: 700
     line-height: 1.1
+  monospace:
+    family: Inter
+    size: 1.2rem
+    weight: 400
 theme:
   border-radius: 0.75rem
   border-radius-sm: 0.5rem
   border-radius-lg: 1rem
+color-dark:
+  primary: '#646D88'
+  secondary: '#E3B67F'
+  success: '#66AE69'
+  danger: '#F75F5F'
+  warning: '#FFC35B'
+  info: '#71A2BF'
+  light: '#0A1321'
+  dark: '#FBFCFF'
+  foreground: '#FBFCFF'
+  background: '#0A1321'
