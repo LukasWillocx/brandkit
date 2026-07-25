@@ -120,101 +120,178 @@ body {
 }
 
 /* --- Title banner (HTML report) ---
+   The same diagonal-stripe field the Typst PDF banner draws (see
+   _extensions/brandkit/definitions.typ): a flat, unbroken primary field
+   behind the title text that switches to secondary-coloured stripes past
+   an angled seam, with the seam itself falling along a stripe edge so it
+   reads as part of the pattern rather than a panel laid over it. The one
+   deliberate divergence is symmetry. The PDF is asymmetric — content
+   left-aligned, one seam, stripes only on the right — which works
+   because a page is a known, fixed width, so "left third solid, right
+   two thirds patterned" is a stable composition. An HTML banner is
+   whatever width the window happens to be, and a left-anchored seam
+   drifts arbitrarily far from left-anchored text as that width grows.
+   Centring both instead — content in the middle, seams mirrored so
+   stripes run in from BOTH edges — keeps the same relationship between
+   text and seam at every window size.
+
    Full-bleed (breaks out of Quarto's centered content column to span the
-   full viewport width) so the primary colour fills edge-to-edge with no
-   seam. `width: 100cqi` is load-bearing here — `width: 100%` (an earlier
+   full viewport width) so the field fills edge-to-edge with no seam.
+   `width: 100cqi` is load-bearing here — `width: 100%` (an earlier
    version of this rule used it) resolves against the *immediate parent's*
    width, which is exactly the narrower, centered column this rule is
    trying to escape, so it can never actually stretch past it no matter
-   what the margins do; only a container-relative width escapes it. The
-   wedges and text content
-   live in a centred .brand-banner-inner capped at 1140px (Bootstrap's
-   own container-xl max-width, since Quarto's grid is Bootstrap
-   underneath) — anchoring the wedges to the viewport's raw edges
-   instead would leave them stranded far from the centred text on a wide
-   monitor. Unlike the PDF banner (which is asymmetric — logo/title/
-   subtitle left-aligned against a single right-hand wedge), this one is
-   symmetric: a secondary-colour wedge cut into BOTH the left and right
-   edges (::before mirrors ::after), with title/subtitle centred in the
-   primary field between them. Each wedge is only 22% wide, not 36% —
-   the clip-path shape fills nearly all of its own box (it only notches
-   out one corner), so at 36% a mirrored pair leaves primary squeezed to
-   a narrow strip at the bottom of the banner. At 22% each, primary stays
-   ≥56% wide at every height, comfortably clearing the 52%-wide centred
-   content. Below 700px both wedges are dropped — the angle reads as a
-   sliver rather than a deliberate shape at that size, so a flat banner
-   looks more intentional. The negative margin-top pulls the banner up
-   into the blank space Quarto's own content wrapper reserves above the
-   first element (independent of the title-block-header suppression
-   above) — -1.5rem is an approximation tuned against the default theme;
-   nudge it if your theme's own top spacing differs. */
+   what the margins do; only a container-relative width escapes it.
+   Unlike the earlier clip-path wedges, the stripes are painted on
+   .brand-banner itself rather than an inner box capped at the content
+   width: the pattern is symmetric about the centre, so it stays visually
+   tied to the centred text however wide it runs.
+
+   The negative margin-top pulls the banner up into the blank space
+   Quarto's own content wrapper reserves above the first element
+   (independent of the title-block-header suppression above) — -1.5rem is
+   an approximation tuned against the default theme; nudge it if your
+   theme's own top spacing differs. */
 .brand-banner {
+  /* All three lengths below are measured along the gradient axis, i.e.
+     perpendicular to the stripes, so each spans ~8% (1/cos 22deg) more
+     horizontal distance than its own value.
+
+     Percentages resolve against the gradient line's length, which is
+     itself derived from the box — so a percentage here is a *fraction of
+     the banner*, which is exactly how the Typst version is parameterised
+     (`p = pw / n-stripes`, `seam-frac`, `solid-frac` — all fractions of
+     the page). Keeping the stripes fractional is what makes the
+     composition scale-invariant: an earlier version used a fixed 4rem
+     pitch, which looks right at 1400px but leaves a single clipped
+     sliver per side around 1000px, since the solid field takes a bigger
+     share of a narrower banner. At 4.75% there are always ~21 stripes
+     across the full width, ~2-3 of them visible either side of the solid
+     field at any desktop size. */
+  --brand-banner-stripe: 4.75%;
+  /* Half-width of the flat primary field. Fractional for the same reason
+     as the pitch, but floored at an absolute value: its whole job is to
+     keep the centred text off the stripes, and the text is sized in rem,
+     so on a narrow banner the fraction has to give way to the text's
+     actual needs. 20rem clears --brand-banner-text with room to spare
+     for the seam's own lean (the seam is a tilted line, so it cuts
+     closest to the centre at the banner's top edge, by roughly half the
+     banner height x tan 22deg). */
+  --brand-banner-solid: max(20rem, 30%);
+  --brand-banner-text: 34rem;
+  /* 22deg from vertical, leaning right at the top — the same lean as the
+     PDF's sheared polygons. A CSS gradient axis is perpendicular to its
+     own colour bands, hence 22 + 90. */
+  --brand-banner-angle: 112deg;
+
   position: relative;
   width: 100cqi;
   left: 50%;
   margin-left: -50cqi;
-  background: var(--bs-primary);
   color: white;
   margin-top: -1.5rem;
   margin-bottom: 2.5rem;
+
+  /* Layers, topmost first:
+     1. the flat primary field. Hard stops (two stops sharing a position)
+        rather than a blend, so its edges are crisp; because the gradient
+        axis is the striped one, those edges are angled exactly like the
+        stripes. The stops are anchored to 50%, which on a linear gradient
+        is always the box centre regardless of the box's aspect ratio, so
+        the field stays centred and the two seams stay mirrored at every
+        window size. Setting --brand-banner-solid to 100% pushes both
+        stops past the ends of the gradient line, which is how the
+        small-screen fallback below flattens the banner to plain primary
+        — no separate rule needed to switch the stripes off.
+     2. a faint sheen running *along* the stripes (axis at 22deg, i.e.
+        perpendicular to the stripe axis), mirroring the per-stripe
+        gradient the Typst version gives each polygon. It sits under
+        layer 1 so the primary field stays genuinely flat.
+     3. the stripes themselves: secondary darkened/lightened by the same
+        12%/10.2% the Typst version uses.
+     Unlike the PDF, the seam is not snapped to the stripe grid — a
+     gradient's phase depends on the (fluid) gradient-line length, so
+     there's no fixed offset to snap to. It doesn't show: the stripe the
+     seam cuts through is the same base colour as its neighbours, so a
+     partial one differs from a full one by the 12% shading alone, while
+     the primary-to-secondary seam beside it stays a clean unbroken line. */
+  background-color: var(--bs-secondary);
+  background-image:
+    linear-gradient(
+      var(--brand-banner-angle),
+      transparent 0 calc(50% - var(--brand-banner-solid)),
+      var(--bs-primary) calc(50% - var(--brand-banner-solid)) calc(50% + var(--brand-banner-solid)),
+      transparent calc(50% + var(--brand-banner-solid)) 100%
+    ),
+    linear-gradient(
+      22deg,
+      rgba(0, 0, 0, 0.05),
+      rgba(255, 255, 255, 0.04) 50%,
+      rgba(0, 0, 0, 0.025)
+    ),
+    repeating-linear-gradient(
+      var(--brand-banner-angle),
+      color-mix(in srgb, var(--bs-secondary) 88%, black) 0 var(--brand-banner-stripe),
+      color-mix(in srgb, var(--bs-secondary) 90%, white) var(--brand-banner-stripe) calc(2 * var(--brand-banner-stripe))
+    );
 }
 .brand-banner-inner {
   position: relative;
-  overflow: hidden;
-  max-width: 1140px;
   margin: 0 auto;
-  padding: 3.5rem 4rem;
+  padding: 3.5rem 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
-}
-.brand-banner-inner::before,
-.brand-banner-inner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 22%;
-  height: 100%;
-  background: var(--bs-secondary);
-}
-.brand-banner-inner::after {
-  right: 0;
-  clip-path: polygon(38% 0, 100% 0, 100% 100%, 0 100%);
-}
-.brand-banner-inner::before {
-  left: 0;
-  clip-path: polygon(0 0, 62% 0, 100% 100%, 0 100%);
+  min-height: 11rem;
 }
 .brand-banner-content {
   position: relative;
   z-index: 1;
-  max-width: 52%;
+  max-width: var(--brand-banner-text);
   text-align: center;
 }
+/* Centred above the title rather than in a corner. The PDF tucks its
+   logo top-right specifically to stay clear of the left-aligned text
+   block, which is vertically centred and painted after it; with the text
+   centred there's no such collision to dodge, and a corner mark would be
+   the one off-axis element in an otherwise symmetric composition. */
 .brand-banner img,
 .brand-banner .brand-logo {
-  max-height: 44px;
+  max-height: 3.25rem;
   width: auto;
   margin: 0 auto 1rem;
 }
+/* Sizes mirror the PDF banner's 22pt / 12.5pt / 8.5pt ratios, scaled to
+   the taller HTML banner. */
 .brand-banner-title {
   font-family: var(--bs-headings-font-family, inherit);
   font-weight: 700;
-  font-size: 2rem;
+  font-size: 2.4rem;
   color: white;
   line-height: 1.15;
 }
 .brand-banner-subtitle {
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   opacity: 0.85;
   margin-top: 0.4rem;
 }
+.brand-banner-meta {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 0.9rem;
+}
+/* Below Bootstrap's `lg` breakpoint the centred text needs so much of the
+   banner that only a clipped sliver of stripe is left either side, which
+   reads as an accident rather than a pattern. Flattening to plain primary
+   there is the same call the earlier clip-path banner made below 700px:
+   at that size a deliberate absence looks better than a hint. */
+@media (max-width: 991.98px) {
+  .brand-banner { --brand-banner-solid: 100%; }
+}
 @media (max-width: 700px) {
-  .brand-banner-inner::before,
-  .brand-banner-inner::after { display: none; }
-  .brand-banner-content { max-width: 100%; }
   .brand-banner-inner { padding: 2.5rem 1.5rem; }
+  .brand-banner-title { font-size: 1.9rem; }
+  .brand-banner-subtitle { font-size: 1.15rem; }
 }
 
 /* --- Title slide banner (revealjs) --- */
@@ -229,14 +306,44 @@ body {
   color: white;
 }
 
-/* --- Footer (HTML report + revealjs slides) --- */
+/* --- Footer (HTML report + revealjs slides) ---
+   Takes the Typst footer's layout from typst-template.typ: a
+   half-transparent primary rule, with the document title on the left and
+   the counterpart of its page number on the right. Author and date
+   deliberately aren't repeated here — they now live in the banner, as
+   they do in the PDF. Falls back to a single centred line below 700px,
+   where a two-column split just wraps into an unreadable stack.
+
+   The one thing not carried across is the text colour. The Typst footer
+   paints its text in the brand's secondary accent, which is safe on a
+   printed page where the footer is purely decorative, but a light brand
+   accent on a light page background is close to illegible on screen —
+   with the default brand that's #D4A574 on #F7F4ED, under 2:1. Note that
+   `--bs-secondary-color` is NOT a way out of this: in stock Bootstrap
+   it's a muted body colour (`rgba(body, 0.75)`), but Quarto's
+   brand-derived build overwrites it with the brand's secondary accent
+   outright, so it resolves to the same unusable value. Muting the body
+   colour directly is the only formulation that stays legible in both
+   light and dark mode whatever the brand's accent is. */
 .brand-footer {
   margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--bs-border-color);
-  text-align: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--bs-primary) 50%, transparent 50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
   font-size: 0.85rem;
-  color: var(--bs-secondary-color, var(--bs-body-color));
+  color: color-mix(in srgb, var(--bs-body-color) 70%, transparent 30%);
+}
+/* Each line of the div is its own <p> once pandoc is done with it, and
+   those are the flex items — their default block margins would show up
+   as stray gaps inside the row. */
+.brand-footer > * {
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .brand-footer { justify-content: center; text-align: center; }
 }
 .reveal .footer {
   color: var(--bs-primary);

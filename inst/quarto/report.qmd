@@ -6,7 +6,16 @@ date: today
 format:
   html:
     title-block-style: none
-    theme: [brand, brandkit.scss]
+    # The nested light:/dark: form is what gives the reader a working
+    # light/dark toggle: Quarto emits a Bootstrap stylesheet per mode and
+    # the toggle swaps between them. The flat `theme: [brand, brandkit.scss]`
+    # form looks equivalent and still shows a toggle, but only the syntax
+    # highlighting actually switches — the Bootstrap layer stays light.
+    # Both lists are identical; _brand.yml's own color:/color-dark: entries
+    # are what differ per mode.
+    theme:
+      light: [brand, brandkit.scss]
+      dark: [brand, brandkit.scss]
     toc: false
 ---
 
@@ -21,6 +30,10 @@ format:
 
 ::: {.brand-banner-subtitle}
 {{< meta subtitle >}}
+:::
+
+::: {.brand-banner-meta}
+{{< meta author >}} · {{< meta date >}}
 :::
 :::
 :::
@@ -79,5 +92,7 @@ barplot(rep(1, length(cols)), col = cols, border = NA, axes = FALSE)
 ```
 
 ::: {.brand-footer}
-Made with [brandkit](https://github.com/LukasWillocx/brandkit) · {{< meta author >}} · {{< meta date >}}
+{{< meta title >}}
+
+Made with [brandkit](https://github.com/LukasWillocx/brandkit)
 :::
