@@ -74,7 +74,13 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
 #' Copies `_brand.yml`, custom SCSS overrides, and an example HTML report
 #' into a Quarto project directory. After running this, Quarto
 #' auto-detects `_brand.yml` and applies it to HTML and dashboard
-#' formats. The SCSS file layers additional polish on top.
+#' formats. The SCSS file layers additional polish on top, including a
+#' full-bleed title banner drawing the same diagonal-stripe field as the
+#' Typst PDF template's ([create_brand_quarto_pdf()]) — a flat
+#' primary-coloured field behind the logo, title, subtitle, and
+#' author/date, switching to secondary-coloured stripes past an angled
+#' seam — but centred and mirrored rather than left-anchored, since an
+#' HTML page has no fixed width to anchor an asymmetric composition to.
 #'
 #' For a revealjs slide deck, see [create_brand_quarto_slides()]. For a
 #' PDF starting point rendered via Quarto's Typst engine, see
@@ -88,25 +94,41 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
 #' This function copies the following into `path`:
 #' \describe{
 #'   \item{`_brand.yml`}{From the brandkit cache (your configured brand).}
-#'   \item{`brandkit.scss`}{Custom SCSS overrides for cards, tables,
-#'     scrollbars, and nav components — layered after brand in the
-#'     Quarto theme.}
-#'   \item{`report.qmd`}{Sample HTML report (if `examples = TRUE`).}
+#'   \item{`brandkit.scss`}{Custom SCSS overrides for the title banner and
+#'     footer, plus cards, tables, scrollbars, and nav components —
+#'     layered after brand in the Quarto theme. The banner's geometry is
+#'     exposed as `--brand-banner-*` custom properties at the top of the
+#'     `.brand-banner` rule if you want to retune it.}
+#'   \item{`report.qmd`}{Sample HTML report (if `examples = TRUE`), whose
+#'     banner and footer divs pull title/subtitle/author/date from the
+#'     YAML header via `\{\{< meta ... >\}\}`.}
 #' }
 #'
 #' In your `.qmd` YAML header, reference the SCSS like this:
 #' ```yaml
 #' format:
 #'   html:
-#'     theme: [brand, brandkit.scss]
+#'     theme:
+#'       light: [brand, brandkit.scss]
+#'       dark: [brand, brandkit.scss]
 #' ```
+#'
+#' The nested `light:`/`dark:` form is what gives readers a working
+#' light/dark toggle — Quarto compiles a Bootstrap stylesheet per mode
+#' from `_brand.yml`'s `color:`/`color-dark:` entries and the toggle swaps
+#' between them. The flat `theme: [brand, brandkit.scss]` form still shows
+#' a toggle but only switches syntax highlighting, leaving the Bootstrap
+#' layer light. Plots can't follow the toggle either way: they're static
+#' images baked in at render time in whichever mode you pass to
+#' [brand_quarto_setup()].
 #'
 #' For ggplot2 theming, just add `library(brandkit)` in a setup chunk —
 #' the auto-applied theme and scales handle the rest.
 #'
-#' If `path` already has a `_brand.yml` written by [configure_brand()]
-#' (the Shiny/bslib format, with `color-dark:`/`theme:` keys), it is
-#' converted to the Quarto-compatible format regardless of `overwrite` —
+#' If `path` already has a `_brand.yml` in the Shiny/bslib format (with
+#' `color-dark:`/`theme:` keys — what [configure_brand()] writes unless
+#' its output-format toggle is set to Quarto), it is converted to the
+#' Quarto-compatible format regardless of `overwrite` —
 #' Quarto's own renderer rejects those bslib-only keys outright, so a
 #' leftover bslib-format file always needs fixing. An already
 #' Quarto-compatible `_brand.yml` is left alone unless `overwrite = TRUE`.
@@ -200,9 +222,10 @@ create_brand_quarto_html <- function(path = ".", examples = TRUE, overwrite = FA
 #' `brand_quarto_setup("dark")` in the setup chunk. For plotly in slides,
 #' always pass fixed dimensions: `brand_plotly(p, width = 1000, height = 600)`.
 #'
-#' If `path` already has a `_brand.yml` written by [configure_brand()]
-#' (the Shiny/bslib format, with `color-dark:`/`theme:` keys), it is
-#' converted to the Quarto-compatible format regardless of `overwrite` —
+#' If `path` already has a `_brand.yml` in the Shiny/bslib format (with
+#' `color-dark:`/`theme:` keys — what [configure_brand()] writes unless
+#' its output-format toggle is set to Quarto), it is converted to the
+#' Quarto-compatible format regardless of `overwrite` —
 #' Quarto's own renderer rejects those bslib-only keys outright, so a
 #' leftover bslib-format file always needs fixing. An already
 #' Quarto-compatible `_brand.yml` is left alone unless `overwrite = TRUE`.
@@ -333,9 +356,10 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
 #' Quarto >= 1.8 (brand.yml support for the Typst format); Quarto bundles
 #' the Typst compiler itself, so no separate Typst installation is needed.
 #'
-#' If `path` already has a `_brand.yml` written by [configure_brand()]
-#' (the Shiny/bslib format, with `color-dark:`/`theme:` keys), it is
-#' converted to the Quarto-compatible format regardless of `overwrite` —
+#' If `path` already has a `_brand.yml` in the Shiny/bslib format (with
+#' `color-dark:`/`theme:` keys — what [configure_brand()] writes unless
+#' its output-format toggle is set to Quarto), it is converted to the
+#' Quarto-compatible format regardless of `overwrite` —
 #' Quarto's own renderer rejects those bslib-only keys outright, so a
 #' leftover bslib-format file always needs fixing. An already
 #' Quarto-compatible `_brand.yml` is left alone unless `overwrite = TRUE`.
@@ -447,9 +471,9 @@ copy_brand_fonts <- function(dest_dir, overwrite = FALSE) {
 # --------------------------------------------------------------------------
 # Ensure a Quarto-compatible _brand.yml exists at path/_brand.yml.
 #
-# configure_brand() always writes the bslib/Shiny format (color-dark:,
-# theme: keys), which Quarto's own renderer schema rejects outright. A
-# plain existence check isn't enough here — a leftover bslib-format file
+# configure_brand() writes the bslib/Shiny format (color-dark:, theme:
+# keys) unless told otherwise, and Quarto's own renderer schema rejects
+# those outright. A plain existence check isn't enough here — a bslib file
 # needs to be converted regardless of `overwrite`, or every render breaks
 # with a "readAndValidateYamlFromFile" error from Quarto itself. Only an
 # already-Quarto-compatible file is left alone unless overwrite = TRUE.
@@ -495,10 +519,11 @@ is_quarto_compatible_brand_yml <- function(path) {
 # Write the brandkit-typst extension's _extension.yml
 #
 # Generated rather than copied so it can embed a brand-derived code-block
-# corner radius: _brand.yml's Quarto-compatible format has no room for
-# bslib's theme: border-radius (that section is bslib-only and gets
-# stripped — see write_quarto_brand_yml()), so there is no other channel
-# for it to reach the typst template. Format-level keys under
+# corner radius: the brand's border-radius lives in a Bootstrap Sass
+# variable (theme: in bslib's format, defaults: bootstrap: defaults: in
+# Quarto's — see quarto_brand_cfg()), and Typst output goes nowhere near
+# the Sass pipeline, so there is no other channel for it to reach the
+# typst template. Format-level keys under
 # contributes: formats: typst: become pandoc template variables like any
 # other format option (the same mechanism that makes `margin:` below
 # reach the template), so `code-radius` here is readable in definitions.typ
@@ -610,13 +635,21 @@ title_slide_bg_color <- function() {
 
 
 # --------------------------------------------------------------------------
-# Write a Quarto-compatible _brand.yml
-# Strips bslib-specific keys (theme:, color-dark:) and converts dark
-# colours to Quarto 1.8's nested light/dark format.
+# Convert a bslib-format brand config to the Quarto-compatible one.
+# Drops bslib-only keys (theme:, color-dark:), folds dark colours into
+# Quarto 1.8's nested light/dark format, and re-homes the theme: Bootstrap
+# variables under defaults: bootstrap: defaults:, which is brand.yml's own
+# (schema-valid) channel for the same Sass variables.
+#
+# `brand_dir` is the directory the resulting _brand.yml will live in — used
+# to check that a referenced logo file actually exists there. `keep_logo`
+# overrides that check for callers that know a logo is about to be written
+# alongside (the configurator), and also suppresses the advisory message.
 # --------------------------------------------------------------------------
 
-write_quarto_brand_yml <- function(dest) {
-  cfg <- brand_env$raw
+quarto_brand_cfg <- function(cfg,
+                             brand_dir = dirname(brand_env$path),
+                             keep_logo = NULL) {
   dk  <- cfg[["color-dark"]]
 
   # Build Quarto-compatible color section
@@ -649,9 +682,9 @@ write_quarto_brand_yml <- function(dest) {
   # alongside this _brand.yml — otherwise a stale or cross-project cache
   # can produce a scaffold that references a logo Quarto can never find.
   if (!is.null(cfg$logo)) {
-    if (logo_files_exist(cfg$logo)) {
+    if (keep_logo %||% logo_files_exist(cfg$logo, brand_dir)) {
       out$logo <- cfg$logo
-    } else {
+    } else if (is.null(keep_logo)) {
       message(
         "Note: the cached brand references a logo, but its file could ",
         "not be found — omitting logo: from _brand.yml. Run ",
@@ -663,7 +696,24 @@ write_quarto_brand_yml <- function(dest) {
   if (length(qcolor))           out$color      <- qcolor
   if (!is.null(cfg$typography)) out$typography  <- cfg$typography
 
-  yaml::write_yaml(out, dest)
+  # theme: is bslib-only and rejected by Quarto's schema, but the very
+  # same Bootstrap variables are legal under defaults: bootstrap:
+  # defaults: — so carry them across rather than dropping them. This is
+  # what keeps the configured border-radius reaching both Quarto's HTML
+  # output and the Typst extension (see write_extension_yml_for_quarto()).
+  bs_defaults <- cfg$theme %||% cfg$defaults$bootstrap$defaults
+  if (length(bs_defaults)) {
+    out$defaults <- list(bootstrap = list(defaults = bs_defaults))
+  }
+
+  out
+}
+
+write_quarto_brand_yml <- function(dest,
+                                   cfg = brand_env$raw,
+                                   brand_dir = dirname(brand_env$path),
+                                   keep_logo = NULL) {
+  yaml::write_yaml(quarto_brand_cfg(cfg, brand_dir, keep_logo), dest)
 }
 
 
@@ -672,9 +722,8 @@ write_quarto_brand_yml <- function(dest) {
 # exist relative to the currently cached _brand.yml's directory.
 # --------------------------------------------------------------------------
 
-logo_files_exist <- function(logo) {
+logo_files_exist <- function(logo, brand_dir = dirname(brand_env$path)) {
   if (length(logo) == 0) return(FALSE)
-  brand_dir <- dirname(brand_env$path)
 
   paths <- if (is.character(logo)) {
     logo

@@ -38,13 +38,7 @@ brand_init <- function(path = NULL, quiet = FALSE) {
 
  cfg <- yaml::read_yaml(path)
 
- # Helper: resolve a colour value that may be a plain string "#hex" or
- # a Quarto 1.8 nested list {light: "#hex", dark: "#hex"}.
- resolve_col <- function(val, mode = "light", fallback = NULL) {
-   if (is.null(val)) return(fallback)
-   if (is.list(val)) return(val[[mode]] %||% val[["light"]] %||% fallback)
-   val
- }
+ resolve_col <- resolve_brand_col
 
  # --- Colours (light) ---
  brand_env$colors <- list(
@@ -70,10 +64,7 @@ brand_init <- function(path = NULL, quiet = FALSE) {
    brand_env$colors_dark <- dk_section
  } else {
    # Check if any colour has a dark variant (Quarto nested format)
-   has_dark <- any(vapply(cfg$color, function(v) {
-     is.list(v) && !is.null(v[["dark"]])
-   }, logical(1)))
-   if (has_dark) {
+   if (brand_cfg_has_dark(cfg)) {
      brand_env$colors_dark <- list(
        primary    = resolve_col(cfg$color$primary, "dark"),
        secondary  = resolve_col(cfg$color$secondary, "dark"),
@@ -108,7 +99,11 @@ brand_init <- function(path = NULL, quiet = FALSE) {
  brand_env$typography <- cfg$typography
 
  # --- Theme / Bootstrap overrides ---
- brand_env$theme_vars <- cfg$theme %||% list()
+ # bslib's format puts these under theme:; brand.yml's own (and therefore
+ # Quarto's) equivalent is defaults: bootstrap: defaults:. Both reach the
+ # same Bootstrap Sass variables, so read either.
+ brand_env$theme_vars <- cfg$theme %||%
+   cfg$defaults$bootstrap$defaults %||% list()
 
  # --- Logo ---
  brand_env$logo <- cfg$logo %||% list()
@@ -248,6 +243,27 @@ brand_logo_tag <- function(height = "1.8em", size = "medium") {
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+# Resolve a colour value that may be a plain string "#hex" or a Quarto 1.8
+# nested list {light: "#hex", dark: "#hex"}. Shared by brand_init() and by
+# the configurator, which has to read back either format.
+resolve_brand_col <- function(val, mode = "light", fallback = NULL) {
+ if (is.null(val)) return(fallback)
+ if (is.list(val)) return(val[[mode]] %||% val[["light"]] %||% fallback)
+ val
+}
+
+# TRUE if a parsed _brand.yml carries dark-mode colours in either shape:
+# bslib's separate color-dark: section, or Quarto's nested light/dark
+# values under the individual colour keys.
+brand_cfg_has_dark <- function(cfg) {
+ if (!is.null(cfg[["color-dark"]])) return(TRUE)
+ any(vapply(
+   cfg$color %||% list(),
+   function(v) is.list(v) && !is.null(v[["dark"]]),
+   logical(1)
+ ))
+}
 
 ensure_cache <- function() {
  if (!isTRUE(brand_env$ready)) {

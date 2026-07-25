@@ -468,16 +468,36 @@ create_brand_quarto_pdf(path = "my-project")
 
 Each function is standalone and copies only its one example `.qmd` — run whichever ones you need in the same project directory; they share `_brand.yml`, fonts, and logo without overwriting each other's files.
 
-**`configure_brand()` and the `create_brand_quarto_*()` functions write two different `_brand.yml` formats to the same filename.** `configure_brand()` writes the Shiny/bslib format (`color-dark:`, `theme:` sections), which Quarto's own renderer rejects outright — rendering a `.qmd` against that file fails with a Quarto-side YAML validation error, not an R error. The `create_brand_quarto_*()` functions detect this and auto-convert a leftover bslib-format `_brand.yml` regardless of `overwrite`, so the fix is just to (re-)run whichever `create_brand_quarto_*()` function matches your project after configuring the brand. Going the other direction — running `configure_brand()` in a directory that already has a Quarto-compatible `_brand.yml` — will overwrite it with the bslib format again; re-run the `create_brand_quarto_*()` function afterward to convert it back.
+### The two `_brand.yml` formats
+
+There are two dialects of `_brand.yml`, sharing one filename:
+
+| | Shiny / bslib | Quarto |
+|---|---|---|
+| Dark colours | separate `color-dark:` section | nested `light:` / `dark:` values per colour |
+| Bootstrap variables | `theme:` section | `defaults: bootstrap: defaults:` |
+| Read by | bslib | Quarto **and** bslib |
+
+Quarto's renderer rejects `color-dark:` and `theme:` outright — rendering a `.qmd` against a bslib-format file fails with a Quarto-side YAML validation error, not an R error.
+
+You pick the format in `configure_brand()` itself, via the **Output format** toggle in the sidebar (the YAML tab previews whichever one is selected). It starts on whatever the `_brand.yml` already in that directory is, so re-configuring a Quarto project no longer clobbers it with a file Quarto can't read. Set it up front with `configure_brand(format = "quarto")` if you prefer.
+
+The `create_brand_quarto_*()` functions still convert a bslib-format `_brand.yml` on their own regardless of `overwrite`, so configuring in bslib format and converting at scaffold time remains a valid route — and an already-Quarto-compatible file is left alone.
 
 ### HTML documents
 
 ```yaml
 ---
 title: "My Report"
+subtitle: "A branded HTML report"
+author: "Your Name"
+date: today
 format:
   html:
-    theme: [brand, brandkit.scss]
+    title-block-style: none   # the .brand-banner div supplies the title block
+    theme:
+      light: [brand, brandkit.scss]
+      dark: [brand, brandkit.scss]
     toc: false
 ---
 ```
@@ -489,9 +509,11 @@ library(brandkit)
 brand_quarto_setup()
 ```
 
-`report.qmd` is single-mode (light) by design — no dark-mode toggle, no `brand_quarto_setup("dark")` branching. If you want a light/dark reader toggle on an HTML report, switch `theme:` to the `light: [...]` / `dark: [...]` nested form yourself; plots are still static images baked in at render time either way, matching whichever mode you pass to `brand_quarto_setup()`. Revealjs slides keep both modes available — see below.
+`report.qmd` ships with a reader-facing light/dark toggle, which is what the nested `theme:` form above buys you: Quarto compiles one Bootstrap stylesheet per mode from `_brand.yml`'s `color:`/`color-dark:` entries, and the toggle swaps between them. Note that the flat `theme: [brand, brandkit.scss]` form is *not* equivalent — it still renders a toggle, but only the syntax highlighting switches while the Bootstrap layer stays light, so keep the nested form if you want the toggle to work.
 
-`report.qmd` opens with a `.brand-banner` div and closes with a `.brand-footer` div — the same footer styling as the other templates, so all three read as one family, though the banner itself is HTML-specific: a full-bleed primary-colour field, breaking out to the full browser width, with a secondary-colour wedge cut into *both* the left and right edges and the logo/title/subtitle centred between them. (The PDF banner, described below, uses a related but distinct asymmetric layout — a diagonal-stripe field with content left-aligned — better suited to a printed page than a browser window.)
+The one thing the toggle can't switch is plots: they're static images baked in at render time in whichever mode you pass to `brand_quarto_setup()`, so a reader in dark mode still sees light-mode plot backgrounds. If that bothers you, either pick the mode your readers will most likely use, or drop the toggle back to a single mode. Revealjs slides have the same constraint — see below.
+
+`report.qmd` opens with a `.brand-banner` div and closes with a `.brand-footer` div — the same footer styling as the other templates, so all three read as one family. The banner draws the same diagonal-stripe field as the PDF banner described below (in CSS gradients rather than Typst polygons, but at the same 22° lean): a flat primary field behind the logo/title/subtitle/author·date, switching to secondary-coloured stripes past an angled seam. The one deliberate divergence is symmetry — the PDF anchors its content and its single seam to the left, which is a stable composition on a fixed page width but drifts apart as a browser window grows, so the HTML banner centres the content and mirrors the seam so stripes run in from *both* edges. Its geometry is fractional for the same reason the Typst version's is (`solid-frac`, `n-stripes`), which keeps the composition scale-invariant; below Bootstrap's `lg` breakpoint the centred text needs enough of the banner that only a sliver of stripe would be left either side, so it flattens to plain primary there. Tune it via the `--brand-banner-*` custom properties at the top of the `.brand-banner` rule in `brandkit.scss`.
 
 ### Revealjs slides
 
@@ -519,7 +541,7 @@ For plotly in slides, always pass fixed dimensions: `brand_plotly(p, width = 100
 
 ### PDF documents (Typst)
 
-`create_brand_quarto_pdf()` scaffolds a project that renders to PDF via Quarto's built-in Typst engine — no LaTeX required. Quarto's `_brand.yml` integration already applies brand colours and fonts to Typst output. brandkit's `brandkit-typst` format extension (installed at `_extensions/brandkit/`) adds a full-bleed title banner on page 1 — a diagonal-stripe field, drawn as Typst polygons (no image asset), that runs primary-coloured behind the title/subtitle and switches to secondary-coloured stripes past an angled seam, echoing the HTML report's `.brand-banner` — with the logo (if configured) placed inline in it, plus coloured headings, a coloured footer showing the document title and page number, and rounded code-block corners matching the brand's configured `theme.border-radius` (`_extension.yml` is generated per-brand at scaffold time for these — re-run with `overwrite = TRUE` after changing the brand). If the document has no title, the banner is skipped and the logo falls back to a plain top-right corner mark on page 1 instead (Quarto's own default repeats a logo on every page as a watermark; brandkit restricts it to page 1 either way).
+`create_brand_quarto_pdf()` scaffolds a project that renders to PDF via Quarto's built-in Typst engine — no LaTeX required. Quarto's `_brand.yml` integration already applies brand colours and fonts to Typst output. brandkit's `brandkit-typst` format extension (installed at `_extensions/brandkit/`) adds a full-bleed title banner on page 1 — a diagonal-stripe field, drawn as Typst polygons (no image asset), that runs primary-coloured behind the title/subtitle and switches to secondary-coloured stripes past an angled seam, the same field the HTML report's `.brand-banner` draws in CSS — with the logo (if configured) placed inline in it, plus coloured headings, a coloured footer showing the document title and page number, and rounded code-block corners matching the brand's configured `theme.border-radius` (`_extension.yml` is generated per-brand at scaffold time for these — re-run with `overwrite = TRUE` after changing the brand). If the document has no title, the banner is skipped and the logo falls back to a plain top-right corner mark on page 1 instead (Quarto's own default repeats a logo on every page as a watermark; brandkit restricts it to page 1 either way).
 
 ```yaml
 ---
@@ -631,8 +653,14 @@ This is the layer that the official bslib / brand.yml pipeline does not provide.
 ## Configurator Details
 
 ```r
-configure_brand(path = ".")
+configure_brand(path = ".")                     # picks up the brand already there
+configure_brand(path = ".", reset = TRUE)       # ignore it, start from defaults
+configure_brand(path = ".", format = "quarto")  # preselect the output format
 ```
+
+**Starting from an existing brand.** If `path` already has a `_brand.yml`, every input opens on that brand's current values — colours, font pairing, sizes, border radius, name, logo — instead of the built-in defaults, so adjusting a configured project is a nudge rather than a re-run of the whole wizard. Either format is read back. The preset and font-pairing dropdowns land on whichever entry matches, or on **Custom** for a hand-tuned brand.
+
+Things the UI doesn't expose are carried through rather than dropped on save: a named `color.palette`, and font definitions for locally-sourced families (`source: file`), which would otherwise be rewritten as Google fonts of the same name. The one thing not preserved is hand-edited dark colours — the dark palette is always re-derived from the light one, which is what the "Auto-generate dark mode palette" box does. That box starts ticked whenever the loaded file has dark colours at all.
 
 **Colour presets (12):**
 
@@ -652,7 +680,9 @@ configure_brand(path = ".")
 | Editorial | Open Sans / Lora, Nunito / Merriweather, Inter / Playfair, Libre Franklin / Baskerville |
 | Friendly | Quicksand, Nunito Sans / Nunito, Rubik |
 
-Dark mode palette is auto-generated by lightening semantic colours and inverting foreground/background. The configurator saves and closes gracefully after writing `_brand.yml`.
+Dark mode palette is auto-generated by lightening semantic colours and inverting foreground/background.
+
+**Output format.** A sidebar toggle picks which `_brand.yml` dialect gets written — Shiny/bslib or Quarto (see [The two `_brand.yml` formats](#the-two-_brandyml-formats)). It defaults to the format of the file already in `path`, and the YAML tab previews the selected dialect, so what you read there is what lands on disk. The configurator saves and closes gracefully after writing `_brand.yml`.
 
 ---
 
