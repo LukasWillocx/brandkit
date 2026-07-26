@@ -3,6 +3,9 @@
 # Package hooks. After library(brandkit), ggplot2 is branded automatically.
 # --------------------------------------------------------------------------
 
+#' @importFrom rlang %||%
+NULL
+
 .onLoad <- function(libname, pkgname) {
   # Try to initialise the cache silently; don't error if no _brand.yml
   # is found yet (user may call brand_init() later).
