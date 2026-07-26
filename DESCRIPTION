@@ -29,6 +29,7 @@ Suggests:
     gt,
     httpuv,
     knitr,
+    leaflet,
     plotly,
     quarto,
     showtext,
