@@ -58,15 +58,26 @@ shinyApp(ui, server)
 
 No `theme =`, no `+ theme_brand()`, no `scale_color_brand_d()`, no dark mode plumbing. Everything is injected automatically.
 
-### 3. Use in Quarto
+### 3. Scaffold a project
+
+Rather than starting from a blank file, scaffold a working, branded project and edit it down. Each function writes a `_brand.yml` in the right format for its target, plus a template and any local font/logo files.
 
 ```r
-create_brand_quarto_html(path = "my-report")     # HTML report
-create_brand_quarto_slides(path = "my-report")   # revealjs slides
-create_brand_quarto_pdf(path = "my-report")      # PDF via Typst
+# Shiny apps — one per brand_page_*() wrapper, each lands as app.R
+create_brand_shiny_app(path = "my-app")             # starter, sidebar layout
+create_brand_shiny_dashboard(path = "my-dashboard") # KPI dashboard, navbar + DT
+create_brand_shiny_map(path = "my-map")             # leaflet + plotly, fluid layout
+
+# Quarto documents
+create_brand_quarto_html(path = "my-report")        # HTML report
+create_brand_quarto_slides(path = "my-report")      # revealjs slides
+create_brand_quarto_pdf(path = "my-report")         # PDF via Typst
+create_brand_quarto_dashboard(path = "my-dashboard")# Quarto dashboard, Shiny runtime
 ```
 
-Then in your `.qmd` file, add `library(brandkit)` and `brand_quarto_setup()` in a setup chunk.
+Run a Shiny scaffold with `shiny::runApp("my-app")`. For the Quarto scaffolds, add `library(brandkit)` and `brand_quarto_setup()` in a setup chunk (the templates already do); the Quarto dashboard is served with `quarto serve dashboard.qmd` rather than rendered, since it declares `server: shiny`.
+
+The directory is created if it doesn't exist, and nothing is overwritten unless you pass `overwrite = TRUE` — except a `_brand.yml` in the wrong format for the target, which is always converted (see below).
 
 ---
 
@@ -189,6 +200,30 @@ When you use `brand_page_sidebar()` instead of `bslib::page_sidebar()`, the foll
 4. The brand logo (if configured) is prepended inline next to the title
 5. `thematic::thematic_shiny()` is activated with the brand discrete palette and font
 6. A plot-settle script hides ggplot outputs during initial layout to prevent size-flash
+
+### Scaffolding a Shiny project
+
+There is one template per page wrapper. Each writes a bslib-format `_brand.yml`, an `app.R`, and any local font and logo files into `path` — creating the directory if it doesn't exist — then tells you what to run.
+
+```r
+create_brand_shiny_app(path = "my-app")             # brand_page_sidebar
+create_brand_shiny_dashboard(path = "my-dashboard") # brand_page_navbar
+create_brand_shiny_map(path = "my-map")             # brand_page_fluid
+
+shiny::runApp("my-app")
+```
+
+| Template | Wrapper | Shows off | Needs |
+|---|---|---|---|
+| `create_brand_shiny_app()` | `brand_page_sidebar()` | The zero-boilerplate baseline: sidebar inputs, a ggplot, a `brand_pal_discrete()` swatch | — |
+| `create_brand_shiny_dashboard()` | `brand_page_navbar()` | Value-box KPI row, multi-tab layout, a DT table styled in both modes | `DT` |
+| `create_brand_shiny_map()` | `brand_page_fluid()` | `brand_pal_seq()` driving a leaflet colour ramp, `brand_plotly()`, tiles that follow the dark-mode toggle | `leaflet`, `plotly` |
+
+Templates that need a suggested package say so at scaffold time rather than letting you hit the error when the app starts — the files are written either way.
+
+Unlike the Quarto scaffolds there is no stylesheet to copy: the page wrappers pull brandkit's widget CSS overrides and dark-mode CSS in at runtime.
+
+Note that the Shiny and Quarto scaffolds want *different dialects* of `_brand.yml` — see [The two `_brand.yml` formats](#the-two-_brandyml-formats). Running a `create_brand_shiny_*()` function in a directory holding a Quarto-format file converts it (and vice versa), so a directory serving both needs one format chosen deliberately rather than whichever scaffold ran last.
 
 ---
 
@@ -464,6 +499,9 @@ create_brand_quarto_slides(path = "my-project")
 
 create_brand_quarto_pdf(path = "my-project")
 # Copies: _brand.yml (Quarto-compatible), _extensions/brandkit/ (Typst format), report-pdf.qmd, fonts, logo
+
+create_brand_quarto_dashboard(path = "my-project")
+# Copies: _brand.yml (Quarto-compatible), brandkit.scss, dashboard.qmd, fonts, logo
 ```
 
 Each function is standalone and copies only its one example `.qmd` — run whichever ones you need in the same project directory; they share `_brand.yml`, fonts, and logo without overwriting each other's files.
@@ -475,10 +513,15 @@ There are two dialects of `_brand.yml`, sharing one filename:
 | | Shiny / bslib | Quarto |
 |---|---|---|
 | Dark colours | separate `color-dark:` section | nested `light:` / `dark:` values per colour |
-| Bootstrap variables | `theme:` section | `defaults: bootstrap: defaults:` |
+| Bootstrap variables | `defaults: bootstrap: defaults:` | `defaults: bootstrap: defaults:` |
 | Read by | bslib | Quarto **and** bslib |
 
-Quarto's renderer rejects `color-dark:` and `theme:` outright — rendering a `.qmd` against a bslib-format file fails with a Quarto-side YAML validation error, not an R error.
+The dialects differ only in how dark colours are carried. Each side rejects the other's form:
+
+- Quarto's renderer rejects `color-dark:` (and `theme:`) outright — rendering a `.qmd` against a bslib-format file fails with a Quarto-side YAML validation error, not an R error.
+- bslib rejects Quarto's nested colours — `bslib::bs_theme(brand = )` errors with `` `color.primary` must be a single string or `NULL`, not a list ``, so the app never starts.
+
+> **Note on `theme:`** — `configure_brand()` writes Bootstrap variables under a `theme:` key. bslib does not read that key: a border radius set there is silently ignored and you get Bootstrap's `3px` default. `defaults: bootstrap: defaults:` is the channel both bslib and Quarto honour, and it is what the `create_brand_*()` scaffolds write.
 
 You pick the format in `configure_brand()` itself, via the **Output format** toggle in the sidebar (the YAML tab previews whichever one is selected). It starts on whatever the `_brand.yml` already in that directory is, so re-configuring a Quarto project no longer clobbers it with a file Quarto can't read. Set it up front with `configure_brand(format = "quarto")` if you prefer.
 
@@ -699,6 +742,7 @@ brandkit/
 |   +-- brand_pages.R        # Zero-boilerplate Shiny page wrappers + thematic
 |   +-- brand_plotly.R       # Branded ggplotly conversion
 |   +-- brand_quarto.R       # Quarto scaffolding + render-time setup
+|   +-- brand_shiny.R        # Shiny app scaffolding (+ bslib _brand.yml writer)
 |   +-- brand_theme.R        # bslib theme + dark mode CSS generation
 |   +-- utils.R              # Hex conversion, colour shifting helpers
 |   +-- zzz.R                # .onLoad / .onAttach (auto-apply theme + scales)
@@ -706,10 +750,15 @@ brandkit/
 |   +-- _brand.yml           # Bundled default brand (Slate & Teal / Inter)
 |   +-- css/overrides.css    # Static CSS for BS5 gaps + leaflet dark mode
 |   +-- quarto/              # SCSS + one example .qmd per create_brand_quarto_*()
-|       +-- report.qmd       # Example HTML report
-|       +-- slides.qmd       # Example revealjs slides
-|       +-- pdf-report.qmd   # Example Typst PDF report
-|       +-- typst/_extensions/brandkit/  # brandkit-typst format extension
+|   |   +-- report.qmd       # Example HTML report
+|   |   +-- slides.qmd       # Example revealjs slides
+|   |   +-- pdf-report.qmd   # Example Typst PDF report
+|   |   +-- dashboard.qmd    # Example Shiny dashboard (format: dashboard)
+|   |   +-- typst/_extensions/brandkit/  # brandkit-typst format extension
+|   +-- shiny/               # One app template per create_brand_shiny_*()
+|       +-- app-starter.R    # Sidebar starter (brand_page_sidebar)
+|       +-- app-dashboard.R  # KPI dashboard, DT table (brand_page_navbar)
+|       +-- app-map.R        # Leaflet + plotly (brand_page_fluid)
 +-- examples/
     +-- app.R                # Zero-boilerplate sidebar demo
     +-- app_navbar.R         # Navbar layout, DT, value boxes, distributions

@@ -299,6 +299,121 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
 }
 
 
+#' Set Up a Quarto Shiny Dashboard Project
+#'
+#' Copies `_brand.yml`, the brandkit SCSS overrides, and an example
+#' `dashboard.qmd` into a Quarto project directory, configured to render
+#' to Quarto's `dashboard` format with a Shiny runtime. The result is a
+#' KPI dashboard — a row of value boxes over filtered charts and a table
+#' — driven by sidebar inputs.
+#'
+#' This is the Quarto counterpart to [create_brand_shiny_dashboard()].
+#' The two produce a similar layout by different routes: this one lays
+#' the dashboard out in Quarto markdown and takes its ggplot2 theming
+#' from a single [brand_quarto_setup()] call, while the Shiny version
+#' builds the same structure in `bslib` and takes its theming from
+#' [brand_page_navbar()]. Prefer this one when the dashboard sits
+#' alongside other Quarto documents; prefer the Shiny one when it needs
+#' to grow into a full application.
+#'
+#' @param path Project directory. Defaults to the current working
+#'   directory. Created if it doesn't exist.
+#' @param examples Logical. Copy the example `dashboard.qmd`? Default
+#'   `TRUE`.
+#' @param overwrite Logical. Overwrite existing files? Default `FALSE`.
+#'
+#' @details
+#' This function copies the following into `path`:
+#' \describe{
+#'   \item{`_brand.yml`}{From the brandkit cache (your configured brand),
+#'     in the Quarto-compatible format.}
+#'   \item{`brandkit.scss`}{The same SCSS overrides the HTML report
+#'     scaffold uses — layered after brand in the theme. Its title-banner
+#'     rules are inert in a dashboard (there is no banner div to match),
+#'     but its card, table, scrollbar, and nav styling all apply.}
+#'   \item{`dashboard.qmd`}{Sample Shiny dashboard (if `examples = TRUE`).}
+#' }
+#'
+#' Because the document declares `server: shiny`, it is served rather
+#' than rendered to a static file:
+#' ```
+#' quarto serve dashboard.qmd
+#' ```
+#' Rendering it with `quarto render` produces the supporting files but
+#' not a runnable page — that needs a Shiny-capable server. This requires
+#' Quarto >= 1.4 (the `dashboard` format) and the \pkg{shiny} package.
+#'
+#' If `path` already has a `_brand.yml` in the Shiny/bslib format (with
+#' `color-dark:`/`theme:` keys — what [configure_brand()] writes unless
+#' its output-format toggle is set to Quarto), it is converted to the
+#' Quarto-compatible format regardless of `overwrite` — Quarto's own
+#' renderer rejects those bslib-only keys outright, so a leftover
+#' bslib-format file always needs fixing. An already Quarto-compatible
+#' `_brand.yml` is left alone unless `overwrite = TRUE`.
+#'
+#' If the cached brand references a logo whose file can't actually be
+#' found (e.g. a stale cache pointing at a different project), the
+#' `logo:` section is omitted from the written `_brand.yml` rather than
+#' pointing at a file that will never be copied.
+#'
+#' @return Invisibly returns a character vector of copied file paths.
+#'
+#' @examples
+#' \dontrun{
+#' create_brand_quarto_dashboard(path = "my-dashboard")
+#' # then, in a terminal:  quarto serve my-dashboard/dashboard.qmd
+#' }
+#'
+#' @export
+create_brand_quarto_dashboard <- function(path = ".", examples = TRUE,
+                                          overwrite = FALSE) {
+
+  if (!dir.exists(path)) {
+    dir.create(path, recursive = TRUE)
+    message("Created directory: ", path)
+  }
+  path <- normalizePath(path, mustWork = TRUE)
+  ensure_cache_for_path(path)
+
+  copied <- character(0)
+
+  # --- _brand.yml (Quarto-compatible) ---
+  brand_dest <- write_brand_yml_for_quarto(path, overwrite)
+  if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
+
+  # --- brandkit.scss ---
+  scss_src  <- system.file("quarto/brandkit.scss", package = "brandkit")
+  scss_dest <- file.path(path, "brandkit.scss")
+  if (nzchar(scss_src) && (!file.exists(scss_dest) || overwrite)) {
+    file.copy(scss_src, scss_dest, overwrite = overwrite)
+    copied <- c(copied, scss_dest)
+    message("Copied brandkit.scss")
+  }
+
+  # --- Example dashboard ---
+  if (examples) {
+    src  <- system.file("quarto/dashboard.qmd", package = "brandkit")
+    dest <- file.path(path, "dashboard.qmd")
+    if (nzchar(src) && (!file.exists(dest) || overwrite)) {
+      file.copy(src, dest, overwrite = overwrite)
+      copied <- c(copied, dest)
+      message("Copied dashboard.qmd")
+    }
+  }
+
+  # --- Font files (if local fonts are defined) ---
+  copy_brand_fonts(path, overwrite)
+
+  # --- Logo files ---
+  copy_brand_logo(path, overwrite)
+
+  message("\nDone. Serve the dashboard with:")
+  message("  quarto serve ", file.path(path, "dashboard.qmd"))
+
+  invisible(copied)
+}
+
+
 #' Set Up a Quarto Typst PDF Project
 #'
 #' Copies `_brand.yml`, a branded Typst format extension, and an example
