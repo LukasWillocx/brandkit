@@ -1,0 +1,122 @@
+---
+title: "A Branded Conference Poster"
+subtitle: "Landscape, three columns, all inferred from _brand.yml"
+author: "Your Name"
+date: today
+poster-footer: "Department of Everything | you@example.org | example.org/project"
+format:
+  brandkit-poster-typst:
+    columns: 3
+fig-width: 9
+fig-height: 5.5
+fig-dpi: 300
+# A poster shows findings, not source. The one code listing below is a
+# plain ```r fence, written out deliberately to show the brand's code
+# styling - the chunks that draw the figures stay hidden.
+execute:
+  echo: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(brandkit)
+library(ggplot2)
+brand_quarto_setup()
+
+# Plots fill the column they land in, so a figure drawn at 9in is
+# enlarged to roughly 13in on A0 - which shrinks its labels relative to
+# the poster's body copy. Raising the ggplot base size compensates, so
+# axis text lands near the body text size instead of well under it.
+theme_set(theme_brand(base_size = 22))
+```
+
+## Background {.plain}
+
+Everything on this sheet - the colours, the fonts, the striped masthead,
+the card panels, the rule under the footer - is inferred from
+`_brand.yml`. Nothing here names a colour or a typeface.
+
+This section is marked `{.plain}`, so it runs free in the column instead
+of sitting in a card: useful for a lead-in that should read as part of
+the poster rather than as one of its findings.
+
+## Methods
+
+Write ordinary Markdown. Each `##` heading, and everything under it,
+becomes a card. Cards never split across a column - one that does not
+fit is moved to the next column whole, which is why a column sometimes
+stops short of the bottom of the sheet.
+
+Inline code such as `theme_brand()` and fenced blocks are styled from
+the brand exactly as they are in the report formats:
+
+```r
+p <- ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) +
+  geom_point(size = 4)
+```
+
+Chunks are hidden here via `execute: echo: false`, because a poster
+shows findings rather than source. Drop that and the code appears,
+styled the same way.
+
+## Results
+
+```{r}
+#| label: scatter
+#| fig-cap: "Auto-themed via theme_brand() - no manual styling"
+#| fig-height: 4.5
+ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) +
+  geom_point(size = 4) +
+  labs(title = "MPG vs Weight", colour = "Cylinders")
+```
+
+Figures fill the column they land in, so their aspect ratio is what
+`fig-width` and `fig-height` really control. Set `fig-height` per chunk
+to decide how much of the column each one claims.
+
+## Distributions
+
+```{r}
+#| label: box
+#| fig-cap: "Fuel economy by cylinder count"
+#| fig-height: 4
+ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
+  geom_boxplot(alpha = 0.85, show.legend = FALSE) +
+  labs(x = "Cylinders", y = "MPG")
+```
+
+Discrete scales come from the brand palette by default, so a second
+figure agrees with the first without being told to.
+
+## Key Numbers
+
+```{r}
+#| label: table
+knitr::kable(head(mtcars[, 1:4], 6))
+```
+
+Tables get the same booktabs rules, tinted header and zebra striping as
+the report formats.
+
+## Brand Palette
+
+```{r}
+#| label: palette
+#| fig-cap: "Discrete brand palette"
+#| fig-height: 1.6
+cols <- brand_pal_discrete()
+# Base graphics keep a five-line default margin, which at this figure
+# height leaves no plotting region at all ("figure margins too large").
+par(mar = c(0, 0, 0, 0))
+barplot(rep(1, length(cols)), col = cols, border = NA, axes = FALSE)
+```
+
+Base graphics work too - the palette helpers are plain colour vectors.
+
+## Conclusions
+
+- A poster is a fixed sheet: Typst will not shrink content to fit it,
+  so anything that overruns spills onto a second page.
+- Re-run `create_brand_quarto_poster(paper = "a1", columns = 4)` to
+  retarget the sheet - both arguments feed the type scale.
