@@ -114,5 +114,40 @@ $endif$
   accent: brand-color.primary,
   secondary-accent: brand-color.secondary,
   foreground: brand-color.foreground,
+  // Used together with `secondary-accent` to derive the fenced-code
+  // background — see the code-block-fill comment in typst-template.typ.
+  background: brand-color.background,
+$if(banner-inset)$
+$if(title)$
+  // Print layout only: the inset banner panel built in page.typ. Passed
+  // through here because this file is the first point at which both
+  // article() and the panel are in scope — see the `banner` parameter's
+  // comment in typst-template.typ. Omitted entirely for the full-bleed
+  // format, where the banner is drawn as a page background instead and
+  // article() reserves flow space for it rather than emitting it.
+  //
+  // The surrounding title guard is not redundant with article()'s own
+  // title check: page.typ only defines brandkit-banner-content inside
+  // its own title branch, so referencing it in a titleless document is
+  // an unknown-variable error at compile time, before article() ever
+  // gets to decide whether to draw a banner. (Note for editors: never
+  // write a pandoc directive literally in these comments — the template
+  // is preprocessed before Typst ever sees it, and one written in prose
+  // here is parsed as real markup and breaks every render.)
+  banner: brandkit-banner-content,
+$endif$
+$endif$
+$if(poster)$
+  // Poster layout only. The column count itself doesn't come through
+  // here — page.typ reads `columns` straight into the page setup — but
+  // article() still needs to know it is laying out a poster, so that
+  // the masthead is emitted as a column-spanning float and the running
+  // footer is replaced by the standing band.
+  poster: true,
+  poster-scale: $poster-scale$,
+$if(poster-footer)$
+  poster-footer: [$poster-footer$],
+$endif$
+$endif$
   doc,
 )

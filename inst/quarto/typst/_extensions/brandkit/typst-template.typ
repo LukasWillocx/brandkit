@@ -51,6 +51,26 @@
   accent: none,
   secondary-accent: none,
   foreground: none,
+  background: none,
+  // brandkit: the inset (print) banner, passed in rather than referenced
+  // directly. page.typ builds it, but page.typ is emitted *after* this
+  // file (see template.typ's partial order), and a Typst closure
+  // captures its defining scope — so article() cannot see a top-level
+  // binding declared later in the document. typst-show.typ comes after
+  // both and hands it over, which is the same route brand-color takes to
+  // reach `accent`/`foreground` here.
+  banner: none,
+  // brandkit: poster layout. The columns themselves are page columns
+  // set in page.typ; what `poster` changes here is how the masthead is
+  // emitted (spanning those columns rather than sitting above a single
+  // flow) and that the report's running footer gives way to an optional
+  // standing band. `poster-scale` is the same factor the type ramp was
+  // scaled by at scaffold time, reused for the handful of fixed lengths
+  // — the masthead's clearance, the footer rule — that would otherwise
+  // stay letter-sized on A0.
+  poster: false,
+  poster-footer: none,
+  poster-scale: 1.0,
   doc,
 ) = {
   // Set document metadata for PDF accessibility
@@ -78,6 +98,53 @@
   show raw: set text(size: fontsize)
   show raw: set text(font: codefont) if codefont != none
 
+  // brandkit: code is typeset literally, so the font's contextual
+  // alternates are switched off inside raw. Text faces routinely map
+  // ASCII operator sequences onto single glyphs through `calt` — Inter
+  // turns `<-` into a left arrow and `->` into a right one — which
+  // silently misrepresents the source: an R assignment stops looking
+  // like an R assignment, and the glyph can't be copied back out of the
+  // PDF as the characters that were written. Programming faces do the
+  // same deliberately (JetBrains Mono, Fira Code), and the same argument
+  // applies to them, so this is switched off for every family rather
+  // than only for the accidental cases. `ligatures: false` does NOT
+  // cover this — these substitutions are `calt`, not `liga`.
+  show raw: set text(features: (calt: 0))
+
+  // brandkit: fenced-code background, derived from the brand rather than
+  // the fixed luma(230) Quarto's template ships. That constant is a
+  // light grey whatever the brand is, which is merely off-palette in a
+  // light document but breaks a dark one outright: the page goes dark
+  // and `foreground` goes near-white, while the block stays light, so
+  // every token the highlighter doesn't colour — punctuation, braces,
+  // plain identifiers — lands at about 1.2:1 and disappears.
+  //
+  // Mixing a little of the brand's secondary into the background instead
+  // keeps the block a shade off the page it sits on, carries the same
+  // accent the banner rail and inline code already use, and follows the
+  // brand into dark mode automatically. 12% is enough to read as a
+  // deliberate tint rather than a neutral grey while leaving the block
+  // firmly a background: across the light, tinted and dark brands this
+  // was checked against, foreground on this fill stays between 10.4:1
+  // and 15.2:1.
+  //
+  // Falls back to foreground when a brand defines no secondary, since a
+  // tint of nothing would leave the block indistinguishable from the
+  // page.
+  //
+  // Only the fill is set here; width, inset and the brand-derived corner
+  // radius stay in definitions.typ, and its luma(230) still applies
+  // whenever article() is called without these parameters — they are
+  // always supplied by typst-show.typ, so in practice that is the
+  // direct-call case rather than anything Quarto renders.
+  let code-block-tint = if secondary-accent != none { secondary-accent } else { foreground }
+  let code-block-fill = if code-block-tint != none and background != none {
+    color.mix((code-block-tint, 12%), (background, 88%))
+  } else {
+    none
+  }
+  show raw.where(block: true): set block(fill: code-block-fill) if code-block-fill != none
+
   // brandkit: inline code (raw spans set with single backticks in running
   // body text) gets a colour of its own — a 75/25 blend weighted toward
   // the brand's secondary accent, with its foreground/dark colour
@@ -100,12 +167,38 @@
 
   set heading(numbering: sectionnumbering)
 
-  // brandkit: coloured footer rule (primary) with title + page number
-  // (secondary, falling back to primary), only when a brand accent
-  // colour is available (i.e. used together with _brand.yml)
+  // brandkit: the page footer — a coloured rule over the report's
+  // title/page-number line, or over the poster's standing band.
+  //
+  // Both are built into one value and applied by a single, unconditional
+  // `set page`. That shape is load-bearing rather than tidiness: a Typst
+  // `set` rule lives only to the end of the block it is written in, so
+  // the obvious `if accent != none { set page(footer: ...) }` compiles
+  // without complaint and then applies to precisely nothing — the
+  // branded footer silently never appears, and Typst's own centred page
+  // number shows through in its place.
+  //
+  // The fallbacks differ deliberately. A report with no brand accent to
+  // draw with falls back to `auto`, leaving Quarto's own footer alone. A
+  // poster falls back to `none`: it is one sheet, so a running footer
+  // carrying a title and a page number is noise beside a title already
+  // six inches tall above it. What a poster wants there is a standing
+  // band for what the masthead has no room for — affiliations, funding,
+  // a URL — and that is opt-in via `poster-footer:` in the document
+  // YAML, so an unrequested footer should not appear at all.
   let footer-text-color = if secondary-accent != none { secondary-accent } else { accent }
-  if accent != none {
-    set page(footer: context [
+  let page-footer = if poster {
+    if poster-footer != none and accent != none {
+      [
+        #line(length: 100%, stroke: (0.4pt * poster-scale) + accent.transparentize(50%))
+        #v(0.35em)
+        #text(size: 0.8em, fill: footer-text-color, poster-footer)
+      ]
+    } else {
+      none
+    }
+  } else if accent != none {
+    context [
       #line(length: 100%, stroke: 0.4pt + accent.transparentize(50%))
       #v(3pt)
       #grid(
@@ -113,8 +206,11 @@
         align(left)[#text(size: 8pt, fill: footer-text-color)[#if title != none { title }]],
         align(right)[#text(size: 8pt, fill: footer-text-color)[#counter(page).display("1")]]
       )
-    ])
+    ]
+  } else {
+    auto
   }
+  set page(footer: page-footer)
 
   // brandkit: booktabs-style tables — a rule under the header row only,
   // no outer top/bottom rules (those sat flush against the table's own
@@ -158,17 +254,47 @@
     }
    }
 
-  // brandkit: title, subtitle, authors, and date are rendered as part of
-  // the full-bleed two-tone banner in page.typ's page background, not
-  // here — this just reserves matching vertical space on page 1 (a
-  // one-time spacer consumed immediately at the start of flow, so later
-  // pages are unaffected) and lets the abstract, if any, flow normally
-  // right below it. `thanks:` footnotes aren't supported in the banner
-  // layout — footnote placement needs normal document flow, which
-  // page-background content isn't part of — so that parameter is kept
-  // for signature compatibility but currently has no effect.
+  // brandkit: title, subtitle, authors and date are rendered as the
+  // two-tone banner built in page.typ, not here. Which of the two
+  // layouts is in force decides what this has to do:
+  //
+  //   inset (print) — the panel is flow content, so it is simply emitted
+  //     at the top of the body and takes its own space. Nothing is
+  //     reserved, and no assumption about the top margin is involved.
+  //   full-bleed — the panel lives in the page background and occupies
+  //     no flow space at all, so a one-time spacer stands in for it
+  //     (consumed immediately at the start of flow, leaving later pages
+  //     unaffected) to keep body content from starting underneath it.
+  //
+  // Either way the abstract, if any, flows normally below. `thanks:`
+  // footnotes aren't supported in either layout — footnote placement
+  // needs normal document flow, and the banner is a self-contained panel
+  // — so that parameter is kept for signature compatibility but
+  // currently has no effect.
   if title != none {
-    v(calc.max(0pt, brandkit-banner-height - brandkit-margin-top-assumed) + brandkit-banner-gap)
+    if poster {
+      // brandkit: the masthead has to span the page's columns, and the
+      // only thing in Typst that escapes a column is a float scoped to
+      // the parent. `top` rather than the flow position because a
+      // parent float is placed on the page, not where it was written.
+      //
+      // `clearance` is the gap to the column content below — the same
+      // 0.3in the reports leave under their banner, scaled with the
+      // type ramp, since 0.3in reads as breathing room under a 22pt
+      // masthead and as a hairline under an 80pt one.
+      place(
+        top,
+        float: true,
+        scope: "parent",
+        clearance: brandkit-banner-gap * poster-scale,
+        banner,
+      )
+    } else if banner != none {
+      banner
+      v(brandkit-banner-gap)
+    } else {
+      v(calc.max(0pt, brandkit-banner-height - brandkit-margin-top-assumed) + brandkit-banner-gap)
+    }
   }
 
   if abstract != none {

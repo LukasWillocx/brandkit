@@ -14,6 +14,16 @@
 // drawn size, only the one-time flow spacer in typst-template.typ.
 #let brandkit-banner-gap = 0.3in
 
+// brandkit: height of the inset (print) banner — the panel written by
+// create_brand_quarto_print_pdf(), which sits inside the margins as flow
+// content rather than bleeding off the page. Shorter than the
+// full-bleed banner because it is also narrower: at the text measure
+// rather than the full page width, 2.15in would read as a square-ish
+// slab instead of a masthead. Unlike brandkit-banner-height this one
+// needs no margin bookkeeping — the panel occupies its own space in the
+// flow, so nothing has to be reserved for it.
+#let brandkit-banner-inset-height = 1.45in
+
 // brandkit: diagonal-stripe title-banner fill (Linux Mint wallpaper style),
 // drawn as sheared polygons — no raster image involved. The primary/
 // secondary split isn't a separate wedge shape layered on top; it falls
