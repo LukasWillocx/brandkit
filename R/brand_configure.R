@@ -4,6 +4,20 @@
 # seeded from the one already in the target directory.
 # --------------------------------------------------------------------------
 
+# Default code font: a real monospace family, deliberately not the body
+# font. Code used to be set in whatever the pairing's body font was,
+# which means a proportional face — columns stop lining up, and text
+# faces routinely map operator sequences onto single glyphs through
+# OpenType `calt` (Inter renders `<-` as a left arrow), so the code stops
+# saying what was written and can't be copied back out of a PDF. The
+# Typst template disables `calt` inside raw as well; these are two
+# independent guards on the same failure.
+#
+# IBM Plex Mono is humanist rather than geometric, so it sits with both
+# the sans and the serif headings in font_pairs, and it carries upright,
+# bold and italic under the same check applied to the pairings.
+brandkit_mono_default <- "IBM Plex Mono"
+
 #' Launch the Brand Configurator
 #'
 #' Opens an interactive Shiny app that walks you through palette selection,
@@ -137,29 +151,62 @@ configure_brand <- function(path = ".",
   )
 
   # -- Google Font pairs: grouped by character --
+  #
+  # Every family here is verified to survive the Typst/PDF path, against
+  # the exact request with_google_font_faces() generates. Two independent
+  # things can go wrong there, both of them silent:
+  #
+  #  1. A missing face. Typst synthesizes neither bold nor oblique, so a
+  #     family without a 700 or an italic renders that markup unstyled —
+  #     `**bold**` unbolded, `*italic*` upright.
+  #  2. A family-name mismatch. Families with an optical-size axis are
+  #     served as static instances named `<Family> <n>pt` ("DM Sans 9pt",
+  #     "Roboto Serif 20pt"), which never match the `family:` string, so
+  #     Typst ignores the downloaded files and silently falls back to its
+  #     default serif — the whole brand font disappears from the PDF.
+  #
+  # Neither shows up in the HTML preview, where the browser fakes the
+  # missing faces and resolves the family by CSS name. Check both before
+  # adding an entry: request the family, then confirm the downloaded
+  # files declare exactly that name (`quarto typst fonts --font-path
+  # <cache> --ignore-system-fonts`).
+  #
+  # Replacements made for these reasons, each the nearest equivalent that
+  # passes both checks:
+  #
+  #   Manrope          -> Plus Jakarta Sans   (no italic)
+  #   Roboto Slab      -> Bitter              (no italic)
+  #   DM Sans          -> Figtree             (name: "DM Sans 9pt")
+  #   DM Serif Display -> Cormorant Garamond  (no 700)
+  #   Outfit           -> Jost                (no italic)
+  #   Merriweather     -> PT Serif            (name: "Merriweather Light 18pt")
+  #   Quicksand        -> Asap                (no italic)
+  #   Nunito Sans      -> Mulish              (name: "Nunito Sans 12pt ...")
+  #   Space Grotesk    -> Familjen Grotesk    (no italic)
+  #   Bungee           -> Fraunces            (neither face)
   font_pairs <- list(
     # --- Clean & professional ---
     "Inter / Inter"                    = list(base = "Inter", heading = "Inter"),
-    "Manrope / Montserrat"             = list(base = "Manrope", heading = "Montserrat"),
+    "Plus Jakarta Sans / Montserrat"   = list(base = "Plus Jakarta Sans", heading = "Montserrat"),
     "Source Sans 3 / Source Serif 4"   = list(base = "Source Sans 3", heading = "Source Serif 4"),
-    "Roboto / Roboto Slab"             = list(base = "Roboto", heading = "Roboto Slab"),
+    "Roboto / Bitter"                  = list(base = "Roboto", heading = "Bitter"),
     # --- Modern & geometric ---
     "Lato / Poppins"                   = list(base = "Lato", heading = "Poppins"),
     "Nunito / Raleway"                 = list(base = "Nunito", heading = "Raleway"),
-    "DM Sans / DM Serif Display"       = list(base = "DM Sans", heading = "DM Serif Display"),
-    "Outfit / Outfit"                  = list(base = "Outfit", heading = "Outfit"),
+    "Figtree / Cormorant Garamond"     = list(base = "Figtree", heading = "Cormorant Garamond"),
+    "Jost / Jost"                      = list(base = "Jost", heading = "Jost"),
     # --- Warm & editorial ---
     "Open Sans / Lora"                 = list(base = "Open Sans", heading = "Lora"),
-    "Nunito / Merriweather"            = list(base = "Nunito", heading = "Merriweather"),
+    "Nunito / PT Serif"                = list(base = "Nunito", heading = "PT Serif"),
     "Inter / Playfair Display"         = list(base = "Inter", heading = "Playfair Display"),
     "Libre Franklin / Libre Baskerville" = list(base = "Libre Franklin", heading = "Libre Baskerville"),
     # --- Friendly & rounded ---
-    "Quicksand / Quicksand"            = list(base = "Quicksand", heading = "Quicksand"),
-    "Nunito Sans / Nunito"             = list(base = "Nunito Sans", heading = "Nunito"),
+    "Asap / Asap"                      = list(base = "Asap", heading = "Asap"),
+    "Mulish / Nunito"                  = list(base = "Mulish", heading = "Nunito"),
     "Rubik / Rubik"                    = list(base = "Rubik", heading = "Rubik"),
     # --- Unconventional (still readable) ---
-    "Space Mono / Space Grotesk"       = list(base = "Space Mono", heading = "Space Grotesk"),
-    "Karla / Bungee"                   = list(base = "Karla", heading = "Bungee"),
+    "Space Mono / Familjen Grotesk"    = list(base = "Space Mono", heading = "Familjen Grotesk"),
+    "Karla / Fraunces"                 = list(base = "Karla", heading = "Fraunces"),
     "Custom"                           = NULL
   )
 
@@ -398,18 +445,19 @@ configure_brand <- function(path = ".",
     }, ignoreInit = TRUE)
 
     # -- Font pair sync --
-    # Code font defaults to the body font on every pairing switch (kept a
-    # freely-editable text input afterward, same as font_base/font_heading,
-    # so it's still a default, not a lock). ignoreInit matters here for the
-    # same reason as above, and more concretely: a loaded brand whose code
-    # font differs from its body font would otherwise have that overwritten
-    # on startup the moment its body/heading pair matched a known pairing.
+    # Code font resets to brandkit_mono_default on every pairing switch
+    # (kept a freely-editable text input afterward, same as
+    # font_base/font_heading, so it's still a default, not a lock).
+    # ignoreInit matters here for the same reason as above, and more
+    # concretely: a loaded brand whose code font differs would otherwise
+    # have that overwritten on startup the moment its body/heading pair
+    # matched a known pairing.
     shiny::observeEvent(input$font_pair, {
       fp <- font_pairs[[input$font_pair]]
       if (!is.null(fp)) {
         shiny::updateTextInput(session, "font_base", value = fp$base)
         shiny::updateTextInput(session, "font_heading", value = fp$heading)
-        shiny::updateTextInput(session, "font_mono", value = fp$base)
+        shiny::updateTextInput(session, "font_mono", value = brandkit_mono_default)
       }
     }, ignoreInit = TRUE)
 
@@ -645,6 +693,12 @@ configure_brand <- function(path = ".",
         )
       )
 
+      # Give each Google font entry explicit style/weight lists, so the
+      # saved brand carries bold and italic faces rather than relying on a
+      # default that fetches only upright 400 — see
+      # with_google_font_faces().
+      cfg$typography <- with_google_font_faces(cfg$typography)
+
       # A named palette isn't editable here, but carry a loaded one through
       # rather than dropping it on save.
       if (!is.null(d$palette)) cfg$color$palette <- d$palette
@@ -870,10 +924,10 @@ configurator_defaults <- function(cfg, presets, font_pairs) {
     cols          = presets[["Wine & Sage"]],
     preset        = "Wine & Sage",
     auto_dark     = TRUE,
-    font_pair     = "Manrope / Montserrat",
-    font_base     = "Manrope",
+    font_pair     = "Plus Jakarta Sans / Montserrat",
+    font_base     = "Plus Jakarta Sans",
     font_heading  = "Montserrat",
-    font_mono     = "Manrope",
+    font_mono     = brandkit_mono_default,
     font_size     = 1,
     line_height   = 1.65,
     border_radius = 0.75,
@@ -909,7 +963,9 @@ configurator_defaults <- function(cfg, presets, font_pairs) {
   ty <- cfg$typography
   d$font_base    <- ty$base$family      %||% d$font_base
   d$font_heading <- ty$headings$family  %||% d$font_heading
-  d$font_mono    <- ty$monospace$family %||% d$font_base
+  # Falls back to the default code font, not the body font: a brand that
+  # simply omits monospace: should still get a monospace face.
+  d$font_mono    <- ty$monospace$family %||% d$font_mono
   d$font_pair    <- match_font_pair(d$font_base, d$font_heading, font_pairs)
   d$font_size    <- css_length_to_rem(ty$base$size, d$font_size)
 
