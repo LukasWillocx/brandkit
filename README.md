@@ -72,6 +72,8 @@ create_brand_shiny_map(path = "my-map")             # leaflet + plotly, fluid la
 create_brand_quarto_html(path = "my-report")        # HTML report
 create_brand_quarto_slides(path = "my-report")      # revealjs slides
 create_brand_quarto_pdf(path = "my-report")         # PDF via Typst
+create_brand_quarto_print_pdf(path = "my-report")   # PDF via Typst, print-friendly banner
+create_brand_quarto_poster(path = "my-poster")      # A0 landscape conference poster via Typst
 create_brand_quarto_dashboard(path = "my-dashboard")# Quarto dashboard, Shiny runtime
 ```
 
@@ -500,6 +502,9 @@ create_brand_quarto_slides(path = "my-project")
 create_brand_quarto_pdf(path = "my-project")
 # Copies: _brand.yml (Quarto-compatible), _extensions/brandkit/ (Typst format), report-pdf.qmd, fonts, logo
 
+create_brand_quarto_poster(path = "my-project")
+# Copies: _brand.yml (Quarto-compatible), _extensions/brandkit-poster/ (Typst format), poster.qmd, fonts, logo
+
 create_brand_quarto_dashboard(path = "my-project")
 # Copies: _brand.yml (Quarto-compatible), brandkit.scss, dashboard.qmd, fonts, logo
 ```
@@ -586,6 +591,16 @@ For plotly in slides, always pass fixed dimensions: `brand_plotly(p, width = 100
 
 `create_brand_quarto_pdf()` scaffolds a project that renders to PDF via Quarto's built-in Typst engine — no LaTeX required. Quarto's `_brand.yml` integration already applies brand colours and fonts to Typst output. brandkit's `brandkit-typst` format extension (installed at `_extensions/brandkit/`) adds a full-bleed title banner on page 1 — a diagonal-stripe field, drawn as Typst polygons (no image asset), that runs primary-coloured behind the title/subtitle and switches to secondary-coloured stripes past an angled seam, the same field the HTML report's `.brand-banner` draws in CSS — with the logo (if configured) placed inline in it, plus coloured headings, a coloured footer showing the document title and page number, and rounded code-block corners matching the brand's configured `theme.border-radius` (`_extension.yml` is generated per-brand at scaffold time for these — re-run with `overwrite = TRUE` after changing the brand). If the document has no title, the banner is skipped and the logo falls back to a plain top-right corner mark on page 1 instead (Quarto's own default repeats a logo on every page as a watermark; brandkit restricts it to page 1 either way).
 
+### Print-friendly PDF
+
+`create_brand_quarto_print_pdf()` scaffolds the same document with one difference: the banner is drawn as a panel **inset to the text measure** instead of full-bleed, so no ink crosses the page margin. It installs its own extension at `_extensions/brandkit-print/`, contributing the `brandkit-print-typst` format, and both formats can live in one project — switch by changing a document's `format:` key.
+
+Reach for it when the PDF is going to be printed rather than read on screen. A full-bleed panel needs a printer that can bleed; on an ordinary office or home printer it either clips at the unprintable edge or leaves a white hairline frame around itself, and a page-width solid can show through lighter stock. The inset panel also uses roughly a third less ink over the header area.
+
+Because the panel is ordinary flow content rather than a fixed-height page background, it sizes itself to its own content — a title long enough to be clipped by the full-bleed banner simply makes this one taller.
+
+One caveat if you are optimising for print: Quarto fills the whole page with `_brand.yml`'s `color.background`, independently of the banner. If your brand's background is anything other than white, that tint is itself full-bleed and will clip at an ordinary printer's unprintable edge. Set `color.background` to white for a print-targeted brand.
+
 ```yaml
 ---
 title: "My Report"
@@ -614,6 +629,41 @@ quarto::quarto_render("report-pdf.qmd")
 Since a PDF has no light/dark toggle, plots are baked in at render time in whichever mode you pass to `brand_quarto_setup()`. Widget-based outputs (plotly, DT, leaflet) don't apply to PDF — use static ggplot2 plots and `knitr::kable()` or `gt` tables instead.
 
 To customise the layout further (margins, title page, footer), edit `_extensions/brandkit/typst-template.typ` directly — it's a plain-text Typst file copied into your project, not a package internal.
+
+### Conference posters (Typst)
+
+`create_brand_quarto_poster()` scaffolds a single landscape sheet built from the same template partials as the report formats — the same diagonal-stripe masthead, colours, code styling and table rules — installed at `_extensions/brandkit-poster/` as the `brandkit-poster-typst` format. It is still a plain `.qmd`: knitr chunks, `brand_quarto_setup()`, `theme_brand()` and the palette helpers all work exactly as they do in a report.
+
+```r
+create_brand_quarto_poster(path = "my-poster", paper = "a0", columns = 3)
+# Copies: _brand.yml, _extensions/brandkit-poster/ (incl. poster.lua), poster.qmd, fonts, logo
+```
+
+Four things differ from the reports, all following from it being one big sheet:
+
+- **Landscape page columns.** The body flows down column one, then two, then three. The masthead spans them as a parent-scope float.
+- **Every `##` section becomes a card** — a tinted panel with a primary header bar and the brand's own corner radius, grouped by the `poster.lua` filter the extension ships. Cards never split across a column: one that doesn't fit moves to the next column whole. Mark a heading `## Something {.plain}` to opt it out and let it run free in the column.
+- **Type is sized to the measure, not to the sheet.** A line wants about 70 characters, so the body size falls out of whatever measure `paper` and `columns` produce: A0 at three columns is a 13-inch measure and ~36pt type; A0 at four columns is ~26pt. Under that sits a viewing-distance floor (24pt on A0, less on smaller sheets), so a narrow-columned layout can't set type too small to read standing in front of it. The masthead takes a further 1.6× on top, since it is the part read from across a hall.
+- **No running footer.** `poster-footer:` in the document YAML fills an optional standing band for affiliations, funding or a URL; leave it out and there is no footer at all.
+
+```yaml
+---
+title: "A Branded Conference Poster"
+subtitle: "Landscape, three columns, all inferred from _brand.yml"
+author: "Your Name"
+date: today
+poster-footer: "Department of Everything | you@example.org"
+format:
+  brandkit-poster-typst:
+    columns: 3
+execute:
+  echo: false        # a poster shows findings, not source
+---
+```
+
+Because the type scale is baked into the extension at scaffold time, `paper` and `columns` are arguments to `create_brand_quarto_poster()` rather than things to change in the YAML afterwards — setting `papersize:` in a document changes the sheet but not the type sized for it. Re-run the function instead.
+
+A poster is a fixed sheet and Typst will not shrink content to fit one: material that overruns spills onto a second page, and so does any single card taller than a column. Both are content problems — cut, or move to four columns.
 
 ### Logo in documents
 
@@ -714,14 +764,22 @@ Things the UI doesn't expose are carried through rather than dropped on save: a 
 | Warm | Terracotta & Cream, Espresso & Caramel |
 | Light-hearted | Mint & Peach, Lavender & Rose, Sunset Gradient |
 
-**Font pairings (15):**
+**Font pairings (17, plus Custom):**
 
 | Category | Pairings |
 |---|---|
-| Clean | Inter, Manrope / Montserrat, Source Sans / Serif, Roboto / Slab |
-| Geometric | Lato / Poppins, Nunito / Raleway, DM Sans / DM Serif, Outfit |
-| Editorial | Open Sans / Lora, Nunito / Merriweather, Inter / Playfair, Libre Franklin / Baskerville |
-| Friendly | Quicksand, Nunito Sans / Nunito, Rubik |
+| Clean | Inter, Plus Jakarta Sans / Montserrat, Source Sans / Serif, Roboto / Bitter |
+| Geometric | Lato / Poppins, Nunito / Raleway, Figtree / Cormorant Garamond, Jost |
+| Editorial | Open Sans / Lora, Nunito / PT Serif, Inter / Playfair, Libre Franklin / Baskerville |
+| Friendly | Asap, Mulish / Nunito, Rubik |
+| Unconventional | Space Mono / Familjen Grotesk, Karla / Fraunces |
+
+Every family offered here is verified to survive the Typst/PDF path, where two things can go wrong silently that never show up in the HTML preview:
+
+- **A missing face.** Typst synthesizes neither bold nor oblique, so a family without a 700 or an italic renders that markup unstyled — `**bold**` unbolded, `*italic*` upright. Browsers fake both, which is why HTML looks fine.
+- **A family-name mismatch.** Families with an optical-size axis are served as static instances named `<Family> <n>pt` (e.g. `DM Sans 9pt`), which never match the requested name — so Typst ignores the downloaded files and falls back to its default serif, dropping the brand font from the PDF entirely.
+
+If you type a custom family into the wizard, it's worth checking both. `quarto typst fonts --font-path <project>/.quarto/typst-font-cache --ignore-system-fonts` lists the family names actually downloaded for your brand.
 
 Dark mode palette is auto-generated by lightening semantic colours and inverting foreground/background.
 
