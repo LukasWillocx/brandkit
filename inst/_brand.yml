@@ -15,6 +15,20 @@ typography:
   fonts:
   - family: Inter
     source: google
+    weight:
+    - 400
+    - 700
+    style:
+    - normal
+    - italic
+  - family: IBM Plex Mono
+    source: google
+    weight:
+    - 400
+    - 700
+    style:
+    - normal
+    - italic
   base:
     family: Inter
     size: 1.2rem
@@ -25,7 +39,7 @@ typography:
     weight: 700
     line-height: 1.1
   monospace:
-    family: Inter
+    family: IBM Plex Mono
     size: 1.2rem
     weight: 400
 theme:
