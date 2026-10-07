@@ -11,6 +11,11 @@
 #'
 #' @param mode `"light"` (default) or `"dark"`. Match this to your
 #'   document's `brand-mode` setting.
+#' @param transparent Logical. `TRUE` (default) draws plots on a
+#'   transparent background, so they take on the colour of whatever they
+#'   sit on (the page, a poster card); `FALSE` fills them with the brand's
+#'   background colour. Applies to the ggplot2 theme and to the knitr
+#'   device, which is what base graphics are drawn on.
 #'
 #' @return Invisible `NULL`. Called for side effects.
 #'
@@ -23,7 +28,7 @@
 #' }
 #'
 #' @export
-brand_quarto_setup <- function(mode = c("light", "dark")) {
+brand_quarto_setup <- function(mode = c("light", "dark"), transparent = TRUE) {
   mode <- match.arg(mode)
   ensure_cache()
 
@@ -33,7 +38,7 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
   brand_env$active_mode <- mode
 
   # Set ggplot2 theme for this mode
-  ggplot2::theme_set(theme_brand(mode = mode))
+  ggplot2::theme_set(theme_brand(mode = mode, transparent = transparent))
 
   # Set default discrete scales
   pal <- brand_pal_discrete(mode = mode)
@@ -42,13 +47,15 @@ brand_quarto_setup <- function(mode = c("light", "dark")) {
     ggplot2.discrete.fill   = pal
   )
 
-  # Set knitr device background to match brand — eliminates white
-  # canvas bleeding through plot margins. Also register a hook to
-  # set base R par() colours before each chunk so barplot, hist,
-  # etc. follow the brand.
+  # Set the knitr device background. It has to be set explicitly either
+  # way: left alone the device paints white, which bleeds through the
+  # plot margins as a pale frame. Transparent hands the margins to the
+  # container; otherwise they are painted the brand background. Also
+  # register a hook to set base R par() colours before each chunk so
+  # barplot, hist, etc. follow the brand.
   if (requireNamespace("knitr", quietly = TRUE)) {
     knitr::opts_chunk$set(
-      dev.args = list(bg = cols$background)
+      dev.args = list(bg = if (isTRUE(transparent)) "transparent" else cols$background)
     )
 
     # Hook sets par() before each chunk's graphics device
@@ -711,12 +718,10 @@ write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
   # to a literal `false` still reads as present and would switch the
   # layout on for the full-bleed extension too.
   #
-  # The poster sets it as well: its masthead is inset for the same
-  # reason the print report's is (nothing bleeds off a sheet that has
-  # to come back from a large-format printer intact), and it is what
-  # makes typst-show.typ hand the panel to article(). page.typ's own
-  # `poster` branch then takes precedence over the print one when
-  # building it.
+  # The poster sets it as well, though it no longer draws the striped
+  # panel: the flag is what makes typst-show.typ hand the masthead to
+  # article() as flow content, which article() then floats across the
+  # columns. page.typ's `poster` branch builds that masthead.
   if (isTRUE(banner_inset)) {
     typst_fmt$`banner-inset` <- TRUE
   }
@@ -725,6 +730,13 @@ write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
     typst_fmt$papersize <- poster$paper
     typst_fmt$poster <- TRUE
     typst_fmt$`poster-scale` <- type_scale
+    # The corner ornaments page.typ draws as the page background. Quarto
+    # copies format-resources next to the rendered document, which is
+    # what lets page.typ name them without a path: the compiled .typ sits
+    # beside the document, wherever in the project that is, whereas the
+    # extension directory is only a fixed distance away for documents at
+    # the project root.
+    typst_fmt$`format-resources` <- as.list(poster_ornament_files)
     # Read by typst-show.typ as the *flow* column count, not Typst page
     # columns — page.typ's poster branch pins those to 1. Overridable
     # per document from the .qmd YAML like any other format option.
@@ -1097,6 +1109,18 @@ copy_typst_extension <- function(path, ext_name, banner_inset, overwrite,
     message("Wrote _extensions/", ext_name, "/_extension.yml")
   }
 
+  # The corner ornaments are generated like _extension.yml, and for the
+  # same reason: they are drawn in the brand's colours, which only the
+  # R side knows. Poster only; the report formats keep the striped banner.
+  if (!is.null(poster)) {
+    orn_dest <- file.path(ext_dest_dir, poster_ornament_files)
+    if (overwrite || !all(file.exists(orn_dest))) {
+      write_poster_ornaments(ext_dest_dir)
+      copied <- c(copied, orn_dest)
+      message("Wrote _extensions/", ext_name, "/ ", paste(poster_ornament_files, collapse = ", "))
+    }
+  }
+
   # The card-grouping filter is only ever declared by the poster's
   # _extension.yml, so copying it into a report extension would leave a
   # file that never runs — skipped rather than shipped as dead weight.
@@ -1220,13 +1244,19 @@ create_brand_quarto_print_pdf <- function(path = ".", examples = TRUE,
 #'
 #' The poster sibling of [create_brand_quarto_pdf()]: a single landscape
 #' sheet, rendered to PDF through Quarto's Typst engine, sharing the
-#' report formats' template partials and therefore their design — the
-#' same diagonal-stripe masthead, the same brand-derived colours, code
-#' styling and type ramp, all still inferred from `_brand.yml`.
+#' report formats' template partials and therefore their brand-derived
+#' colours, code styling and type ramp, all still inferred from
+#' `_brand.yml`. Its look is its own: instead of the reports' striped
+#' title panel, the sheet is framed by soft geometric corner ornaments
+#' (see [brand_ornament()]) and the title is plain type on the page.
 #'
-#' The poster differs from the reports in four ways, all of which follow
+#' The poster differs from the reports in five ways, all of which follow
 #' from it being one big sheet rather than a sequence of small ones:
 #' \itemize{
+#'   \item The sheet is framed by a pair of soft corner ornaments,
+#'     top-right and bottom-left, drawn behind the content in the brand's
+#'     colours as SVG. They are written into the extension at scaffold
+#'     time, so re-run with `overwrite = TRUE` after changing the brand.
 #'   \item The page is landscape at `paper` size, unnumbered, and the
 #'     body runs in `columns` balanced columns with the masthead
 #'     spanning the full measure above them.
@@ -1236,8 +1266,9 @@ create_brand_quarto_print_pdf <- function(path = ".", examples = TRUE,
 #'   \item The whole type ramp is scaled up for the paper size (see
 #'     Details), so body copy is legible at arm's length and the title
 #'     across a room.
-#'   \item There is no running footer. An optional standing band can
-#'     carry affiliations, funding or a URL — see `poster-footer` below.
+#'   \item There is no running footer. An optional standing band, set
+#'     flush right with no rule, can carry affiliations, funding or a
+#'     URL — see `poster-footer` below.
 #' }
 #'
 #' @param path Project directory. Defaults to the current working directory.
@@ -1258,7 +1289,9 @@ create_brand_quarto_print_pdf <- function(path = ".", examples = TRUE,
 #'     extension contributing `brandkit-poster-typst`. It installs the
 #'     same template partials as [create_brand_quarto_pdf()], plus
 #'     `poster.lua`; its generated `_extension.yml` sets the paper size,
-#'     column count and type scale.}
+#'     column count and type scale. It also holds the two generated
+#'     corner ornaments, `drift-top-right.svg` and
+#'     `drift-bottom-left.svg`.}
 #'   \item{`poster.qmd`}{Sample poster (if `examples = TRUE`).}
 #' }
 #'
@@ -1338,9 +1371,9 @@ create_brand_quarto_poster <- function(path = ".", paper = "a0", columns = 3,
   if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
 
   # --- _extensions/brandkit-poster/ (Typst format extension) ---
-  # banner_inset = TRUE alongside poster: the masthead is flow content
-  # sized to the text measure, for the same no-bleed reason the print
-  # report's is. See write_extension_yml_for_quarto().
+  # banner_inset = TRUE alongside poster: it is what makes the masthead
+  # flow content handed to article() rather than something drawn into the
+  # page background. See write_extension_yml_for_quarto().
   copied <- c(copied, copy_typst_extension(
     path, "brandkit-poster",
     banner_inset = TRUE,

@@ -22,6 +22,12 @@ preview, and a summary panel, with no theming code in it. Use this as
 the starting point for a new branded app.
 }
 \details{
+The app uses \code{style = "drift"}, the look shared with
+\code{\link[=create_brand_quarto_poster]{create_brand_quarto_poster()}}: soft geometric ornaments in the corners
+of the window, the title as plain type, and tinted cards with a solid
+header, all drawn from \verb{_brand.yml} and following the dark-mode toggle.
+Delete the argument for the plain Bootstrap look.
+
 For a KPI dashboard on \code{\link[=brand_page_navbar]{brand_page_navbar()}}, see
 \code{\link[=create_brand_shiny_dashboard]{create_brand_shiny_dashboard()}}. For a leaflet/plotly geospatial app
 on \code{\link[=brand_page_fluid]{brand_page_fluid()}}, see \code{\link[=create_brand_shiny_map]{create_brand_shiny_map()}}.

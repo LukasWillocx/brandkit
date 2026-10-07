@@ -18,6 +18,15 @@
 #' @param dark_mode_id ID for the toggle widget. Default `"dark_mode"`.
 #' @param fillable Passed to `bslib::page_sidebar()`.
 #' @param theme_args Named list of extra args passed to `brand_theme()`.
+#' @param style `"classic"` (default) or `"drift"`. `"drift"` is the
+#'   poster template's look carried into the browser: soft geometric
+#'   ornaments in the top-right and bottom-left corners of the window
+#'   (see [brand_ornaments_tag()]), the title as plain type instead of a
+#'   bar, and cards and the sidebar as tinted surfaces with a solid header
+#'   rather than shadowed boxes. Plots, which thematic draws on whatever
+#'   they sit on, take the card's colour. It follows the dark-mode toggle
+#'   live. `"classic"` leaves the page exactly as it was before this
+#'   argument existed.
 #'
 #' @return A Shiny UI definition.
 #' @export
@@ -28,9 +37,11 @@ brand_page_sidebar <- function(...,
                                dark_mode = TRUE,
                                dark_mode_id = "dark_mode",
                                fillable = TRUE,
-                               theme_args = list()) {
+                               theme_args = list(),
+                               style = c("classic", "drift")) {
 
-  setup <- build_page_setup(dark_mode, dark_mode_id, theme_args)
+  style <- match.arg(style)
+  setup <- build_page_setup(dark_mode, dark_mode_id, theme_args, style)
   title <- build_branded_title(title, logo)
 
   bslib::page_sidebar(
@@ -40,6 +51,7 @@ brand_page_sidebar <- function(...,
     fillable = fillable,
     setup$head_tags,
     setup$toggle,
+    setup$ornaments,
     ...,
     setup$thematic_script
   )
@@ -139,7 +151,8 @@ build_branded_title <- function(title, logo) {
 # Internal: shared page setup logic
 # --------------------------------------------------------------------------
 
-build_page_setup <- function(dark_mode, dark_mode_id, theme_args) {
+build_page_setup <- function(dark_mode, dark_mode_id, theme_args,
+                             style = "classic") {
 
   ensure_cache()
 
@@ -151,6 +164,15 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args) {
     brand_dark_css(),
     plot_settle_script()
   )
+
+  # The drift style adds its stylesheet and the corner ornaments; the
+  # classic one adds nothing, which is what keeps it byte-for-byte what
+  # existing apps already get.
+  ornaments <- NULL
+  if (identical(style, "drift")) {
+    head_tags <- htmltools::tagList(head_tags, drift_head())
+    ornaments <- brand_ornaments_tag()
+  }
 
   # Activate thematic as a side effect during UI construction.
   # thematic_shiny() must run before the app starts, which is exactly
@@ -167,6 +189,13 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args) {
         font = font,
         qualitative = pal
       )
+      # thematic matches each plot's background to its container by
+      # remapping the fills in the ggplot theme, so the app-wide theme
+      # needs fills to remap. The one set when brandkit attaches is
+      # unfilled (it is built outside Shiny, where transparent is right),
+      # and with it a light/dark switch leaves some plots on the old
+      # mode's background. See theme_brand().
+      ggplot2::theme_set(theme_brand(transparent = FALSE))
     }, error = function(e) NULL)
   }
 
@@ -182,7 +211,42 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args) {
     theme           = theme,
     head_tags       = head_tags,
     toggle          = toggle,
+    ornaments       = ornaments,
     thematic_script = thematic_script
+  )
+}
+
+# --------------------------------------------------------------------------
+# Internal: the drift style's head content
+#
+# A script that marks <html> (so every rule in drift.css, scoped to
+# html.bk-drift, only applies on a page that asked for it, and does so
+# before first paint rather than after a flash of the classic page), and the
+# stylesheet with its two per-mode card colours written in front.
+# --------------------------------------------------------------------------
+
+drift_head <- function() {
+  light <- brand_colors("light")
+  dark  <- brand_colors("dark")
+
+  vars <- sprintf(
+    paste0("html.bk-drift { --bk-card: %s; }
+",
+           "html.bk-drift[data-bs-theme=\"dark\"] { --bk-card: %s; }
+"),
+    orn_mix(light$primary, light$background, 0.07),
+    orn_mix(dark$primary,  dark$background,  0.07)
+  )
+
+  css_path <- system.file("css/drift.css", package = "brandkit")
+  css <- if (nzchar(css_path)) paste(readLines(css_path, warn = FALSE), collapse = "
+") else ""
+
+  htmltools::tags$head(
+    htmltools::tags$script(htmltools::HTML(
+      'document.documentElement.classList.add("bk-drift");'
+    )),
+    htmltools::tags$style(htmltools::HTML(paste0(vars, css)))
   )
 }
 

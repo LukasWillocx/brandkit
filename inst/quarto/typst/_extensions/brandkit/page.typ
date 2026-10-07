@@ -22,7 +22,26 @@ $if(poster)$
 // but note that the type ramp is scaled at scaffold time from the paper
 // passed to create_brand_quarto_poster() — changing the paper here
 // without re-scaffolding leaves the text sized for the old sheet.
+//
+// brandkit: the sheet's only decoration is a pair of soft corner
+// ornaments, top-right and bottom-left, drawn as the page background so
+// they sit behind everything and ignore the margins. The SVGs are written
+// at scaffold time in the brand's colours (see brand_ornament()) and
+// shipped as format resources, so they sit beside the compiled document.
+//
+// Each is sized as a fraction of the sheet's *shorter* side rather than a
+// length, so the proportions hold from A4 to A0. 0.32 lets the drawing
+// reach a little under a quarter of the way across a landscape sheet from
+// each corner — enough to frame the masthead and the footer, not enough
+// to compete with the cards. Evaluated per page, so a poster that spills onto
+// a second sheet keeps its frame.
+#let brandkit-ornament-k = 0.32
 #set page(
+  background: context {
+    let side = brandkit-ornament-k * calc.min(page.width, page.height)
+    place(top + right, image("drift-top-right.svg", width: side, height: side))
+    place(bottom + left, image("drift-bottom-left.svg", width: side, height: side))
+  },
   paper: $if(papersize)$"$papersize$"$else$"a0"$endif$,
   flipped: true,
 $if(margin)$
@@ -60,6 +79,11 @@ $endif$
 )
 $endif$
 $if(title)$
+$if(poster)$
+// brandkit: the poster has no title panel — its masthead is plain type on
+// the page, defined below — so the striped panel the report layouts share
+// is not emitted for it.
+$else$
 // brandkit: the diagonal-stripe title banner, drawn by
 // brandkit-stripe-fill in definitions.typ as sheared polygons in
 // brand-color.primary/secondary — no raster image involved.
@@ -286,32 +310,87 @@ $if(title)$
       }
   ]
 }
+$endif$
 
 $if(poster)$
-// brandkit: poster masthead — the same panel the report layouts use, at
-// poster scale. It is inset (flow content sized to the text measure)
-// for the same reason the print layout is: a poster is printed, and
-// large-format printers have an unprintable edge like any other.
+// brandkit: poster masthead — plain type on the page, no panel. The
+// sheet's colour comes from the corner ornaments behind it (see the page
+// background in the poster branch above), so the masthead only has to
+// carry the title: it sits directly on the page in the brand's primary
+// colour, with the supporting lines stepping down in weight beneath it.
 //
-// The design height is a fraction of the panel's own width rather than
-// a fixed length, so it holds its proportions across A0/A1/A2 without a
-// per-paper constant. 0.105 puts the masthead at roughly an eighth of a
-// landscape sheet's height — enough to carry a title at this size, not
-// so much that it eats a column's worth of body space.
+// It is flow content sized to the text measure, emitted by
+// typst-template.typ as a float spanning the page's columns. Nothing in
+// it touches the margin, so there is no ink near the unprintable edge of
+// a large-format sheet apart from the ornaments, which are faint enough
+// that a clipped edge is not visible.
+//
+// Everything is sized from one factor, `type-scale`: the poster's own
+// scale times 1.6. A poster is read at two distances — the title from
+// across a hall, the body from arm's length — so the gap between them has
+// to open up rather than stay proportional to the body, which is what the
+// extra 1.6 is for. The report layouts' masthead runs at 22pt over a 12pt
+// body (1.8x); this runs at 26pt, because without a panel behind it the
+// title is the only mass on the sheet's top edge.
 #let brandkit-poster-scale = $poster-scale$
-#let brandkit-banner-content = layout(size => brandkit-banner-panel(
-  size.width,
-  size.width * 0.105,
-  0.42in * brandkit-poster-scale,
-  radius: $if(code-radius)$$code-radius$$else$0.3em$endif$,
-  grow: true,
-  // 1.6x the body's own scale factor. The report's masthead runs at
-  // 22pt over a 12pt body (1.8x); a poster is read at two distances
-  // rather than one — the title from across a hall, the body from
-  // arm's length — so the gap between them has to open up rather than
-  // stay proportional.
-  type-scale: brandkit-poster-scale * 1.6,
-))
+#let brandkit-banner-content = {
+  let type-scale = brandkit-poster-scale * 1.6
+  let title-size = 26pt * type-scale
+  let subtitle-size = 13.5pt * type-scale
+  let meta-size = 11pt * type-scale
+  // The ornament in the top-right corner reaches a little under a quarter
+  // of the way across the sheet, so the title column stops short of it. A
+  // long title wraps instead of running into the densest part of the
+  // drawing, and the logo, which sits on that side, never meets it.
+  let title-w = 72%
+  // Secondary is a mid-tone by design — it is meant to sit on the page as
+  // a rule or a mark — so as small type it needs darkening to be read.
+  // At this size it only has to clear the 3:1 large-text bar.
+  let meta-color = brand-color.secondary.darken(32%)
+  [
+    #set par(justify: false, leading: 0.5em, spacing: 0pt)
+    #set block(spacing: 0pt)
+    #grid(
+      columns: (1fr, auto),
+      column-gutter: 2em,
+      align: top,
+      block(width: title-w)[
+        #text(
+          fill: brand-color.primary,
+          size: title-size,
+          $if(brand.typography.headings.weight)$
+          weight: $brand.typography.headings.weight$,
+          $else$
+          weight: "bold",
+          $endif$
+          $if(brand.typography.headings.family)$
+          font: $brand.typography.headings.family$,
+          $elseif(mainfont)$
+          font: ("$mainfont$",),
+          $endif$
+        )[$title$]
+        $if(subtitle)$
+        #v(0.6 * subtitle-size)
+        #text(fill: brand-color.foreground.transparentize(25%), size: subtitle-size)[$subtitle$]
+        $endif$
+        $if(date)$
+        #v(0.9 * subtitle-size)
+        // A short, round-capped bar rather than a full-width rule: it
+        // marks where the title block ends without drawing an edge across
+        // the sheet, which the soft ornaments would then have to argue with.
+        #line(length: 6.5 * meta-size, stroke: (paint: brand-color.secondary, thickness: 0.22 * meta-size, cap: "round"))
+        #v(0.7 * subtitle-size)
+        #text(fill: meta-color, size: meta-size, tracking: 0.04em)[$if(by-author)$$for(by-author)$$it.name.literal$$sep$, $endfor$ · $endif$$date$]
+        $endif$
+      ],
+      $if(logo)$
+      image("$logo.path$", width: $logo.width$$if(logo.alt)$, alt: "$logo.alt$"$endif$),
+      $else$
+      [],
+      $endif$
+    )
+  ]
+}
 
 // brandkit: the section card. Defined here rather than in
 // definitions.typ because it needs `brand-color`, and Quarto injects
@@ -406,7 +485,11 @@ $else$
 ])
 $endif$
 $else$
-$if(logo)$
+$if(poster)$
+// brandkit: a poster with no title has no masthead to carry a logo, and
+// the corner-mark fallback below would replace the page background that
+// holds the ornaments, so it is skipped.
+$elseif(logo)$
 // brandkit: logo on the first page only (Quarto's default places it on
 // every page as a persistent watermark; wrapping in a page-1 check here
 // overrides that). Only reached when there's no title, i.e. no banner —

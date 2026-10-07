@@ -4,11 +4,17 @@
 \alias{brand_quarto_setup}
 \title{Set Up brandkit for Quarto Rendering}
 \usage{
-brand_quarto_setup(mode = c("light", "dark"))
+brand_quarto_setup(mode = c("light", "dark"), transparent = TRUE)
 }
 \arguments{
 \item{mode}{\code{"light"} (default) or \code{"dark"}. Match this to your
 document's \code{brand-mode} setting.}
+
+\item{transparent}{Logical. \code{TRUE} (default) draws plots on a
+transparent background, so they take on the colour of whatever they
+sit on (the page, a poster card); \code{FALSE} fills them with the brand's
+background colour. Applies to the ggplot2 theme and to the knitr
+device, which is what base graphics are drawn on.}
 }
 \value{
 Invisible \code{NULL}. Called for side effects.

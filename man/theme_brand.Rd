@@ -4,12 +4,17 @@
 \alias{theme_brand}
 \title{Branded ggplot2 Theme}
 \usage{
-theme_brand(base_size = 14, mode = "light")
+theme_brand(base_size = 14, mode = "light", transparent = NULL)
 }
 \arguments{
 \item{base_size}{Base font size in points.}
 
 \item{mode}{\code{"light"} or \code{"dark"}.}
+
+\item{transparent}{Logical. \code{TRUE} leaves the plot, panel and legend
+backgrounds unfilled; \code{FALSE} fills them with the brand's background
+colour for the chosen \code{mode}. The default, \code{NULL}, is \code{TRUE} except
+inside a Shiny output, where it is \code{FALSE} (see Details).}
 }
 \value{
 A \code{ggplot2::theme} object.
@@ -17,4 +22,22 @@ A \code{ggplot2::theme} object.
 \description{
 Clean, transparent-background theme that reads colours and fonts
 from the brand cache. Works inside Shiny dashboards and standalone.
+}
+\details{
+The plot, panel and legend are transparent by default, so a plot takes
+on the colour of whatever it sits on: the page in a report, a card on a
+poster, a dashboard panel. That is what you want anywhere a container
+supplies the background. A plot saved to a file with \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}
+has no container, though, and a dark-mode plot saved that way has light
+text on nothing; pass \code{transparent = FALSE} to fill it with the brand's
+background colour instead.
+
+Inside a running Shiny app the default is the opposite. There,
+\pkg{thematic} (which the \verb{brand_page_*()} wrappers switch on) paints
+each plot's background to match the container it sits in, and it does so
+by remapping the colours in the ggplot theme; a theme with no fills gives
+it nothing to remap, and after a light/dark switch some plots are left
+drawn on the old mode's background. So an unspecified \code{transparent}
+means \code{FALSE} while a Shiny output is rendering, and the plot still ends
+up the colour of its container, via thematic instead.
 }

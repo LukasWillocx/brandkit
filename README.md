@@ -160,9 +160,22 @@ brand_page_sidebar(
   dark_mode = TRUE,             # include dark mode toggle
   dark_mode_id = "dark_mode",   # input ID for the toggle
   fillable = TRUE,
-  theme_args = list()           # extra args passed to brand_theme()
+  theme_args = list(),          # extra args passed to brand_theme()
+  style = "classic"             # "classic" or "drift" (see below)
 )
 ```
+
+#### `style = "drift"`
+
+The poster template's look, carried into the browser. It is opt-in, and `"classic"` (the default) leaves the page exactly as it was, so existing apps are unaffected. What `"drift"` changes:
+
+- **Corner ornaments.** The same geometric motif as the poster, top-right and bottom-left of the *window*, fixed behind the page and sized to 32% of its shorter side. They are inline SVG whose colours are Bootstrap's CSS variables (`--bs-primary`, `--bs-secondary`, `--bs-info`), so they follow the dark-mode toggle live, with no redraw. Available on their own as `brand_ornaments_tag()`.
+- **Plain-type title.** The navbar bar and its rule are removed, so the title sits on the page and the top-right ornament shows behind it.
+- **Cards as tinted surfaces.** A card is the brand's primary mixed 7% into the background, with a solid primary header bar, no shadow and no hover lift. The tint is computed in R, once per mode, as a plain opaque colour: nothing shows through it, and the colour thematic reads off it to give each plot a matching background is exact. Card colours do not animate on a theme switch, which would otherwise have thematic sampling a half-faded colour.
+- **A transparent sidebar.** It runs the full height of the window, which is where the bottom-left ornament lives, so it is left unfilled and the ornament shows behind the controls.
+- **Tables and text output.** Body rows show the card; stripes are white at low opacity (a step lighter) and the header a faint wash of the primary. `verbatimTextOutput()` gets the stripes' treatment instead of a grey slab.
+
+All of it is scoped to a class the page adds to `<html>`, so none of it can leak into a classic page.
 
 ### `brand_page_navbar()`
 
@@ -202,6 +215,7 @@ When you use `brand_page_sidebar()` instead of `bslib::page_sidebar()`, the foll
 4. The brand logo (if configured) is prepended inline next to the title
 5. `thematic::thematic_shiny()` is activated with the brand discrete palette and font
 6. A plot-settle script hides ggplot outputs during initial layout to prevent size-flash
+7. The app-wide ggplot theme is set to the opaque `theme_brand(transparent = FALSE)`, which `thematic` needs to repaint each plot to match its container (see [Explicit theme function](#explicit-theme-function))
 
 ### Scaffolding a Shiny project
 
@@ -217,7 +231,7 @@ shiny::runApp("my-app")
 
 | Template | Wrapper | Shows off | Needs |
 |---|---|---|---|
-| `create_brand_shiny_app()` | `brand_page_sidebar()` | The zero-boilerplate baseline: sidebar inputs, a ggplot, a `brand_pal_discrete()` swatch | — |
+| `create_brand_shiny_app()` | `brand_page_sidebar(style = "drift")` | The zero-boilerplate baseline, in the poster's look: sidebar inputs, a ggplot, a `brand_pal_discrete()` swatch, corner ornaments | — |
 | `create_brand_shiny_dashboard()` | `brand_page_navbar()` | Value-box KPI row, multi-tab layout, a DT table styled in both modes | `DT` |
 | `create_brand_shiny_map()` | `brand_page_fluid()` | `brand_pal_seq()` driving a leaflet colour ramp, `brand_plotly()`, tiles that follow the dark-mode toggle | `leaflet`, `plotly` |
 
@@ -312,11 +326,11 @@ This means a plain `ggplot(data, aes(x, y, color = group)) + geom_point()` is fu
 ### Explicit theme function
 
 ```r
-theme_brand(base_size = 14, mode = "light")
+theme_brand(base_size = 14, mode = "light", transparent = NULL)
 ```
 
 Returns a `ggplot2::theme` object with:
-- Brand background colour (not transparent — works in Quarto/scripts)
+- Transparent plot and panel backgrounds by default, so a plot takes on the colour of whatever it sits on (a page, a poster card). Pass `transparent = FALSE` to fill with the brand background instead, e.g. for plots saved with `ggsave()`, which have no container behind them. **Inside a running Shiny app the default flips to `FALSE`:** `thematic` paints each plot's background to match its container by remapping the fills in the ggplot theme, and a theme with no fills leaves it nothing to remap, so after a light/dark switch some plots are left on the old mode's background. The plot still ends up the colour of its container, via thematic
 - Brand fonts for title (heading font, bold), body text (base font)
 - Dashed grid lines in brand primary at 25% opacity
 - Minor grid removed
@@ -632,19 +646,20 @@ To customise the layout further (margins, title page, footer), edit `_extensions
 
 ### Conference posters (Typst)
 
-`create_brand_quarto_poster()` scaffolds a single landscape sheet built from the same template partials as the report formats — the same diagonal-stripe masthead, colours, code styling and table rules — installed at `_extensions/brandkit-poster/` as the `brandkit-poster-typst` format. It is still a plain `.qmd`: knitr chunks, `brand_quarto_setup()`, `theme_brand()` and the palette helpers all work exactly as they do in a report.
+`create_brand_quarto_poster()` scaffolds a single landscape sheet built from the same template partials as the report formats — the same colours, code styling and table rules — installed at `_extensions/brandkit-poster/` as the `brandkit-poster-typst` format. It is still a plain `.qmd`: knitr chunks, `brand_quarto_setup()`, `theme_brand()` and the palette helpers all work exactly as they do in a report.
 
 ```r
 create_brand_quarto_poster(path = "my-poster", paper = "a0", columns = 3)
 # Copies: _brand.yml, _extensions/brandkit-poster/ (incl. poster.lua), poster.qmd, fonts, logo
 ```
 
-Four things differ from the reports, all following from it being one big sheet:
+Five things differ from the reports, all following from it being one big sheet:
 
+- **Soft corner ornaments instead of a title panel.** The sheet's colour comes from a pair of geometric corner pieces, top-right and bottom-left, drawn behind everything in the brand's primary, secondary and info colours at a low opacity. The title sits on the page as plain type in the brand's primary colour. See *Corner ornaments* below.
 - **Landscape page columns.** The body flows down column one, then two, then three. The masthead spans them as a parent-scope float.
 - **Every `##` section becomes a card** — a tinted panel with a primary header bar and the brand's own corner radius, grouped by the `poster.lua` filter the extension ships. Cards never split across a column: one that doesn't fit moves to the next column whole. Mark a heading `## Something {.plain}` to opt it out and let it run free in the column.
 - **Type is sized to the measure, not to the sheet.** A line wants about 70 characters, so the body size falls out of whatever measure `paper` and `columns` produce: A0 at three columns is a 13-inch measure and ~36pt type; A0 at four columns is ~26pt. Under that sits a viewing-distance floor (24pt on A0, less on smaller sheets), so a narrow-columned layout can't set type too small to read standing in front of it. The masthead takes a further 1.6× on top, since it is the part read from across a hall.
-- **No running footer.** `poster-footer:` in the document YAML fills an optional standing band for affiliations, funding or a URL; leave it out and there is no footer at all.
+- **No running footer.** `poster-footer:` in the document YAML fills an optional standing band for affiliations, funding or a URL, set flush right with no rule above it (the bottom-left ornament owns that side); leave it out and there is no footer at all.
 
 ```yaml
 ---
@@ -660,6 +675,19 @@ execute:
   echo: false        # a poster shows findings, not source
 ---
 ```
+
+#### Corner ornaments
+
+The ornaments are SVG, generated from `_brand.yml` at scaffold time and written next to the extension as `drift-top-right.svg` and `drift-bottom-left.svg`. Quarto copies them beside the rendered document, and `page.typ` draws them as the page background at 32% of the sheet's shorter side, so the proportions hold from A4 to A0. The bottom-left piece leads with the secondary colour where the top-right leads with the primary, so the sheet is balanced rather than mirrored.
+
+Each shape is a full brand colour at a low opacity, so the extra shades come from shapes overlapping rather than from pale colours, and one `softness` value controls the whole drawing. The same generator is exported as `brand_ornament()` for use anywhere an SVG will do:
+
+```r
+cat(brand_ornament("drift", "top-right"))
+brand_ornament("drift", "bottom-left", softness = 0.1, file = "corner.svg")
+```
+
+The poster uses a lower opacity (0.12) than the function's default (0.17): the default was tuned on page-sized layouts, and the same value across an A0 sheet reads as large flat blocks of colour. Re-run `create_brand_quarto_poster(overwrite = TRUE)` after changing the brand to redraw them in the new colours.
 
 Because the type scale is baked into the extension at scaffold time, `paper` and `columns` are arguments to `create_brand_quarto_poster()` rather than things to change in the YAML afterwards — setting `papersize:` in a document changes the sheet but not the type sized for it. Re-run the function instead.
 
@@ -679,7 +707,7 @@ The `.brand-logo-container` class constrains the logo to `max-height: 48px`. Req
 
 1. Sets `ggplot2::theme_set(theme_brand(mode = mode))`
 2. Registers brand discrete palette as ggplot2 default
-3. Sets `knitr::opts_chunk$set(dev.args = list(bg = background_colour))` — eliminates white device canvas
+3. Sets `knitr::opts_chunk$set(dev.args = list(bg = "transparent"))` — eliminates white device canvas, and lets plots take the colour of the page or card behind them (`brand_quarto_setup(transparent = FALSE)` paints them the brand background instead)
 4. Registers a knitr hook to set `par()` colours for base R graphics
 5. Stores the active mode so `brand_plotly()` auto-detects it
 
@@ -764,20 +792,24 @@ Things the UI doesn't expose are carried through rather than dropped on save: a 
 | Warm | Terracotta & Cream, Espresso & Caramel |
 | Light-hearted | Mint & Peach, Lavender & Rose, Sunset Gradient |
 
-**Font pairings (17, plus Custom):**
+**Font pairings (10, plus Custom):**
 
 | Category | Pairings |
 |---|---|
-| Clean | Inter, Plus Jakarta Sans / Montserrat, Source Sans / Serif, Roboto / Bitter |
-| Geometric | Lato / Poppins, Nunito / Raleway, Figtree / Cormorant Garamond, Jost |
-| Editorial | Open Sans / Lora, Nunito / PT Serif, Inter / Playfair, Libre Franklin / Baskerville |
-| Friendly | Asap, Mulish / Nunito, Rubik |
-| Unconventional | Space Mono / Familjen Grotesk, Karla / Fraunces |
+| Clean & professional | Plus Jakarta Sans / Montserrat, IBM Plex Sans, Roboto / Bitter |
+| Modern & geometric | Raleway / Playfair Display, Jost |
+| Warm & editorial | Libre Franklin / Libre Baskerville, Mulish / Lora |
+| Expressive & bold | Work Sans / Fraunces |
+| Friendly & rounded | Rubik, Nunito |
 
 Every family offered here is verified to survive the Typst/PDF path, where two things can go wrong silently that never show up in the HTML preview:
 
 - **A missing face.** Typst synthesizes neither bold nor oblique, so a family without a 700 or an italic renders that markup unstyled — `**bold**` unbolded, `*italic*` upright. Browsers fake both, which is why HTML looks fine.
 - **A family-name mismatch.** Families with an optical-size axis are served as static instances named `<Family> <n>pt` (e.g. `DM Sans 9pt`), which never match the requested name — so Typst ignores the downloaded files and falls back to its default serif, dropping the brand font from the PDF entirely.
+
+A third criterion applies to the **base** font only: its x-height is matched to the code face. Point size is not what the eye reads as size, so a base font whose x-height sits far from IBM Plex Mono's (0.5160 em) makes inline `code` and fenced blocks look mis-sized even though both are pinned to identical points. Every base font above is within 3.7%. Heading fonts are exempt — they never sit inline with code — which is why high-contrast display serifs stay on the menu.
+
+**Jost is a deliberate exception at 12.2% off**, kept because it's in use: code will read slightly larger than body text in that pairing. No monospace face fixes it without breaking the others (the three that match Jost land 15–17% out against Inter-class bases, and Inconsolata has no italic).
 
 If you type a custom family into the wizard, it's worth checking both. `quarto typst fonts --font-path <project>/.quarto/typst-font-cache --ignore-system-fonts` lists the family names actually downloaded for your brand.
 
@@ -797,6 +829,7 @@ brandkit/
 |   +-- brand_configure.R    # Interactive Shiny configurator wizard
 |   +-- brand_fonts.R        # Font registration via sysfonts/showtext
 |   +-- brand_ggplot.R       # ggplot2 theme + scale functions
+|   +-- brand_ornaments.R    # Corner ornaments: SVG generator + web tag (poster, drift)
 |   +-- brand_pages.R        # Zero-boilerplate Shiny page wrappers + thematic
 |   +-- brand_plotly.R       # Branded ggplotly conversion
 |   +-- brand_quarto.R       # Quarto scaffolding + render-time setup
@@ -807,6 +840,7 @@ brandkit/
 +-- inst/
 |   +-- _brand.yml           # Bundled default brand (Slate & Teal / Inter)
 |   +-- css/overrides.css    # Static CSS for BS5 gaps + leaflet dark mode
+|   +-- css/drift.css        # The opt-in "drift" page style (scoped to html.bk-drift)
 |   +-- quarto/              # SCSS + one example .qmd per create_brand_quarto_*()
 |   |   +-- report.qmd       # Example HTML report
 |   |   +-- slides.qmd       # Example revealjs slides
@@ -814,7 +848,7 @@ brandkit/
 |   |   +-- dashboard.qmd    # Example Shiny dashboard (format: dashboard)
 |   |   +-- typst/_extensions/brandkit/  # brandkit-typst format extension
 |   +-- shiny/               # One app template per create_brand_shiny_*()
-|       +-- app-starter.R    # Sidebar starter (brand_page_sidebar)
+|       +-- app-starter.R    # Sidebar starter (brand_page_sidebar, style = "drift")
 |       +-- app-dashboard.R  # KPI dashboard, DT table (brand_page_navbar)
 |       +-- app-map.R        # Leaflet + plotly (brand_page_fluid)
 +-- examples/

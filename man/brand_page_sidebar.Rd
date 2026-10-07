@@ -12,7 +12,8 @@ brand_page_sidebar(
   dark_mode = TRUE,
   dark_mode_id = "dark_mode",
   fillable = TRUE,
-  theme_args = list()
+  theme_args = list(),
+  style = c("classic", "drift")
 )
 }
 \arguments{
@@ -31,6 +32,16 @@ brand_page_sidebar(
 \item{fillable}{Passed to \code{bslib::page_sidebar()}.}
 
 \item{theme_args}{Named list of extra args passed to \code{brand_theme()}.}
+
+\item{style}{\code{"classic"} (default) or \code{"drift"}. \code{"drift"} is the
+poster template's look carried into the browser: soft geometric
+ornaments in the top-right and bottom-left corners of the window
+(see \code{\link[=brand_ornaments_tag]{brand_ornaments_tag()}}), the title as plain type instead of a
+bar, and cards and the sidebar as tinted surfaces with a solid header
+rather than shadowed boxes. Plots, which thematic draws on whatever
+they sit on, take the card's colour. It follows the dark-mode toggle
+live. \code{"classic"} leaves the page exactly as it was before this
+argument existed.}
 }
 \value{
 A Shiny UI definition.

@@ -2,7 +2,7 @@
 //
 // Based on Quarto's default typst-template.typ (src/resources/formats/typst/
 // pandoc/quarto/typst-template.typ), extended with:
-//   - a coloured footer rule (primary) with secondary-coloured text
+//   - a footer rule in the body text colour with primary-coloured text
 //   - booktabs-style table rules, a tinted header row, and zebra striping
 //   - links defaulting to the brand's primary colour
 // `brand-color` is a Typst constant Quarto injects automatically whenever
@@ -167,8 +167,9 @@
 
   set heading(numbering: sectionnumbering)
 
-  // brandkit: the page footer — a coloured rule over the report's
-  // title/page-number line, or over the poster's standing band.
+  // brandkit: the page footer — a hairline rule over the report's
+  // title/page-number line, or the poster's standing band (which has no
+  // rule; see below).
   //
   // Both are built into one value and applied by a single, unconditional
   // `set page`. That shape is load-bearing rather than tidiness: a Typst
@@ -186,20 +187,34 @@
   // band for what the masthead has no room for — affiliations, funding,
   // a URL — and that is opt-in via `poster-footer:` in the document
   // YAML, so an unrequested footer should not appear at all.
-  let footer-text-color = if secondary-accent != none { secondary-accent } else { accent }
+  //
+  // The rule is drawn in the body text colour and the footer content in
+  // the brand's primary, rather than the other way round. The rule is a
+  // structural hairline — it separates the page from its running line and
+  // is not itself a brand mark — so it belongs with the text colour, held
+  // at 50% so it stays a hairline rather than competing with the body it
+  // closes off. The content (title, page number, or the poster's standing
+  // band) is the part a reader actually looks at, so that is where the
+  // brand colour earns its place. `foreground` is what body text is set
+  // in, so it also follows a dark brand automatically; it falls back to
+  // the accent for a brand that defines no foreground, which just
+  // restores the previous single-colour footer.
+  let footer-rule-color = if foreground != none { foreground } else { accent }
+  let footer-text-color = accent
   let page-footer = if poster {
     if poster-footer != none and accent != none {
-      [
-        #line(length: 100%, stroke: (0.4pt * poster-scale) + accent.transparentize(50%))
-        #v(0.35em)
-        #text(size: 0.8em, fill: footer-text-color, poster-footer)
-      ]
+      // No rule, and flush right. The poster's frame is the pair of
+      // corner ornaments, and a hairline across the sheet would cut
+      // between them; the bottom-left one also sits exactly where a
+      // left-aligned line would start, so the band goes to the side the
+      // ornaments leave clear.
+      align(right, text(size: 0.8em, fill: footer-text-color, poster-footer))
     } else {
       none
     }
   } else if accent != none {
     context [
-      #line(length: 100%, stroke: 0.4pt + accent.transparentize(50%))
+      #line(length: 100%, stroke: 0.4pt + footer-rule-color.transparentize(50%))
       #v(3pt)
       #grid(
         columns: (1fr, auto),
@@ -221,15 +236,34 @@
   // already is, stays legible without needing a text-colour override.
   let table-rule-color = if accent != none { accent } else { black }
   let table-fill-color = if accent != none { accent } else { none }
+  // brandkit: on a poster every table sits inside a section card, and an
+  // opaque tint of the brand laid over the card's own tint reads as a
+  // slab pasted onto it. So there the fills are translucent instead, and
+  // the table takes whatever it sits on: the body is the card itself, the
+  // stripes are white at low opacity (a small step lighter), and the
+  // header a faint wash of the primary (a small step darker) so it still
+  // reads as a header above its rule. Nothing here names the card's
+  // colour, so it cannot drift from the definition in page.typ.
   show table: it => align(center, block(
     width: 90%,
     inset: 0pt,
     it
   ))
   set table(
-    inset: 7pt,
+    // Scaled with the poster's type ramp: 7pt is generous around 11pt
+    // report text and a hairline around 36pt poster text. `poster-scale`
+    // is 1.0 outside the poster, so the reports are unchanged.
+    inset: 7pt * poster-scale,
     stroke: (x, y) => if y == 0 { (bottom: 0.5pt + table-rule-color) } else { none },
-    fill: (x, y) => if table-fill-color == none {
+    fill: (x, y) => if poster and accent != none {
+      if y == 0 {
+        accent.transparentize(88%)
+      } else if calc.even(y) {
+        white.transparentize(60%)
+      } else {
+        none
+      }
+    } else if table-fill-color == none {
       none
     } else if y == 0 {
       table-fill-color.lighten(80%)

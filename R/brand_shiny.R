@@ -10,6 +10,12 @@
 #' preview, and a summary panel, with no theming code in it. Use this as
 #' the starting point for a new branded app.
 #'
+#' The app uses `style = "drift"`, the look shared with
+#' [create_brand_quarto_poster()]: soft geometric ornaments in the corners
+#' of the window, the title as plain type, and tinted cards with a solid
+#' header, all drawn from `_brand.yml` and following the dark-mode toggle.
+#' Delete the argument for the plain Bootstrap look.
+#'
 #' For a KPI dashboard on [brand_page_navbar()], see
 #' [create_brand_shiny_dashboard()]. For a leaflet/plotly geospatial app
 #' on [brand_page_fluid()], see [create_brand_shiny_map()].

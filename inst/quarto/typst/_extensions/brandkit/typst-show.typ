@@ -2,9 +2,10 @@
 //
 // Based on Quarto's default typst-show.typ (src/resources/formats/typst/
 // pandoc/quarto/typst-show.typ). Adds brand-aware defaults: headings,
-// the title rule, links, and the table accent colour fall back to
-// `brand-color.primary`; the subtitle and footer text fall back to
-// `brand-color.secondary`; inline code text is tinted a blend of
+// the title rule, links, the footer text and the table accent colour fall
+// back to `brand-color.primary`; the subtitle falls back to
+// `brand-color.secondary`; the footer rule is drawn in
+// `brand-color.foreground`; inline code text is tinted a blend of
 // `brand-color.secondary` and `brand-color.foreground` (see typst-template.typ).
 // The brand logo itself is handled entirely by Quarto's own typst pipeline
 // (page.typ, via the pandoc `$logo$` variable) as a page background — not

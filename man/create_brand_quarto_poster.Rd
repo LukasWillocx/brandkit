@@ -33,14 +33,20 @@ Invisibly returns a character vector of copied file paths.
 \description{
 The poster sibling of \code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}: a single landscape
 sheet, rendered to PDF through Quarto's Typst engine, sharing the
-report formats' template partials and therefore their design — the
-same diagonal-stripe masthead, the same brand-derived colours, code
-styling and type ramp, all still inferred from \verb{_brand.yml}.
+report formats' template partials and therefore their brand-derived
+colours, code styling and type ramp, all still inferred from
+\verb{_brand.yml}. Its look is its own: instead of the reports' striped
+title panel, the sheet is framed by soft geometric corner ornaments
+(see \code{\link[=brand_ornament]{brand_ornament()}}) and the title is plain type on the page.
 }
 \details{
-The poster differs from the reports in four ways, all of which follow
+The poster differs from the reports in five ways, all of which follow
 from it being one big sheet rather than a sequence of small ones:
 \itemize{
+\item The sheet is framed by a pair of soft corner ornaments,
+top-right and bottom-left, drawn behind the content in the brand's
+colours as SVG. They are written into the extension at scaffold
+time, so re-run with \code{overwrite = TRUE} after changing the brand.
 \item The page is landscape at \code{paper} size, unnumbered, and the
 body runs in \code{columns} balanced columns with the masthead
 spanning the full measure above them.
@@ -50,8 +56,9 @@ radius. Cards do not split across columns.
 \item The whole type ramp is scaled up for the paper size (see
 Details), so body copy is legible at arm's length and the title
 across a room.
-\item There is no running footer. An optional standing band can
-carry affiliations, funding or a URL — see \code{poster-footer} below.
+\item There is no running footer. An optional standing band, set
+flush right with no rule, can carry affiliations, funding or a
+URL — see \code{poster-footer} below.
 }
 
 This function copies the following into \code{path}:
@@ -61,7 +68,9 @@ This function copies the following into \code{path}:
 extension contributing \code{brandkit-poster-typst}. It installs the
 same template partials as \code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}, plus
 \code{poster.lua}; its generated \verb{_extension.yml} sets the paper size,
-column count and type scale.}
+column count and type scale. It also holds the two generated
+corner ornaments, \code{drift-top-right.svg} and
+\code{drift-bottom-left.svg}.}
 \item{\code{poster.qmd}}{Sample poster (if \code{examples = TRUE}).}
 }
 

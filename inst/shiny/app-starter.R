@@ -7,6 +7,13 @@
 # dark-mode toggle, the logo next to the title, and thematic so every
 # renderPlot() picks up brand colours and fonts. There is no theming code
 # below on purpose — that's the point.
+#
+# style = "drift" is the page look shared with brandkit's poster template:
+# soft geometric ornaments in the window's top-right and bottom-left
+# corners, the title as plain type, and cards as tinted surfaces with a
+# solid header. Everything in it is drawn from _brand.yml and follows the
+# dark-mode toggle. Drop the argument (or use style = "classic") for the
+# plain Bootstrap look.
 # ==========================================================================
 
 library(shiny)
@@ -17,6 +24,7 @@ library(brandkit)
 
 ui <- brand_page_sidebar(
   title = "My Branded App",
+  style = "drift",
 
   sidebar = sidebar(
     # The dark-mode toggle is injected automatically (top-right).
