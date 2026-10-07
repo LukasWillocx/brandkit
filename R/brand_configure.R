@@ -176,38 +176,53 @@ configure_brand <- function(path = ".",
   #
   #   Manrope          -> Plus Jakarta Sans   (no italic)
   #   Roboto Slab      -> Bitter              (no italic)
-  #   DM Sans          -> Figtree             (name: "DM Sans 9pt")
-  #   DM Serif Display -> Cormorant Garamond  (no 700)
   #   Outfit           -> Jost                (no italic)
-  #   Merriweather     -> PT Serif            (name: "Merriweather Light 18pt")
-  #   Quicksand        -> Asap                (no italic)
   #   Nunito Sans      -> Mulish              (name: "Nunito Sans 12pt ...")
-  #   Space Grotesk    -> Familjen Grotesk    (no italic)
   #   Bungee           -> Fraunces            (neither face)
+  #
+  # A third criterion applies to the *base* font only: its x-height has to
+  # sit close to the code face's, because point size is not what the eye
+  # reads as size. brandkit_mono_default (IBM Plex Mono) has an x-height of
+  # 0.5160 em; a base font far from that makes every inline `span` and
+  # fenced block look like it was set at a different size, even though the
+  # Typst template pins both to exactly the same pt (see the `show raw`
+  # rule in typst-template.typ). Every base font below is within 3.7% —
+  # comfortably under the ~5% at which the mismatch becomes visible.
+  #
+  # The heading font is exempt: it never sits inline with code, and its
+  # own scale is set independently, so it is chosen purely for character.
+  # That is what keeps high-contrast display serifs (Playfair, Fraunces)
+  # available despite x-heights nowhere near the code face.
+  #
+  #   Jost is the one deliberate exception, kept because it is in use.
+  #   At 0.4600 em it is 12.2% off IBM Plex Mono and code visibly
+  #   outweighs body text around it. No mono face fixes it without
+  #   breaking the rest: the three that match Jost (Inconsolata,
+  #   Anonymous Pro, Ubuntu Mono) all land 15-17% out against Inter-class
+  #   bases, and Inconsolata has no italic. Treat it as a known cost of
+  #   that pairing, not something to "fix" by rescaling code globally.
+  #
+  # Rounded display faces are absent for the first reason, not by taste —
+  # Quicksand, Baloo 2, Comfortaa, Fredoka and Varela Round were all
+  # checked and none carries italic; Varela Round has no 700 either.
+  # Nunito is the roundest face that survives the coverage bar.
   font_pairs <- list(
     # --- Clean & professional ---
-    "Inter / Inter"                    = list(base = "Inter", heading = "Inter"),
-    "Plus Jakarta Sans / Montserrat"   = list(base = "Plus Jakarta Sans", heading = "Montserrat"),
-    "Source Sans 3 / Source Serif 4"   = list(base = "Source Sans 3", heading = "Source Serif 4"),
-    "Roboto / Bitter"                  = list(base = "Roboto", heading = "Bitter"),
+    "Plus Jakarta Sans / Montserrat"     = list(base = "Plus Jakarta Sans", heading = "Montserrat"),
+    "IBM Plex Sans / IBM Plex Sans"      = list(base = "IBM Plex Sans", heading = "IBM Plex Sans"),
+    "Roboto / Bitter"                    = list(base = "Roboto", heading = "Bitter"),
     # --- Modern & geometric ---
-    "Lato / Poppins"                   = list(base = "Lato", heading = "Poppins"),
-    "Nunito / Raleway"                 = list(base = "Nunito", heading = "Raleway"),
-    "Figtree / Cormorant Garamond"     = list(base = "Figtree", heading = "Cormorant Garamond"),
-    "Jost / Jost"                      = list(base = "Jost", heading = "Jost"),
+    "Raleway / Playfair Display"         = list(base = "Raleway", heading = "Playfair Display"),
+    "Jost / Jost"                        = list(base = "Jost", heading = "Jost"),
     # --- Warm & editorial ---
-    "Open Sans / Lora"                 = list(base = "Open Sans", heading = "Lora"),
-    "Nunito / PT Serif"                = list(base = "Nunito", heading = "PT Serif"),
-    "Inter / Playfair Display"         = list(base = "Inter", heading = "Playfair Display"),
     "Libre Franklin / Libre Baskerville" = list(base = "Libre Franklin", heading = "Libre Baskerville"),
+    "Mulish / Lora"                      = list(base = "Mulish", heading = "Lora"),
+    # --- Expressive & bold ---
+    "Work Sans / Fraunces"               = list(base = "Work Sans", heading = "Fraunces"),
     # --- Friendly & rounded ---
-    "Asap / Asap"                      = list(base = "Asap", heading = "Asap"),
-    "Mulish / Nunito"                  = list(base = "Mulish", heading = "Nunito"),
-    "Rubik / Rubik"                    = list(base = "Rubik", heading = "Rubik"),
-    # --- Unconventional (still readable) ---
-    "Space Mono / Familjen Grotesk"    = list(base = "Space Mono", heading = "Familjen Grotesk"),
-    "Karla / Fraunces"                 = list(base = "Karla", heading = "Fraunces"),
-    "Custom"                           = NULL
+    "Rubik / Rubik"                      = list(base = "Rubik", heading = "Rubik"),
+    "Nunito / Nunito"                    = list(base = "Nunito", heading = "Nunito"),
+    "Custom"                             = NULL
   )
 
   # -- Seed every input from the brand already in `path`, if any --

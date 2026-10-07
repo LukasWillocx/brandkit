@@ -8,18 +8,44 @@
 #' Clean, transparent-background theme that reads colours and fonts
 #' from the brand cache. Works inside Shiny dashboards and standalone.
 #'
+#' The plot, panel and legend are transparent by default, so a plot takes
+#' on the colour of whatever it sits on: the page in a report, a card on a
+#' poster, a dashboard panel. That is what you want anywhere a container
+#' supplies the background. A plot saved to a file with [ggplot2::ggsave()]
+#' has no container, though, and a dark-mode plot saved that way has light
+#' text on nothing; pass `transparent = FALSE` to fill it with the brand's
+#' background colour instead.
+#'
+#' Inside a running Shiny app the default is the opposite. There,
+#' \pkg{thematic} (which the `brand_page_*()` wrappers switch on) paints
+#' each plot's background to match the container it sits in, and it does so
+#' by remapping the colours in the ggplot theme; a theme with no fills gives
+#' it nothing to remap, and after a light/dark switch some plots are left
+#' drawn on the old mode's background. So an unspecified `transparent`
+#' means `FALSE` while a Shiny output is rendering, and the plot still ends
+#' up the colour of its container, via thematic instead.
+#'
 #' @param base_size Base font size in points.
 #' @param mode `"light"` or `"dark"`.
+#' @param transparent Logical. `TRUE` leaves the plot, panel and legend
+#'   backgrounds unfilled; `FALSE` fills them with the brand's background
+#'   colour for the chosen `mode`. The default, `NULL`, is `TRUE` except
+#'   inside a Shiny output, where it is `FALSE` (see Details).
 #'
 #' @return A `ggplot2::theme` object.
 #' @export
-theme_brand <- function(base_size = 14, mode = "light") {
+theme_brand <- function(base_size = 14, mode = "light", transparent = NULL) {
   cols  <- brand_colors(mode)
   fonts <- brand_fonts()
 
-  # Use actual brand background — works in Quarto/scripts.
-  # In Shiny, thematic (activated by brand_page_*) overrides this.
-  bg <- cols$background
+  # NA is an unfilled rect, which is what lets the container show through.
+  # The opaque brand background is the opt-out, for plots that leave R as
+  # image files. In Shiny, thematic (activated by brand_page_*) overrides
+  # either.
+  if (is.null(transparent)) {
+    transparent <- is.null(shiny::getDefaultReactiveDomain())
+  }
+  bg <- if (isTRUE(transparent)) NA else cols$background
 
   ggplot2::theme_minimal(base_size = base_size, base_family = fonts$base) +
     ggplot2::theme(
