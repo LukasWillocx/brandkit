@@ -1,0 +1,102 @@
+/* ==========================================================================
+   brandkit: drift.css
+   The "drift" page style: soft corner ornaments behind the page, plain type
+   for the title, and section cards instead of floating shadowed boxes. It
+   is the interactive counterpart of the poster template, and it is opt-in
+   (brand_page_sidebar(style = "drift")): every rule is scoped to
+   html.bk-drift, which a script in the page head adds, so a page that does
+   not ask for it is untouched.
+
+   --bk-card is written ahead of this file by drift_head() in brand_pages.R,
+   one value per colour mode. It is the brand's primary mixed 7% into its
+   background, computed in R rather than with color-mix() or an alpha, for
+   two reasons: the card is opaque, so the ornaments behind the page do not
+   show through it; and the computed colour is a plain rgb(), which is what
+   thematic reads off the card to give each plot a background that matches
+   it exactly. A translucent card would have to be guessed at.
+   ========================================================================== */
+
+/* --- Title: plain type, no bar ---
+   bslib wraps the title in a navbar that paints an opaque copy of the body
+   colour and a rule underneath. The ornaments are fixed behind the page, so
+   anything opaque in front of them hides them; the bar has to go, rule
+   included, for the top-right ornament to show behind the title row. */
+html.bk-drift .navbar.navbar-static-top {
+  background-color: transparent !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  padding-top: 0.6rem;
+}
+html.bk-drift .bslib-page-title {
+  color: var(--bs-primary) !important;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+  letter-spacing: -0.01em;
+}
+
+/* --- Cards: tinted surface, solid header bar --- */
+html.bk-drift .card {
+  background-color: var(--bk-card);
+  border: 0;
+  box-shadow: none;
+  /* No transitions at all. overrides.css animates every card property, and
+     on a light/dark switch that fades the card's colour over a third of a
+     second. Shiny reads the card's colour for thematic the moment the
+     theme changes, mid-fade, so every plot would be redrawn on a muddy
+     in-between grey that then never gets corrected. */
+  transition: none;
+}
+/* The classic style lifts a card on hover; a page of panels that shift as
+   the pointer crosses them is busy, and the hover shadow is a primary-
+   coloured block. Quieter here. */
+html.bk-drift .card:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+html.bk-drift .card-header {
+  background-color: var(--bs-primary);
+  color: #fff !important;
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+/* --- Sidebar: a rail, not a card ---
+   It runs the full height of the window down the left edge, which is where
+   the bottom-left ornament lives, so an opaque sidebar would hide it
+   entirely. Transparent, the ornament shows behind the controls (which
+   carry their own backgrounds), and the sidebar's own divider still marks
+   its edge. */
+html.bk-drift .bslib-sidebar-layout > .sidebar {
+  --_sidebar-bg: transparent;
+  background-color: transparent;
+}
+
+/* --- Tables: the card shows through; stripes a step lighter, header a
+       step darker. Translucent, so they follow whatever they sit on. --- */
+html.bk-drift .table > :not(caption) > * > * {
+  background-color: transparent;
+  box-shadow: none;
+}
+html.bk-drift .table-striped > tbody > tr:nth-of-type(even) > * {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+html.bk-drift .table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: transparent;
+}
+html.bk-drift .table > thead > tr > * {
+  background-color: rgba(var(--bs-primary-rgb), 0.12);
+  border-bottom: 1px solid var(--bs-primary);
+}
+/* Shiny's text output (verbatimTextOutput) is a <pre> with its own grey
+   slab; it gets the stripes' treatment instead. */
+html.bk-drift .shiny-text-output {
+  background-color: rgba(255, 255, 255, 0.4);
+  border: 0;
+}
+html.bk-drift[data-bs-theme="dark"] .shiny-text-output {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+html.bk-drift[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(even) > * {
+  background-color: rgba(255, 255, 255, 0.05);
+}
