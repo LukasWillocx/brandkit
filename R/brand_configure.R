@@ -293,7 +293,7 @@ configure_brand <- function(path = ".",
               "Font pairing:",
               bslib::popover(
                 htmltools::tags$span(
-                  "ⓘ",
+                  "\u24d8",
                   style = paste0(
                     "cursor: pointer; font-weight: bold; margin-left: 6px; ",
                     "color: var(--bs-primary);"
@@ -307,14 +307,14 @@ configure_brand <- function(path = ".",
                 ),
                 htmltools::tags$p(htmltools::strong("Where to look it up:")),
                 htmltools::tags$ul(
-                  htmltools::tags$li("Windows: Settings → Personalization → Fonts"),
+                  htmltools::tags$li("Windows: Settings \u2192 Personalization \u2192 Fonts"),
                   htmltools::tags$li("macOS: Font Book (Cmd+Space, search \"Font Book\")"),
                   htmltools::tags$li("Linux: run ", htmltools::code("fc-list"), " in a terminal")
                 ),
                 htmltools::tags$p(
                   htmltools::em(
                     "A system font only renders correctly on machines that ",
-                    "have it installed — it won't carry over to Quarto/PDF ",
+                    "have it installed \u2014 it won't carry over to Quarto/PDF ",
                     "rendering unless you also supply the font file."
                   )
                 )
@@ -342,7 +342,7 @@ configure_brand <- function(path = ".",
             htmltools::div(
               style = "font-size: 0.8rem; color: #666; margin-top: -0.5rem;",
               "Currently using ", htmltools::code(basename(existing_logo)),
-              " — upload a file only to replace it."
+              " \u2014 upload a file only to replace it."
             )
           },
           htmltools::hr(),
@@ -358,7 +358,7 @@ configure_brand <- function(path = ".",
           "Output format:",
           bslib::popover(
             htmltools::tags$span(
-              "ⓘ",
+              "\u24d8",
               style = paste0(
                 "cursor: pointer; font-weight: bold; margin-left: 6px; ",
                 "color: var(--bs-primary);"
@@ -366,12 +366,12 @@ configure_brand <- function(path = ".",
             ),
             title = "Which _brand.yml dialect to write",
             htmltools::tags$p(
-              htmltools::strong("Shiny / bslib"), " — writes ",
+              htmltools::strong("Shiny / bslib"), " \u2014 writes ",
               htmltools::code("color-dark:"), " and ", htmltools::code("theme:"),
               " sections. What bslib reads; Quarto's renderer rejects them."
             ),
             htmltools::tags$p(
-              htmltools::strong("Quarto"), " — folds the dark palette into ",
+              htmltools::strong("Quarto"), " \u2014 folds the dark palette into ",
               "nested ", htmltools::code("light:"), "/", htmltools::code("dark:"),
               " colour values and moves the Bootstrap variables under ",
               htmltools::code("defaults:"), ". Read by Quarto and bslib alike."
@@ -611,7 +611,7 @@ configure_brand <- function(path = ".",
             )
           ),
           htmltools::div(
-            paste("Your Name ·", format(Sys.Date())),
+            paste("Your Name \u00b7", format(Sys.Date())),
             style = paste0(
               "font-family:'", input$font_base, "', sans-serif;",
               " font-size: 0.85rem; letter-spacing: 0.04em; color:",
@@ -835,7 +835,7 @@ configure_brand <- function(path = ".",
 
       if (input$compliance == "quarto") {
         message(
-          "Wrote _brand.yml in Quarto-compatible format — render a .qmd ",
+          "Wrote _brand.yml in Quarto-compatible format \u2014 render a .qmd ",
           "in this project directly. The create_brand_quarto_*() functions ",
           "will leave it alone (they only convert bslib-format files)."
         )
@@ -1143,7 +1143,7 @@ brandkit_typography_sample <- function(cols, base, heading, mono, brand_name,
       htmltools::strong("bold emphasis"), ", ",
       htmltools::em("italic emphasis"), ", and even ",
       htmltools::tags$small("a quieter aside"),
-      " — enough to eyeball before shipping a report.",
+      " \u2014 enough to eyeball before shipping a report.",
       style = paste0(
         "color:", cols$foreground, "; margin: 0 0 6px 0;",
         " font-family:'", base, "', sans-serif;",

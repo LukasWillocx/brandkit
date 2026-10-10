@@ -239,7 +239,7 @@ write_brand_yml_for_shiny <- function(path, overwrite = FALSE) {
     if (needs_conversion && !overwrite) {
       message(
         "Converted _brand.yml to bslib-compatible format (it was in the ",
-        "Quarto format — nested light:/dark: colour values — which ",
+        "Quarto format \u2014 nested light:/dark: colour values \u2014 which ",
         "bslib::bs_theme(brand = ) rejects)"
       )
     } else {
@@ -328,7 +328,7 @@ bslib_brand_cfg <- function(cfg,
     } else if (is.null(keep_logo)) {
       message(
         "Note: the cached brand references a logo, but its file could ",
-        "not be found — omitting logo: from _brand.yml. Run ",
+        "not be found \u2014 omitting logo: from _brand.yml. Run ",
         "configure_brand() in this project (or copy the logo file in ",
         "manually) if you want a logo here."
       )

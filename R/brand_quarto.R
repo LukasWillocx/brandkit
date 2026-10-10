@@ -661,7 +661,7 @@ write_brand_yml_for_quarto <- function(path, overwrite = FALSE) {
     if (needs_conversion && !overwrite) {
       message(
         "Converted _brand.yml to Quarto-compatible format (it was in the ",
-        "Shiny/bslib format — color-dark:/theme: — which Quarto's ",
+        "Shiny/bslib format \u2014 color-dark:/theme: \u2014 which Quarto's ",
         "renderer rejects)"
       )
     } else {
@@ -678,7 +678,7 @@ write_brand_yml_for_quarto <- function(path, overwrite = FALSE) {
   # those edits.
   if (patch_brand_yml_font_faces(brand_dest)) {
     message(
-      "Added explicit Google font styles/weights to _brand.yml — without ",
+      "Added explicit Google font styles/weights to _brand.yml \u2014 without ",
       "them Quarto fetches only the upright 400 face, so **bold** and ",
       "*italic* both render unstyled in Typst/PDF output"
     )
@@ -1046,7 +1046,7 @@ quarto_brand_cfg <- function(cfg,
     } else if (is.null(keep_logo)) {
       message(
         "Note: the cached brand references a logo, but its file could ",
-        "not be found — omitting logo: from _brand.yml. Run ",
+        "not be found \u2014 omitting logo: from _brand.yml. Run ",
         "configure_brand() in this project (or copy the logo file in ",
         "manually) if you want a logo here."
       )
