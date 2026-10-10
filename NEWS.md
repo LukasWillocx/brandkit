@@ -1,3 +1,5 @@
+# brandkit (development version)
+
 # brandkit 0.3.0
 
 Everything below is relative to 0.2.0 (the initial release, 2026-05-01).
