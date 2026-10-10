@@ -21,14 +21,25 @@ library(bslib)
 library(ggplot2)
 library(brandkit)
 
+# Sample data - replace with your own. airquality is built into R: daily
+# readings in New York, May to September 1973.
+aq <- airquality
+aq$Month <- factor(month.name[aq$Month], levels = month.name[5:9])
+
+measures <- c(
+  "Ozone (ppb)"               = "Ozone",
+  "Solar radiation (langley)" = "Solar.R",
+  "Wind (mph)"                = "Wind"
+)
+
 
 ui <- brand_page_sidebar(
-  title = "My Branded App",
+  title = "New York Air Quality",
   style = "drift",
 
   sidebar = sidebar(
     # The dark-mode toggle is injected automatically (top-right).
-    selectInput("dataset", "Dataset", c("mtcars", "iris", "faithful")),
+    selectInput("measure", "Measure", measures),
     sliderInput("alpha", "Point opacity", min = 0.2, max = 1, value = 0.7, step = 0.1),
     checkboxInput("smooth", "Add trend line", TRUE)
   ),
@@ -36,7 +47,7 @@ ui <- brand_page_sidebar(
   layout_columns(
     col_widths = c(8, 4),
     card(
-      card_header("Plot"),
+      card_header("Temperature and air quality"),
       plotOutput("scatter", height = "380px")
     ),
     card(
@@ -54,39 +65,17 @@ ui <- brand_page_sidebar(
 
 server <- function(input, output, session) {
 
-  dat <- reactive({
-    switch(input$dataset,
-      mtcars   = mtcars,
-      iris     = iris,
-      faithful = faithful
-    )
-  })
-
-  # Plot variables per dataset, so the scatter works for all three.
-  vars <- reactive({
-    switch(input$dataset,
-      mtcars   = list(x = "mpg", y = "wt", color = "cyl"),
-      iris     = list(x = "Sepal.Length", y = "Sepal.Width", color = "Species"),
-      faithful = list(x = "waiting", y = "eruptions", color = NULL)
-    )
-  })
-
   output$scatter <- renderPlot({
-    d <- dat()
-    v <- vars()
+    d <- aq[!is.na(aq[[input$measure]]), ]
 
-    mapping <- if (is.null(v$color)) {
-      aes(.data[[v$x]], .data[[v$y]])
-    } else {
-      aes(.data[[v$x]], .data[[v$y]], color = factor(.data[[v$color]]))
-    }
-
-    p <- ggplot(d, mapping) +
+    p <- ggplot(d, aes(Temp, .data[[input$measure]], color = Month)) +
       geom_point(size = 3, alpha = input$alpha) +
-      labs(title = paste(v$y, "vs", v$x), color = v$color)
+      labs(x = "Temperature (°F)", y = names(measures)[measures == input$measure],
+           color = NULL)
 
     if (input$smooth) {
-      p <- p + geom_smooth(method = "lm", formula = y ~ x, se = FALSE)
+      # color = NULL: one trend line for all months, not one per month.
+      p <- p + geom_smooth(aes(color = NULL), method = "lm", formula = y ~ x, se = FALSE)
     }
     p
   })
@@ -114,7 +103,7 @@ server <- function(input, output, session) {
   })
 
   output$summary <- renderPrint({
-    summary(dat())
+    summary(aq[c("Ozone", "Solar.R", "Wind", "Temp")])
   })
 }
 

@@ -65,6 +65,27 @@ $endif$
 // parameter of its own.
 #set columns(gutter: 5%)
 $else$
+$if(drift)$
+// brandkit: the print report's frame is the same pair of soft corner
+// ornaments the poster uses (see its branch above for how they are drawn
+// and why they are sized from the page's shorter side), on the first page
+// only. A title page framed and the pages after it left plain is the
+// quieter reading, and it keeps ink off the pages that are all text and
+// figures — which is what this layout is for. Drop the `if` to repeat the
+// frame on every page.
+//
+// Smaller than the poster's 0.32: a letter page is far smaller than the
+// sheet that figure was tuned on, and the ornament sits behind running
+// text here rather than beside cards.
+#let brandkit-ornament-k = 0.26
+#set page(background: context {
+  if counter(page).get().first() == 1 {
+    let side = brandkit-ornament-k * calc.min(page.width, page.height)
+    place(top + right, image("drift-top-right.svg", width: side, height: side))
+    place(bottom + left, image("drift-bottom-left.svg", width: side, height: side))
+  }
+})
+$endif$
 #set page(
   paper: $if(papersize)$"$papersize$"$else$"us-letter"$endif$,
 $if(margin-geometry)$
@@ -79,10 +100,11 @@ $endif$
 )
 $endif$
 $if(title)$
-$if(poster)$
-// brandkit: the poster has no title panel — its masthead is plain type on
-// the page, defined below — so the striped panel the report layouts share
-// is not emitted for it.
+$if(drift)$
+// brandkit: the drift layouts (the poster and the print report) have no
+// title panel — their masthead is plain type on the page, defined below —
+// so the striped panel the full-bleed report layout draws is not emitted
+// for them.
 $else$
 // brandkit: the diagonal-stripe title banner, drawn by
 // brandkit-stripe-fill in definitions.typ as sheared polygons in
@@ -312,12 +334,13 @@ $else$
 }
 $endif$
 
-$if(poster)$
-// brandkit: poster masthead — plain type on the page, no panel. The
-// sheet's colour comes from the corner ornaments behind it (see the page
-// background in the poster branch above), so the masthead only has to
-// carry the title: it sits directly on the page in the brand's primary
-// colour, with the supporting lines stepping down in weight beneath it.
+$if(drift)$
+// brandkit: the drift masthead — plain type on the page, no panel. The
+// colour comes from the corner ornaments behind it (see the page
+// background above), so the masthead only has to carry the title: it sits
+// directly on the page in the brand's primary colour, with the supporting
+// lines stepping down in weight beneath it. The poster and the print
+// report share it and differ only in `type-scale`.
 //
 // It is flow content sized to the text measure, emitted by
 // typst-template.typ as a float spanning the page's columns. Nothing in
@@ -325,16 +348,15 @@ $if(poster)$
 // a large-format sheet apart from the ornaments, which are faint enough
 // that a clipped edge is not visible.
 //
-// Everything is sized from one factor, `type-scale`: the poster's own
-// scale times 1.6. A poster is read at two distances — the title from
-// across a hall, the body from arm's length — so the gap between them has
-// to open up rather than stay proportional to the body, which is what the
-// extra 1.6 is for. The report layouts' masthead runs at 22pt over a 12pt
-// body (1.8x); this runs at 26pt, because without a panel behind it the
-// title is the only mass on the sheet's top edge.
-#let brandkit-poster-scale = $poster-scale$
+// Everything is sized from one factor, `type-scale`. On a poster it is the
+// poster's own scale times 1.6: a poster is read at two distances — the
+// title from across a hall, the body from arm's length — so the gap
+// between them has to open up rather than stay proportional to the body,
+// which is what the extra 1.6 is for. In the print report it is 1, which
+// gives a 26pt title over a 12pt body (the striped panel's 22pt): without
+// a panel behind it the title is the only mass on the page's top edge.
 #let brandkit-banner-content = {
-  let type-scale = brandkit-poster-scale * 1.6
+  let type-scale = $if(poster)$$poster-scale$ * 1.6$else$1.0$endif$
   let title-size = 26pt * type-scale
   let subtitle-size = 13.5pt * type-scale
   let meta-size = 11pt * type-scale
@@ -342,7 +364,10 @@ $if(poster)$
   // of the way across the sheet, so the title column stops short of it. A
   // long title wraps instead of running into the densest part of the
   // drawing, and the logo, which sits on that side, never meets it.
-  let title-w = 72%
+  //
+  // The print report's ornament is a much smaller share of a letter page
+  // than the poster's is of a sheet, so it can give the title more room.
+  let title-w = $if(poster)$72%$else$85%$endif$
   // Secondary is a mid-tone by design — it is meant to sit on the page as
   // a rule or a mark — so as small type it needs darkening to be read.
   // At this size it only has to clear the 3:1 large-text bar.
@@ -392,6 +417,8 @@ $if(poster)$
   ]
 }
 
+$endif$
+$if(poster)$
 // brandkit: the section card. Defined here rather than in
 // definitions.typ because it needs `brand-color`, and Quarto injects
 // that constant via header-includes — which template.typ emits after
@@ -444,6 +471,7 @@ $if(poster)$
     ],
   )
 }
+$elseif(drift)$
 $elseif(banner-inset)$
 // brandkit: print layout. The panel is ordinary flow content emitted by
 // typst-template.typ at the top of the body, so it is bounded by the
@@ -485,10 +513,10 @@ $else$
 ])
 $endif$
 $else$
-$if(poster)$
-// brandkit: a poster with no title has no masthead to carry a logo, and
-// the corner-mark fallback below would replace the page background that
-// holds the ornaments, so it is skipped.
+$if(drift)$
+// brandkit: a drift layout with no title has no masthead to carry a logo,
+// and the corner-mark fallback below would replace the page background
+// that holds the ornaments, so it is skipped.
 $elseif(logo)$
 // brandkit: logo on the first page only (Quarto's default places it on
 // every page as a persistent watermark; wrapping in a page-1 check here

@@ -1,5 +1,5 @@
 ---
-title: "Brand Report"
+title: "Air Quality in New York"
 subtitle: "A polished starting point for branded Typst PDFs"
 author: "Your Name"
 date: today
@@ -14,6 +14,11 @@ format:
 library(brandkit)
 library(ggplot2)
 brand_quarto_setup()
+
+# Sample data - replace with your own. airquality is built into R: daily
+# readings in New York, May to September 1973.
+aq <- airquality
+aq$Month <- factor(month.name[aq$Month], levels = month.name[5:9])
 ```
 
 ## Overview
@@ -34,17 +39,20 @@ time using whichever mode you pass to `brand_quarto_setup()`.
 ```{r}
 #| label: scatter
 #| fig-cap: "Auto-themed via theme_brand() — no manual styling needed"
-p <- ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
-  geom_point(size = 3) +
-  labs(title = "MPG vs Weight", color = "Cylinders")
-p
+ggplot(aq, aes(Temp, Ozone, color = Month)) +
+  geom_point(size = 3, na.rm = TRUE) +
+  labs(x = "Temperature (°F)", y = "Ozone (ppb)", color = NULL)
 ```
 
 ## Branded Table
 
+Monthly means: temperature in °F, ozone in ppb, wind in mph.
+
 ```{r}
 #| label: table
-knitr::kable(head(mtcars[, 1:6], 8))
+monthly <- aggregate(cbind(Temp, Ozone, Wind) ~ Month, aq, mean,
+                     na.rm = TRUE, na.action = na.pass)
+knitr::kable(monthly, digits = 1)
 ```
 
 ## Brand Palette

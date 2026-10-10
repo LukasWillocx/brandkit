@@ -1,0 +1,344 @@
+/*-- scss:rules --*/
+
+/* ==========================================================================
+   brandkit: drift.scss
+   The "drift" look for Quarto pages: plain type for the title, soft corner
+   ornaments (_ornaments.html) behind the page, and tinted surfaces instead
+   of floating shadowed boxes. It is the Quarto counterpart of
+   inst/css/drift.css, which does the same for Shiny pages.
+
+   Everything is built from the brand variables of whichever colour mode
+   this file is being compiled for — Quarto compiles it once for light and
+   once for dark — so one file covers both, and there is nothing mode-
+   specific to maintain below.
+
+   One file serves every Quarto HTML scaffold, in four parts: Shared (the
+   card colour and tables), Documents (the title block and footer of a
+   report), Slides (a revealjs deck) and Dashboards (the navbar, cards and
+   sidebar). Rules for markup a page does not have simply never match, so
+   delete the parts you do not use if you like — nothing depends on them.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Shared
+   --------------------------------------------------------------------------- */
+
+/* The card colour: the brand's primary mixed 7% into its background. It is
+   opaque, so the ornaments never show through a card, and it is a plain
+   colour, which is what thematic reads off the card to give each plot a
+   matching background. Change the 7% to make cards more or less tinted. */
+:root {
+  --bk-card: #{mix($primary, $body-bg, 7%)};
+}
+
+/* --- Tables: header tinted, stripes a step off the surface ---
+   The stripe is the text colour at 5%, which darkens a light surface and
+   lightens a dark one. Translucent, so tables follow whatever they sit on. */
+.table > :not(caption) > * > * {
+  background-color: transparent;
+  box-shadow: none;
+}
+.table-striped > tbody > tr:nth-of-type(even) > * {
+  background-color: rgba(var(--bs-body-color-rgb), 0.05);
+}
+.table > thead > tr > * {
+  background-color: rgba(var(--bs-primary-rgb), 0.12);
+  border-bottom: 1px solid var(--bs-primary);
+}
+
+/* ---------------------------------------------------------------------------
+   Documents (HTML reports)
+   --------------------------------------------------------------------------- */
+
+/* Pandoc emits its own title block from the YAML whenever there is a title,
+   whatever title-block-style says; the masthead in the document replaces it,
+   so hide it or the title appears twice. */
+#title-block-header {
+  display: none !important;
+}
+
+#quarto-document-content h1,
+#quarto-document-content h2,
+#quarto-document-content h3,
+#quarto-document-content h4 {
+  color: var(--bs-primary);
+}
+
+/* Code takes the card tint. Bootstrap's own code background is a fixed light
+   grey that does not follow the page into dark mode, leaving pale boxes
+   with light text on them. */
+#quarto-document-content div.sourceCode,
+#quarto-document-content :not(pre) > code {
+  background-color: var(--bk-card);
+}
+
+/* Quarto sets figure captions in the brand's secondary accent, which on a
+   light page is a pale tan close to illegible. Muted body text instead. */
+#quarto-document-content figcaption,
+#quarto-document-content .figure-caption {
+  color: #{rgba($body-color, 0.7)};
+}
+
+/* --- Masthead: the title as plain type ---
+   The same block the poster and the print PDF open with: the title in the
+   brand's primary, the subtitle a step quieter, then a short round-capped
+   bar in the secondary colour above the author and date. The ornaments
+   behind it supply the colour, so there is no panel. */
+.brand-masthead {
+  margin: 1rem 0 2.5rem;
+}
+.brand-masthead img,
+.brand-masthead .brand-logo {
+  max-height: 3rem;
+  width: auto;
+  margin-bottom: 1rem;
+}
+.brand-masthead-title {
+  font-family: var(--bs-headings-font-family, inherit);
+  font-weight: 700;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--bs-primary);
+}
+.brand-masthead-subtitle {
+  font-size: 1.3rem;
+  margin-top: 0.5rem;
+  opacity: 0.75;
+}
+/* Secondary is a mid-tone meant for marks, so as small type it is blended
+   toward the text colour to be readable on either page colour. */
+.brand-masthead-meta {
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  margin-top: 1rem;
+  color: #{mix($secondary, $body-color, 55%)};
+  &::before {
+    content: "";
+    display: block;
+    width: 4rem;
+    height: 0.22rem;
+    margin-bottom: 0.9rem;
+    border-radius: 1rem;
+    background: var(--bs-secondary);
+  }
+}
+
+/* --- Footer: plain, flush apart, no rule ---
+   A hairline across the page would cut between the two ornaments. Each line
+   of the div is its own <p>, and those are the flex items, so their block
+   margins are zeroed. The text is the body colour muted rather than the
+   brand's secondary, which on a light page is close to illegible. */
+.brand-footer {
+  margin-top: 3rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  font-size: 0.85rem;
+  color: #{rgba($body-color, 0.7)};
+  > * {
+    margin: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Slides (revealjs)
+   --------------------------------------------------------------------------- */
+
+/* The corner ornaments (_ornaments.html) are filled with Bootstrap's colour
+   variables, which a revealjs theme does not define, so they would fall back
+   to the light palette even in a dark deck. Define the three they use from
+   the brand colours of the mode this deck is compiled for. The same file
+   does no harm elsewhere: Bootstrap pages define these already. */
+:root {
+  --bs-primary: #{$primary};
+  --bs-secondary: #{$secondary};
+  --bs-info: #{$info};
+}
+
+/* The ornaments are fixed behind the page, and reveal paints its viewport
+   (which is the <body> itself) with an opaque background colour that would
+   hide them. Let the <html> element paint that colour instead, so the
+   ornaments sit on top of it and the viewport above them is clear. */
+html {
+  background-color: var(--r-background-color);
+}
+.reveal-viewport {
+  background: transparent;
+}
+
+/* Headings in the brand's primary, as in the reports. */
+:root {
+  --r-heading-color: #{$primary};
+}
+
+/* --- Title slide: plain type, left-aligned, no panel ---
+   The same block a report opens with: the title in the primary colour, the
+   subtitle a step quieter, then a short round-capped bar above the author
+   and date. */
+.reveal #title-slide {
+  text-align: left;
+  .subtitle {
+    opacity: 0.75;
+    margin-top: 0.5em;
+  }
+  .quarto-title-authors {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 1.2em;
+    &::before {
+      content: "";
+      display: block;
+      width: 4rem;
+      height: 0.22rem;
+      margin-bottom: 0.9rem;
+      border-radius: 1rem;
+      background: var(--bs-secondary);
+    }
+  }
+  .quarto-title-author,
+  .quarto-title-author-name {
+    padding: 0;
+    margin: 0;
+  }
+  .quarto-title-author-name,
+  .date {
+    color: #{mix($secondary, $body-color, 55%)};
+    letter-spacing: 0.04em;
+  }
+}
+
+/* Code takes the card tint, as in the reports. */
+.reveal div.sourceCode,
+.reveal :not(pre) > code {
+  background-color: var(--bk-card);
+}
+
+/* --- Footer and logo --- */
+.reveal .footer {
+  color: #{rgba($body-color, 0.7)};
+  font-size: 0.6em;
+}
+.reveal .slide-logo {
+  max-height: 40px !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Dashboards
+   --------------------------------------------------------------------------- */
+
+/* --- Navbar: the title as plain type, not a bar ---
+   Quarto marks the navbar data-bs-theme="dark" whatever the page is, so its
+   own colour variables are no use here; the colours come from the brand
+   variables instead. */
+#quarto-dashboard-header .navbar {
+  background-color: transparent !important;
+  border-bottom: 0;
+  box-shadow: none;
+  --bs-navbar-color: #{rgba($body-color, 0.7)};
+  --bs-navbar-hover-color: #{$body-color};
+  --bs-navbar-active-color: #{$primary};
+}
+#quarto-dashboard-header .navbar-title-text a,
+#quarto-dashboard-header .quarto-color-scheme-toggle {
+  color: var(--bs-primary) !important;
+}
+#quarto-dashboard-header .navbar-title-text a {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+#quarto-dashboard-header .nav-link.active {
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--bs-primary);
+}
+/* Quarto bakes the toggle icon's colour into the stylesheet to suit its
+   always-dark navbar, which is a pale grey: unreadable on a light page. The
+   dark stylesheet is layered over the light one rather than replacing it,
+   so it has to undo the light one's fix. */
+#quarto-dashboard-header .quarto-color-scheme-toggle .bi::before {
+  @if lightness($body-bg) > 50% {
+    filter: brightness(0.35);
+  } @else {
+    filter: none;
+  }
+}
+/* A dashboard of one page has no use for a tab strip, or for the button
+   that collapses it on a phone. */
+#quarto-dashboard-header .navbar-nav:not(:has(li + li)),
+#quarto-dashboard-header .navbar:not(:has(.navbar-nav li + li)) .navbar-toggler {
+  display: none;
+}
+
+/* --- Cards: tinted surface, solid header ---
+   Value boxes are cards too, but carry their own bg-* colour, which
+   outranks the plain background below and so is left alone. */
+.card {
+  background-color: var(--bk-card);
+  border: 0;
+  box-shadow: none;
+}
+.card-header {
+  background-color: var(--bs-primary);
+  color: #fff;
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+/* --- Card extras: the expand button and its tooltip ---
+   The dark stylesheet leaves some of Bootstrap's colour variables at their
+   light values (the icon's fill, the tooltip's emphasis colour), which gave
+   a black icon on navy and a black tooltip with navy text. Set them from
+   the brand variables, which are right in both modes. */
+.bslib-full-screen-enter {
+  color: #fff;
+  background-color: var(--bs-primary);
+  border: 0;
+  svg {
+    fill: currentColor;
+  }
+}
+.tooltip {
+  --bs-tooltip-bg: #{$body-color};
+  --bs-tooltip-color: #{$body-bg};
+}
+/* Expanded card: bslib draws the backdrop in the text colour, which in
+   dark mode is a pale wash with unreadable "Close" text on it. A dark
+   backdrop with light text suits both modes. */
+#bslib-full-screen-overlay {
+  background-color: rgba(0, 0, 0, 0.65);
+}
+.bslib-full-screen-exit {
+  color: rgba(255, 255, 255, 0.85);
+  &:hover {
+    color: #fff;
+  }
+}
+
+/* --- Page and sidebar: see-through, so the ornaments show ---
+   The ornaments are fixed behind the page, so every full-size layer in
+   front of them has to be transparent: the content area (bslib paints it
+   with the body colour) and the sidebar, which becomes a rail. */
+.bslib-sidebar-layout > .main,
+.bslib-sidebar-layout > .sidebar {
+  --_sidebar-bg: transparent;
+  background-color: transparent;
+}
+.bslib-sidebar-layout > .collapse-toggle {
+  color: var(--bs-body-color);
+}
+
+/* --- Sliders: Shiny's range slider ships its own blue --- */
+.irs.irs--shiny {
+  .irs-bar,
+  .irs-handle {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+  }
+  .irs-from,
+  .irs-to,
+  .irs-single {
+    background: var(--bs-primary);
+    color: #fff;
+  }
+}

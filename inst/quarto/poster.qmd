@@ -1,5 +1,5 @@
 ---
-title: "A Branded Conference Poster"
+title: "Summer Air Quality in New York"
 subtitle: "Landscape, three columns, all inferred from _brand.yml"
 author: "Your Name"
 date: today
@@ -29,6 +29,11 @@ brand_quarto_setup()
 # the poster's body copy. Raising the ggplot base size compensates, so
 # axis text lands near the body text size instead of well under it.
 theme_set(theme_brand(base_size = 22))
+
+# Sample data - replace with your own. airquality is built into R: daily
+# readings in New York, May to September 1973.
+aq <- airquality
+aq$Month <- factor(month.name[aq$Month], levels = month.name[5:9])
 ```
 
 ## Background {.plain}
@@ -36,6 +41,9 @@ theme_set(theme_brand(base_size = 22))
 Everything on this sheet - the colours, the fonts, the soft corner
 ornaments, the card panels, the footer band - is inferred from
 `_brand.yml`. Nothing here names a colour or a typeface.
+
+The data are R's built-in `airquality`: daily ozone, solar radiation,
+wind and temperature readings from New York, May to September 1973.
 
 This section is marked `{.plain}`, so it runs free in the column instead
 of sitting in a card: useful for a lead-in that should read as part of
@@ -52,7 +60,7 @@ Inline code such as `theme_brand()` and fenced blocks are styled from
 the brand exactly as they are in the report formats:
 
 ```r
-p <- ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) +
+p <- ggplot(airquality, aes(Temp, Ozone, colour = factor(Month))) +
   geom_point(size = 4)
 ```
 
@@ -67,9 +75,9 @@ styled the same way.
 #| fig-cap: "Auto-themed via theme_brand() - no manual styling"
 #| fig-height: 4.5
 #| out-width: "100%"
-ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) +
-  geom_point(size = 4) +
-  labs(title = "MPG vs Weight", colour = "Cylinders")
+ggplot(aq, aes(Temp, Ozone, colour = Month)) +
+  geom_point(size = 4, na.rm = TRUE) +
+  labs(x = "Temperature (°F)", y = "Ozone (ppb)", colour = NULL)
 ```
 
 Figures fill the column they land in, so their aspect ratio is what
@@ -80,12 +88,12 @@ to decide how much of the column each one claims.
 
 ```{r}
 #| label: box
-#| fig-cap: "Fuel economy by cylinder count"
+#| fig-cap: "Ozone by month"
 #| fig-height: 4
 #| out-width: "100%"
-ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
-  geom_boxplot(alpha = 0.85, show.legend = FALSE) +
-  labs(x = "Cylinders", y = "MPG")
+ggplot(aq, aes(Month, Ozone, fill = Month)) +
+  geom_boxplot(alpha = 0.85, show.legend = FALSE, na.rm = TRUE) +
+  labs(x = NULL, y = "Ozone (ppb)")
 ```
 
 Discrete scales come from the brand palette by default, so a second
@@ -95,11 +103,13 @@ figure agrees with the first without being told to.
 
 ```{r}
 #| label: table
-knitr::kable(head(mtcars[, 1:4], 6))
+monthly <- aggregate(cbind(Temp, Ozone, Wind) ~ Month, aq, mean,
+                     na.rm = TRUE, na.action = na.pass)
+knitr::kable(monthly, digits = 1)
 ```
 
-Tables get the same booktabs rules, tinted header and zebra striping as
-the report formats.
+Monthly means in °F, ppb and mph, ruled and striped like the report
+formats' tables.
 
 ## Brand Palette
 
@@ -118,7 +128,7 @@ Base graphics work too - the palette helpers are plain colour vectors.
 
 ## Conclusions
 
-- A poster is a fixed sheet: Typst will not shrink content to fit it,
-  so anything that overruns spills onto a second page.
+- Ozone climbs with temperature; July and August are the worst months.
+- A poster is a fixed sheet: overflow spills onto a second page.
 - Re-run `create_brand_quarto_poster(paper = "a1", columns = 4)` to
-  retarget the sheet - both arguments feed the type scale.
+  retarget the sheet.

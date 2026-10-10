@@ -1,13 +1,12 @@
 ---
-title: "Brand Report"
+title: "Air Quality in New York"
 subtitle: "A polished starting point for branded revealjs slides"
 author: "Your Name"
 date: today
-title-slide-attributes:
-  data-background-color: "__BRANDKIT_TITLE_BG__"
 format:
   revealjs:
-    theme: [brand, brandkit.scss]
+    theme: [brand, drift.scss]
+    include-after-body: _ornaments.html
     slide-number: true
     transition: fade
     logo: medium
@@ -21,13 +20,19 @@ library(brandkit)
 library(ggplot2)
 library(plotly)
 brand_quarto_setup()
+
+# Sample data - replace with your own. airquality is built into R: daily
+# readings in New York, May to September 1973.
+aq <- airquality
+aq$Month <- factor(month.name[aq$Month], levels = month.name[5:9])
 ```
 
 ## Overview
 
 This deck was scaffolded by `create_brand_quarto_slides()`. Colours,
 fonts, and styling come from `_brand.yml`; all ggplot2 and plotly
-output is auto-themed.
+output is auto-themed. `drift.scss` is the look and `_ornaments.html`
+the corner ornaments; edit either to adapt it.
 
 ## Branded Plot
 
@@ -35,9 +40,9 @@ output is auto-themed.
 #| label: scatter
 #| fig-width: 8
 #| fig-height: 4
-p <- ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
-  geom_point(size = 3) +
-  labs(title = "MPG vs Weight", color = "Cylinders")
+p <- ggplot(aq, aes(Temp, Ozone, color = Month)) +
+  geom_point(size = 3, na.rm = TRUE) +
+  labs(x = "Temperature (°F)", y = "Ozone (ppb)", color = NULL)
 p
 ```
 

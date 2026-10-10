@@ -1,0 +1,16 @@
+/* brandkit: adaptive widgets.
+   brand_plotly() writes a light and a dark widget side by side; show the one
+   that matches the page. The other is collapsed rather than display: none,
+   because a widget laid out inside a display: none box measures itself at
+   zero width and stays that way. */
+.bk-mode-dark,
+body.quarto-dark .bk-mode-light {
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+body.quarto-dark .bk-mode-dark {
+  height: auto;
+  overflow: visible;
+  visibility: visible;
+}

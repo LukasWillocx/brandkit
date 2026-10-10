@@ -71,6 +71,10 @@
   poster: false,
   poster-footer: none,
   poster-scale: 1.0,
+  // brandkit: the drift layouts (the poster and the print report). The
+  // poster has no running footer at all; the print report has one, but
+  // leaves its first page — the framed title page — without it.
+  drift: false,
   doc,
 ) = {
   // Set document metadata for PDF accessibility
@@ -213,15 +217,22 @@
       none
     }
   } else if accent != none {
-    context [
-      #line(length: 100%, stroke: 0.4pt + footer-rule-color.transparentize(50%))
-      #v(3pt)
-      #grid(
-        columns: (1fr, auto),
-        align(left)[#text(size: 8pt, fill: footer-text-color)[#if title != none { title }]],
-        align(right)[#text(size: 8pt, fill: footer-text-color)[#counter(page).display("1")]]
-      )
-    ]
+    context {
+      // The print report's title page is framed by the corner ornaments and
+      // carries no running footer — no rule, title or page number — which
+      // starts on page two. Typst does not draw a footer when it is `none`.
+      if drift and counter(page).get().first() == 1 {
+        none
+      } else [
+        #line(length: 100%, stroke: 0.4pt + footer-rule-color.transparentize(50%))
+        #v(3pt)
+        #grid(
+          columns: (1fr, auto),
+          align(left)[#text(size: 8pt, fill: footer-text-color)[#if title != none { title }]],
+          align(right)[#text(size: 8pt, fill: footer-text-color)[#counter(page).display("1")]]
+        )
+      ]
+    }
   } else {
     auto
   }

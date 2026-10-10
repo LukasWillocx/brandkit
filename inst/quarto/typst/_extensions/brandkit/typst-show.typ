@@ -138,6 +138,9 @@ $if(title)$
   banner: brandkit-banner-content,
 $endif$
 $endif$
+$if(drift)$
+  drift: true,
+$endif$
 $if(poster)$
   // Poster layout only. The column count itself doesn't come through
   // here — page.typ reads `columns` straight into the page setup — but

@@ -1,5 +1,5 @@
 ---
-title: "Brand Report"
+title: "Air Quality in New York"
 subtitle: "A polished starting point for branded HTML reports"
 author: "Your Name"
 date: today
@@ -8,34 +8,31 @@ format:
     title-block-style: none
     # The nested light:/dark: form is what gives the reader a working
     # light/dark toggle: Quarto emits a Bootstrap stylesheet per mode and
-    # the toggle swaps between them. The flat `theme: [brand, brandkit.scss]`
+    # the toggle swaps between them. The flat `theme: [brand, drift.scss]`
     # form looks equivalent and still shows a toggle, but only the syntax
     # highlighting actually switches — the Bootstrap layer stays light.
     # Both lists are identical; _brand.yml's own color:/color-dark: entries
     # are what differ per mode.
     theme:
-      light: [brand, brandkit.scss]
-      dark: [brand, brandkit.scss]
+      light: [brand, drift.scss]
+      dark: [brand, drift.scss]
+    include-after-body: _ornaments.html
     toc: false
 ---
 
-::: {.brand-banner}
-::: {.brand-banner-inner}
-::: {.brand-banner-content}
+::: {.brand-masthead}
 {{< brand logo medium >}}
 
-::: {.brand-banner-title}
+::: {.brand-masthead-title}
 {{< meta title >}}
 :::
 
-::: {.brand-banner-subtitle}
+::: {.brand-masthead-subtitle}
 {{< meta subtitle >}}
 :::
 
-::: {.brand-banner-meta}
+::: {.brand-masthead-meta}
 {{< meta author >}} · {{< meta date >}}
-:::
-:::
 :::
 :::
 
@@ -45,23 +42,32 @@ format:
 library(brandkit)
 library(ggplot2)
 library(plotly)
-brand_quarto_setup()
+# adaptive = TRUE draws every plot in both colour modes, so the page's
+# light/dark toggle switches the plots too.
+brand_quarto_setup(adaptive = TRUE)
+
+# Sample data - replace with your own. airquality is built into R: daily
+# readings in New York, May to September 1973.
+aq <- airquality
+aq$Month <- factor(month.name[aq$Month], levels = month.name[5:9])
 ```
 
 ## Overview
 
 This report was scaffolded by `create_brand_quarto_html()`. It inherits
 all styling from `_brand.yml` automatically — Quarto handles the
-document theme, brandkit handles ggplot2 and plotly.
+document theme, brandkit handles ggplot2 and plotly. `drift.scss` is the
+look (the plain title, the corner ornaments, the tables) and
+`_ornaments.html` the ornaments themselves; edit either to adapt it.
 
 ## Branded Plot
 
 ```{r}
 #| label: scatter
 #| fig-cap: "Auto-themed via theme_brand() — no manual styling needed"
-p <- ggplot(mtcars, aes(mpg, wt, color = factor(cyl))) +
-  geom_point(size = 3) +
-  labs(title = "MPG vs Weight", color = "Cylinders")
+p <- ggplot(aq, aes(Temp, Ozone, color = Month)) +
+  geom_point(size = 3, na.rm = TRUE) +
+  labs(x = "Temperature (°F)", y = "Ozone (ppb)", color = NULL)
 p
 ```
 
@@ -76,9 +82,13 @@ brand_plotly(p, tooltip = c("x", "y", "colour"))
 
 ## Branded Table
 
+Monthly means: temperature in °F, ozone in ppb, wind in mph.
+
 ```{r}
 #| label: table
-knitr::kable(head(mtcars[, 1:6], 8))
+monthly <- aggregate(cbind(Temp, Ozone, Wind) ~ Month, aq, mean,
+                     na.rm = TRUE, na.action = na.pass)
+knitr::kable(monthly, digits = 1)
 ```
 
 ## Brand Palette

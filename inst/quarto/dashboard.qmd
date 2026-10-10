@@ -1,8 +1,13 @@
 ---
-title: "Sales Dashboard"
+title: "New York Air Quality"
 format:
   dashboard:
-    theme: [brand, brandkit.scss]
+    # One theme per colour mode is what gives the page its dark-mode toggle.
+    # Colours for both come from _brand.yml; drift.scss is the look.
+    theme:
+      light: [brand, drift.scss]
+      dark: [brand, drift.scss]
+    include-after-body: _ornaments.html
     orientation: rows
 server: shiny
 ---
@@ -10,220 +15,116 @@ server: shiny
 ```{r}
 #| context: setup
 #| include: false
-
 library(shiny)
-library(bslib)
 library(ggplot2)
 library(brandkit)
 
-# Sets the ggplot2 theme, the default discrete scales, and the knitr
-# device background from _brand.yml. Every plot below inherits the brand
-# from this one call — there is no per-plot theming in this document.
-brand_quarto_setup()
+# Themes every plot from _brand.yml and keeps them in step with the dark-
+# mode toggle. No plot below carries any styling of its own.
+brand_quarto_setup(shiny = TRUE)
 
-# --- Sample data — replace with your own ---------------------------------
-sales <- data.frame(
-  Month   = factor(rep(month.abb, each = 4), levels = month.abb),
-  Region  = rep(c("North", "South", "East", "West"), times = 12),
-  Revenue = c(
-    24, 19, 27, 25, 28, 22, 31, 29, 32, 26, 34, 33, 27, 23, 29, 29,
-    36, 30, 38, 36, 39, 34, 42, 40, 37, 32, 40, 39, 42, 37, 45, 41,
-    44, 39, 47, 42, 40, 36, 43, 39, 46, 41, 49, 44, 50, 45, 53, 47
-  ) * 1000
-)
-sales$Orders <- round(sales$Revenue / seq(300, 320, length.out = nrow(sales)))
+# Sample data - replace with your own. airquality is built into R: daily
+# readings in New York, May to September 1973.
+aq <- airquality
+aq$Date  <- as.Date(sprintf("1973-%02d-%02d", aq$Month, aq$Day))
+aq$Month <- factor(month.name[aq$Month], levels = month.name[5:9])
 ```
 
 # {.sidebar}
 
 ```{r}
 checkboxGroupInput(
-  "regions", "Regions",
-  choices  = c("North", "South", "East", "West"),
-  selected = c("North", "South", "East", "West")
-)
-
-sliderInput(
   "months", "Months",
-  min = 1, max = 12, value = c(1, 12), step = 1
+  choices  = levels(aq$Month),
+  selected = levels(aq$Month)
 )
-
-hr()
-
-helpText(
-  "Styling comes from _brand.yml via the ", tags$code("brand"),
-  " theme; brandkit.scss layers cards, tables and headings on top."
-)
+sliderInput("temp", "Temperature (°F)", min = min(aq$Temp), max = max(aq$Temp),
+            value = range(aq$Temp), step = 1)
 ```
 
 # Dashboard
 
-## Row {height="22%"}
-
-<!--
-Icon and colour are given as cell options rather than in the `list(icon =,
-color =, value =)` form the Quarto docs show for static dashboards. Under
-`server: shiny` that list is printed by knitr rather than intercepted, and
-Quarto uses the chunk's *output* as the value — so the whole list ends up
-rendered inside the box. Passing icon/colour as options leaves the chunk
-emitting only the value, which is what the box wants either way.
--->
+## Row {height="20%"}
 
 ```{r}
 #| content: valuebox
-#| title: "Revenue"
-#| icon: cash-stack
+#| title: "Average temperature"
+#| icon: thermometer-half
 #| color: primary
-textOutput("kpi_revenue")
+textOutput("temp_avg")
 ```
 
 ```{r}
 #| content: valuebox
-#| title: "Orders"
-#| icon: cart
+#| title: "Average ozone"
+#| icon: cloud-haze2
 #| color: secondary
-textOutput("kpi_orders")
+textOutput("ozone_avg")
 ```
 
 ```{r}
 #| content: valuebox
-#| title: "Avg order value"
-#| icon: receipt
+#| title: "Average wind"
+#| icon: wind
 #| color: info
-textOutput("kpi_aov")
-```
-
-```{r}
-#| content: valuebox
-#| title: "Growth"
-#| icon: graph-up-arrow
-#| color: success
-textOutput("kpi_growth")
+textOutput("wind_avg")
 ```
 
 ## Row {height="45%"}
 
-### Column {width="62%"}
-
 ```{r}
-#| title: "Monthly revenue by region"
-plotOutput("revenue_plot")
+#| title: "Daily temperature"
+plotOutput("temp_plot")
 ```
 
-### Column {width="38%"}
-
 ```{r}
-#| title: "Revenue share"
-plotOutput("share_plot")
+#| title: "Ozone and temperature"
+plotOutput("ozone_plot")
 ```
 
-## Row {height="33%"}
-
-### Column {width="50%"}
+## Row {height="35%"}
 
 ```{r}
-#| title: "Orders over time"
-plotOutput("orders_plot")
-```
-
-### Column {width="50%"}
-
-```{r}
-#| title: "Monthly detail"
-tableOutput("detail_table")
+#| title: "By month"
+tableOutput("monthly")
 ```
 
 ```{r}
 #| context: server
-
-filtered <- reactive({
-  d <- sales[sales$Region %in% input$regions, ]
-  d[as.integer(d$Month) >= input$months[1] &
-    as.integer(d$Month) <= input$months[2], ]
+d <- reactive({
+  req(input$months)
+  aq[aq$Month %in% input$months & aq$Temp %in% seq(input$temp[1], input$temp[2]), ]
 })
 
-monthly <- reactive({
-  d <- filtered()
-  if (nrow(d) == 0) return(d[0, ])
-  agg <- aggregate(cbind(Revenue, Orders) ~ Month, data = d, FUN = sum)
-  agg[order(agg$Month), ]
+output$temp_avg  <- renderText({ req(nrow(d()) > 0); paste(round(mean(d()$Temp)), "°F") })
+output$ozone_avg <- renderText({ req(nrow(d()) > 0); paste(round(mean(d()$Ozone, na.rm = TRUE)), "ppb") })
+output$wind_avg  <- renderText({ req(nrow(d()) > 0); paste(round(mean(d()$Wind), 1), "mph") })
+
+output$temp_plot <- renderPlot({
+  req(nrow(d()) > 0)
+  ggplot(d(), aes(Date, Temp, group = Month)) +
+    geom_line() +
+    geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
+    labs(x = NULL, y = "Temperature (°F)")
 })
 
-# --- Value boxes ---------------------------------------------------------
-
-output$kpi_revenue <- renderText({
-  paste0("$", format(round(sum(filtered()$Revenue) / 1000), big.mark = ","), "K")
+output$ozone_plot <- renderPlot({
+  req(nrow(d()) > 0)
+  ggplot(na.omit(d()), aes(Temp, Ozone, color = Month)) +
+    geom_point(size = 3) +
+    labs(x = "Temperature (°F)", y = "Ozone (ppb)", color = NULL)
 })
 
-output$kpi_orders <- renderText({
-  format(sum(filtered()$Orders), big.mark = ",")
-})
-
-output$kpi_aov <- renderText({
-  d <- filtered()
-  if (sum(d$Orders) == 0) return("—")
-  paste0("$", round(sum(d$Revenue) / sum(d$Orders)))
-})
-
-output$kpi_growth <- renderText({
-  m <- monthly()
-  if (nrow(m) < 2) return("—")
-  paste0(round(100 * (m$Revenue[nrow(m)] / m$Revenue[1] - 1)), "%")
-})
-
-# --- Plots ---------------------------------------------------------------
-# No theming code here: brand_quarto_setup() already set theme_brand() as
-# the active ggplot2 theme and the brand palette as the default discrete
-# colour and fill scale.
-
-output$revenue_plot <- renderPlot({
-  d <- filtered()
-  req(nrow(d) > 0)
-  ggplot(d, aes(Month, Revenue, fill = Region)) +
-    geom_col() +
-    scale_y_continuous(labels = function(x) paste0("$", x / 1000, "K")) +
-    labs(x = NULL, y = "Revenue", fill = NULL)
-})
-
-output$share_plot <- renderPlot({
-  d <- filtered()
-  req(nrow(d) > 0)
-  share <- aggregate(Revenue ~ Region, data = d, FUN = sum)
-  ggplot(share, aes(x = "", y = Revenue, fill = Region)) +
-    geom_col(width = 1) +
-    coord_polar(theta = "y") +
-    labs(x = NULL, y = NULL, fill = NULL) +
-    theme(
-      axis.text        = element_blank(),
-      axis.ticks       = element_blank(),
-      # theme_brand() sets panel.grid.major explicitly, so it has to be
-      # blanked by name — a blanket panel.grid = element_blank() does not
-      # override it. Under coord_polar the gridlines curve into rings.
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank()
-    )
-})
-
-output$orders_plot <- renderPlot({
-  m <- monthly()
-  req(nrow(m) > 0)
-  cols <- brand_colors()
-  ggplot(m, aes(as.integer(Month), Orders, group = 1)) +
-    geom_line(color = cols$primary, linewidth = 1.2) +
-    geom_point(color = cols$secondary, size = 3) +
-    scale_x_continuous(breaks = seq_along(month.abb), labels = month.abb) +
-    labs(x = NULL, y = "Orders")
-})
-
-# --- Table ---------------------------------------------------------------
-
-output$detail_table <- renderTable({
-  m <- monthly()
-  req(nrow(m) > 0)
+output$monthly <- renderTable({
+  req(nrow(d()) > 0)
+  m <- aggregate(cbind(Temp, Ozone, Wind) ~ Month, d(), mean,
+                 na.rm = TRUE, na.action = na.pass)
   data.frame(
-    Month   = as.character(m$Month),
-    Revenue = paste0("$", format(round(m$Revenue / 1000), big.mark = ","), "K"),
-    Orders  = format(m$Orders, big.mark = ",")
+    Month = m$Month,
+    `Temperature (°F)` = round(m$Temp),
+    `Ozone (ppb)`      = round(m$Ozone),
+    `Wind (mph)`       = format(round(m$Wind, 1), nsmall = 1),
+    check.names = FALSE
   )
-}, striped = TRUE, hover = TRUE, width = "100%")
+}, striped = TRUE, width = "100%", align = "lrrr", digits = 0)
 ```
