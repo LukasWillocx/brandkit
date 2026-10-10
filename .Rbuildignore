@@ -10,3 +10,4 @@
 ^man/figures$
 ^logo$
 ^\.claude$
+^\.github$
