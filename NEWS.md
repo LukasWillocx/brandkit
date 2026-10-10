@@ -1,5 +1,8 @@
 # brandkit (development version)
 
+* Declared dependencies that were used but not listed: `later` and `utils`
+  in Imports, `htmlwidgets` in Suggests.
+
 # brandkit 0.3.0
 
 Everything below is relative to 0.2.0 (the initial release, 2026-05-01).
