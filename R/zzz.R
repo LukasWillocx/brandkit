@@ -4,6 +4,8 @@
 # --------------------------------------------------------------------------
 
 #' @importFrom rlang %||%
+#' @importFrom methods as
+#' @importFrom graphics axis lines par
 NULL
 
 .onLoad <- function(libname, pkgname) {
