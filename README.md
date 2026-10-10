@@ -72,7 +72,7 @@ create_brand_shiny_map(path = "my-map")             # leaflet + plotly, fluid la
 create_brand_quarto_html(path = "my-report")        # HTML report
 create_brand_quarto_slides(path = "my-report")      # revealjs slides
 create_brand_quarto_pdf(path = "my-report")         # PDF via Typst
-create_brand_quarto_print_pdf(path = "my-report")   # PDF via Typst, print-friendly banner
+create_brand_quarto_print_pdf(path = "my-report")   # PDF via Typst, drift look, print-friendly
 create_brand_quarto_poster(path = "my-poster")      # A0 landscape conference poster via Typst
 create_brand_quarto_dashboard(path = "my-dashboard")# Quarto dashboard, Shiny runtime
 ```
@@ -213,7 +213,7 @@ When you use `brand_page_sidebar()` instead of `bslib::page_sidebar()`, the foll
 2. `brand_dark_css()` injects `<style>` overrides for datepicker, Shiny checkbox/radio containers
 3. A dark mode toggle is positioned `fixed` at top-right (`z-index: 1050`)
 4. The brand logo (if configured) is prepended inline next to the title
-5. `thematic::thematic_shiny()` is activated with the brand discrete palette and font
+5. `thematic::thematic_shiny()` is activated with the brand font. Discrete ggplot2 colour and fill scales pick the brand's light or dark palette (`brand_pal_discrete(mode = )`) according to the card each plot sits on, so a light/dark switch redraws them with colours that stay legible; base-graphics palettes are left to thematic's defaults
 6. A plot-settle script hides ggplot outputs during initial layout to prevent size-flash
 7. The app-wide ggplot theme is set to the opaque `theme_brand(transparent = FALSE)`, which `thematic` needs to repaint each plot to match its container (see [Explicit theme function](#explicit-theme-function))
 
@@ -508,10 +508,10 @@ output$map <- renderLeaflet({
 
 ```r
 create_brand_quarto_html(path = "my-project")
-# Copies: _brand.yml (Quarto-compatible), brandkit.scss, report.qmd, fonts, logo
+# Copies: _brand.yml (Quarto-compatible), drift.scss, _ornaments.html, report.qmd, fonts, logo
 
 create_brand_quarto_slides(path = "my-project")
-# Copies: _brand.yml (Quarto-compatible), brandkit.scss, slides.qmd, fonts, logo
+# Copies: _brand.yml (Quarto-compatible), drift.scss, _ornaments.html, slides.qmd, fonts, logo
 
 create_brand_quarto_pdf(path = "my-project")
 # Copies: _brand.yml (Quarto-compatible), _extensions/brandkit/ (Typst format), report-pdf.qmd, fonts, logo
@@ -520,7 +520,7 @@ create_brand_quarto_poster(path = "my-project")
 # Copies: _brand.yml (Quarto-compatible), _extensions/brandkit-poster/ (Typst format), poster.qmd, fonts, logo
 
 create_brand_quarto_dashboard(path = "my-project")
-# Copies: _brand.yml (Quarto-compatible), brandkit.scss, dashboard.qmd, fonts, logo
+# Copies: _brand.yml (Quarto-compatible), drift.scss, _ornaments.html, dashboard.qmd, fonts, logo
 ```
 
 Each function is standalone and copies only its one example `.qmd` — run whichever ones you need in the same project directory; they share `_brand.yml`, fonts, and logo without overwriting each other's files.
@@ -556,10 +556,11 @@ author: "Your Name"
 date: today
 format:
   html:
-    title-block-style: none   # the .brand-banner div supplies the title block
+    title-block-style: none   # the .brand-masthead div supplies the title block
     theme:
-      light: [brand, brandkit.scss]
-      dark: [brand, brandkit.scss]
+      light: [brand, drift.scss]
+      dark: [brand, drift.scss]
+    include-after-body: _ornaments.html
     toc: false
 ---
 ```
@@ -571,49 +572,60 @@ library(brandkit)
 brand_quarto_setup()
 ```
 
-`report.qmd` ships with a reader-facing light/dark toggle, which is what the nested `theme:` form above buys you: Quarto compiles one Bootstrap stylesheet per mode from `_brand.yml`'s `color:`/`color-dark:` entries, and the toggle swaps between them. Note that the flat `theme: [brand, brandkit.scss]` form is *not* equivalent — it still renders a toggle, but only the syntax highlighting switches while the Bootstrap layer stays light, so keep the nested form if you want the toggle to work.
+`report.qmd` ships with a reader-facing light/dark toggle, which is what the nested `theme:` form above buys you: Quarto compiles one Bootstrap stylesheet per mode from `_brand.yml`'s `color:`/`color-dark:` entries, and the toggle swaps between them. Note that the flat `theme: [brand, drift.scss]` form is *not* equivalent — it still renders a toggle, but only the syntax highlighting switches while the Bootstrap layer stays light, so keep the nested form if you want the toggle to work.
 
-The one thing the toggle can't switch is plots: they're static images baked in at render time in whichever mode you pass to `brand_quarto_setup()`, so a reader in dark mode still sees light-mode plot backgrounds. If that bothers you, either pick the mode your readers will most likely use, or drop the toggle back to a single mode. Revealjs slides have the same constraint — see below.
+Plots would normally be the one thing the toggle can't switch: they are static images baked in at render time. `report.qmd` gets round that with `brand_quarto_setup(adaptive = TRUE)`, which draws every figure twice, once per colour mode, and shows whichever matches the page. Nothing in the document's chunks changes: after each chunk that drew figures, brandkit runs its code again in dark mode into twin files (`<label>-dark-<n>.png`), and the plot hook adds a `data-dark-src` attribute to the light image so a small script can swap them when the toggle flips; `brand_plotly()` writes a light and a dark widget and a stylesheet shows the matching one. The dark version gets the dark text colours *and* the brand's dark palette. Costs to know about: each plot chunk runs twice, the dark files must stay beside the page (so `embed-resources: true` is not supported), and a `brand_plotly()` result is a pair of widgets that can't be piped into further plotly calls. Leave `adaptive` off, or pass `mode =` to pick one, for a document with a single mode. Revealjs slides still have the old constraint — see below.
 
-`report.qmd` opens with a `.brand-banner` div and closes with a `.brand-footer` div — the same footer styling as the other templates, so all three read as one family. The banner draws the same diagonal-stripe field as the PDF banner described below (in CSS gradients rather than Typst polygons, but at the same 22° lean): a flat primary field behind the logo/title/subtitle/author·date, switching to secondary-coloured stripes past an angled seam. The one deliberate divergence is symmetry — the PDF anchors its content and its single seam to the left, which is a stable composition on a fixed page width but drifts apart as a browser window grows, so the HTML banner centres the content and mirrors the seam so stripes run in from *both* edges. Its geometry is fractional for the same reason the Typst version's is (`solid-frac`, `n-stripes`), which keeps the composition scale-invariant; below Bootstrap's `lg` breakpoint the centred text needs enough of the banner that only a sliver of stripe would be left either side, so it flattens to plain primary there. Tune it via the `--brand-banner-*` custom properties at the top of the `.brand-banner` rule in `brandkit.scss`.
+`report.qmd` is in the same "drift" look as the poster, the print PDF and the Shiny starter, and its sample is R's built-in `airquality` data. It opens with a `.brand-masthead` div — the logo (if configured), then the title in the brand's primary, the subtitle a step quieter, and a short round-capped bar in the secondary colour above the author and date — and closes with a `.brand-footer` div. The colour comes from a pair of soft corner ornaments fixed behind the page (`_ornaments.html`, included with `include-after-body:`), so there is no title panel. Both files are short and meant to be edited: `drift.scss` is sectioned into shared, document and dashboard rules (the dashboard rules never match in a report), and the masthead and footer are plain divs that pull title, subtitle, author and date from the YAML via `{{< meta ... >}}`. Tables take a tinted header and a subtle stripe, code blocks the card tint, and headings the brand's primary.
+
+The ornaments are inline SVG filled with the page's own CSS colour variables, so `_ornaments.html` never goes stale when the brand changes and follows the dark-mode toggle. Unlike a dashboard, a report does not group its sections into cards: sections run on as ordinary document flow.
 
 ### Revealjs slides
 
-Scaffolded by `create_brand_quarto_slides()`.
+Scaffolded by `create_brand_quarto_slides()`, in the same "drift" look as the report and the poster, on R's built-in `airquality` data.
 
 ```yaml
 ---
 title: "My Slides"
-title-slide-attributes:
-  data-background-color: "#1a252f"   # brand primary, darkened — see below
 format:
   revealjs:
-    theme: [brand, brandkit.scss]
+    theme: [brand, drift.scss]
+    include-after-body: _ornaments.html
     logo: medium
     slide-number: true
     footer: "{{< meta title >}}"
 ---
 ```
 
-The title slide's background comes from `title-slide-attributes` (a native revealjs option). `create_brand_quarto_slides()` writes it as a literal hex colour — the brand's primary colour darkened via `colorspace::darken()` — computed at scaffold time, not a runtime CSS expression. That's deliberate: revealjs reads `data-background-color` as a plain colour value, so a `color-mix()`/`var()` expression there isn't reliable, and a plain hex value is guaranteed to give the deck's white title/subtitle/author/date text (styled in `brandkit.scss`) enough contrast regardless of how light the brand's primary colour is. The persistent `footer:` mirrors the title text on every other slide, and the PDF template's footer, for a consistent look across formats.
+The title slide is plain type, left-aligned, with no panel: the title in the brand's primary colour, the subtitle a step quieter, then a short round-capped bar above the author and date. Content slides carry headings in the primary colour, and every slide has the pair of corner ornaments behind it, from `_ornaments.html`. `drift.scss` is the same file the HTML report and dashboard use; its Slides section holds the rules below. Two of them are worth knowing about if you adapt the deck: revealjs defines no Bootstrap colour variables, so the section defines the three the ornaments are filled with from the brand colours of the deck's mode (otherwise a dark deck would draw the light ornaments), and reveal paints its viewport opaque, which would hide anything fixed behind the slides, so the page background is moved onto `<html>`. The persistent `footer:` mirrors the title text on every other slide, and the PDF template's footer, for a consistent look across formats.
 
 For dark mode slides, add `brand-mode: dark` and use `brand_quarto_setup("dark")`.
 
 For plotly in slides, always pass fixed dimensions: `brand_plotly(p, width = 1000, height = 600)`.
 
+### Dashboard
+
+`create_brand_quarto_dashboard()` scaffolds a small Shiny-backed Quarto dashboard in the same "drift" look as the poster and the Shiny starter: soft corner ornaments behind the page, the title as plain type, tinted cards under a solid header, a transparent sidebar rail. The sample is R's built-in `airquality` data (daily New York air quality, 1973), filtered by month and temperature. It is three short files you edit directly:
+
+- `dashboard.qmd` — the dashboard: sidebar inputs, a row of value boxes, two charts and a table, in about 130 lines of Quarto markdown and Shiny code.
+- `drift.scss` — the look, built from the brand's own Sass variables. Quarto compiles it once per colour mode, so one file serves both.
+- `_ornaments.html` — the two corner ornaments, drawn with the page's CSS colour variables rather than hex values, so they follow the brand and the dark-mode toggle without being regenerated.
+
+Dark mode is on by default: the document declares one theme per mode (`theme: light: [brand, drift.scss]  dark: [...]`), which is what puts the toggle in the navbar. Plots are drawn live by Shiny rather than baked in at render time, so — unlike the static report — they follow the toggle too. `brand_quarto_setup(shiny = TRUE)` is the one line that arranges that: it switches on thematic, which gives every `renderPlot()` the colours, fonts and background of the card it sits in and redraws it when the mode changes — including the discrete palette, which switches to the brand's dark colours on a dark card. Add `# Page` headings for more pages; the tab strip appears once there are two. Serve with `quarto serve dashboard.qmd`.
+
 ### PDF documents (Typst)
 
-`create_brand_quarto_pdf()` scaffolds a project that renders to PDF via Quarto's built-in Typst engine — no LaTeX required. Quarto's `_brand.yml` integration already applies brand colours and fonts to Typst output. brandkit's `brandkit-typst` format extension (installed at `_extensions/brandkit/`) adds a full-bleed title banner on page 1 — a diagonal-stripe field, drawn as Typst polygons (no image asset), that runs primary-coloured behind the title/subtitle and switches to secondary-coloured stripes past an angled seam, the same field the HTML report's `.brand-banner` draws in CSS — with the logo (if configured) placed inline in it, plus coloured headings, a coloured footer showing the document title and page number, and rounded code-block corners matching the brand's configured `theme.border-radius` (`_extension.yml` is generated per-brand at scaffold time for these — re-run with `overwrite = TRUE` after changing the brand). If the document has no title, the banner is skipped and the logo falls back to a plain top-right corner mark on page 1 instead (Quarto's own default repeats a logo on every page as a watermark; brandkit restricts it to page 1 either way).
+`create_brand_quarto_pdf()` scaffolds a project that renders to PDF via Quarto's built-in Typst engine — no LaTeX required. Quarto's `_brand.yml` integration already applies brand colours and fonts to Typst output. brandkit's `brandkit-typst` format extension (installed at `_extensions/brandkit/`) adds a full-bleed title banner on page 1 — a diagonal-stripe field, drawn as Typst polygons (no image asset), that runs primary-coloured behind the title/subtitle and switches to secondary-coloured stripes past an angled seam, the field the slide deck's stylesheet shares — with the logo (if configured) placed inline in it, plus coloured headings, a coloured footer showing the document title and page number, and rounded code-block corners matching the brand's configured `theme.border-radius` (`_extension.yml` is generated per-brand at scaffold time for these — re-run with `overwrite = TRUE` after changing the brand). If the document has no title, the banner is skipped and the logo falls back to a plain top-right corner mark on page 1 instead (Quarto's own default repeats a logo on every page as a watermark; brandkit restricts it to page 1 either way).
 
 ### Print-friendly PDF
 
-`create_brand_quarto_print_pdf()` scaffolds the same document with one difference: the banner is drawn as a panel **inset to the text measure** instead of full-bleed, so no ink crosses the page margin. It installs its own extension at `_extensions/brandkit-print/`, contributing the `brandkit-print-typst` format, and both formats can live in one project — switch by changing a document's `format:` key.
+`create_brand_quarto_print_pdf()` is the PDF in the "drift" look, and the one to reach for when the document will be printed. Where `create_brand_quarto_pdf()` keeps its firm striped banner, this one opens with a plain masthead — the logo on the right, the title in the brand's primary, the subtitle beneath, then a short round-capped bar above the author and date — and frames the first page with the same pair of soft corner ornaments as the poster and the HTML report. It installs its own extension at `_extensions/brandkit-print/`, contributing the `brandkit-print-typst` format, and both PDF formats can live in one project — switch by changing a document's `format:` key.
 
-Reach for it when the PDF is going to be printed rather than read on screen. A full-bleed panel needs a printer that can bleed; on an ordinary office or home printer it either clips at the unprintable edge or leaves a white hairline frame around itself, and a page-width solid can show through lighter stock. The inset panel also uses roughly a third less ink over the header area.
+It suits paper for three reasons. Nothing is full-bleed, so there is no ink near the unprintable edge of an ordinary printer (the ornaments are faint enough that a clipped edge does not show); there is no solid panel to show through lighter stock; and the ornaments are drawn at a low opacity, so the header area uses a fraction of the ink of the striped banner. They appear on the first page only, as a title page framed and the pages after it plain — in `page.typ` it is a single `if` to repeat them on every page. The running footer (rule, title and page number) is the other way round: it starts on page two, so the title page carries nothing but the masthead and the ornaments.
 
-Because the panel is ordinary flow content rather than a fixed-height page background, it sizes itself to its own content — a title long enough to be clipped by the full-bleed banner simply makes this one taller.
+The masthead is flow content rather than a fixed-height background, so it sizes itself to its content — a long title simply wraps. The ornaments are generated from `_brand.yml` at scaffold time (`drift-top-right.svg`, `drift-bottom-left.svg`); re-run with `overwrite = TRUE` after changing the brand. The sample is the `airquality` data.
 
-One caveat if you are optimising for print: Quarto fills the whole page with `_brand.yml`'s `color.background`, independently of the banner. If your brand's background is anything other than white, that tint is itself full-bleed and will clip at an ordinary printer's unprintable edge. Set `color.background` to white for a print-targeted brand.
+One caveat if you are optimising for print: Quarto fills the whole page with `_brand.yml`'s `color.background`, independently of the ornaments. If your brand's background is anything other than white, that tint is itself full-bleed and will clip at an ordinary printer's unprintable edge. Set `color.background` to white for a print-targeted brand.
 
 ```yaml
 ---
@@ -710,6 +722,8 @@ The `.brand-logo-container` class constrains the logo to `max-height: 48px`. Req
 3. Sets `knitr::opts_chunk$set(dev.args = list(bg = "transparent"))` — eliminates white device canvas, and lets plots take the colour of the page or card behind them (`brand_quarto_setup(transparent = FALSE)` paints them the brand background instead)
 4. Registers a knitr hook to set `par()` colours for base R graphics
 5. Stores the active mode so `brand_plotly()` auto-detects it
+6. With `adaptive = TRUE` (HTML pages with a toggle) draws every figure in both modes; see [HTML documents](#html-documents)
+7. With `shiny = TRUE` (for `server: shiny` documents) switches on thematic, so live plots follow the page's light/dark toggle
 
 ---
 
@@ -751,9 +765,9 @@ Static overrides loaded via `brand_theme()` for components Bootstrap 5 compiles 
 - Leaflet zoom buttons, attribution, and legend in dark mode
 - Plot output initial-load settle (prevents size-flash)
 
-### `inst/quarto/brandkit.scss` (Quarto)
+### `inst/quarto/drift.scss` (Quarto)
 
-SCSS rules layered after brand in Quarto's theme pipeline. Covers the same card, table, scrollbar, and nav polish, plus logo sizing.
+SCSS rules layered after brand in Quarto's theme pipeline, for the HTML report, the revealjs slides and the Quarto dashboard. Compiled once per colour mode, built from the brand's own Sass variables. Sectioned into shared rules (tables), document rules (masthead, headings, code, footer), slide rules (title slide, background, footer) and dashboard rules (navbar, cards, sidebar).
 
 ### `brand_dark_css()` (runtime injection)
 
@@ -846,6 +860,7 @@ brandkit/
 |   |   +-- slides.qmd       # Example revealjs slides
 |   |   +-- pdf-report.qmd   # Example Typst PDF report
 |   |   +-- dashboard.qmd    # Example Shiny dashboard (format: dashboard)
+|   |   +-- drift.scss       # The "drift" look for Quarto pages (dashboard)
 |   |   +-- typst/_extensions/brandkit/  # brandkit-typst format extension
 |   +-- shiny/               # One app template per create_brand_shiny_*()
 |       +-- app-starter.R    # Sidebar starter (brand_page_sidebar, style = "drift")
