@@ -541,7 +541,7 @@ configure_brand <- function(path = ".",
       if (!is.null(existing_logo)) d$logo else NULL
     })
 
-    # -- Logo tag (shared by banner preview) --
+    # -- Logo tag (shared by the masthead preview) --
     logo_tag <- shiny::reactive({
       src <- logo_src()
       if (is.null(src)) return(NULL)
@@ -553,23 +553,70 @@ configure_brand <- function(path = ".",
       )
     })
 
-    # -- Banner preview (mirrors the .brand-banner used in the scaffolded
-    #    HTML report, so this preview matches what create_brand_quarto_html()
-    #    actually produces) --
+    # -- Masthead preview: the opening of the scaffolded HTML report (see
+    #    create_brand_quarto_html()) — the brand name as plain type in the
+    #    primary colour on a page-coloured surface, a short bar in the
+    #    secondary colour, and the corner ornaments — drawn from the colours
+    #    in the pickers rather than the saved brand, so it moves as they do.
+    #    The same look the poster, the print PDF, the slides and the Shiny
+    #    starter share. --
     output$preview_banner <- shiny::renderUI({
       lc <- light_cols()
+
+      ornament <- function(corner, position) {
+        svg <- ornament_svg("drift", corner, web_ornament_softness,
+                            primary = lc$primary, secondary = lc$secondary,
+                            accent = lc$info)
+        htmltools::div(
+          style = paste0("position: absolute; width: 8rem; height: 8rem; ",
+                         "pointer-events: none; ", position),
+          htmltools::HTML(sub('width="100" height="100"',
+                              'style="display: block; width: 100%; height: 100%;"',
+                              svg, fixed = TRUE))
+        )
+      }
+
       htmltools::div(
         style = paste0(
-          "background:", lc$primary, "; color: white; text-align: center; ",
-          "padding: 2rem 1rem; border-radius:", input$border_radius, "rem; ",
-          "margin-bottom: 1rem;"
+          "position: relative; overflow: hidden; background:", lc$background, "; ",
+          "padding: 2rem; border-radius:", input$border_radius, "rem; ",
+          "margin-bottom: 1rem; ",
+          "box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);"
         ),
-        logo_tag(),
-        htmltools::h2(
-          input$brand_name,
-          style = paste0(
-            "font-family:'", input$font_heading, "', sans-serif;",
-            " font-weight: 700; margin: 0; color: white;"
+        ornament("top-right", "top: 0; right: 0;"),
+        ornament("bottom-left", "bottom: 0; left: 0;"),
+        htmltools::div(
+          style = "position: relative;",
+          logo_tag(),
+          htmltools::h2(
+            input$brand_name,
+            style = paste0(
+              "font-family:'", input$font_heading, "', sans-serif;",
+              " font-weight: 700; font-size: 2.2rem; line-height: 1.1;",
+              " letter-spacing: -0.01em; margin: 0; color:", lc$primary, ";"
+            )
+          ),
+          htmltools::div(
+            "A polished starting point for branded reports",
+            style = paste0(
+              "font-family:'", input$font_base, "', sans-serif;",
+              " font-size: 1.1rem; margin-top: 0.4rem; opacity: 0.75; color:",
+              lc$foreground, ";"
+            )
+          ),
+          htmltools::div(
+            style = paste0(
+              "width: 4rem; height: 0.22rem; border-radius: 1rem; ",
+              "margin: 1rem 0 0.8rem; background:", lc$secondary, ";"
+            )
+          ),
+          htmltools::div(
+            paste("Your Name ·", format(Sys.Date())),
+            style = paste0(
+              "font-family:'", input$font_base, "', sans-serif;",
+              " font-size: 0.85rem; letter-spacing: 0.04em; color:",
+              orn_mix(lc$secondary, lc$foreground, 0.55), ";"
+            )
           )
         )
       )
