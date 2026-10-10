@@ -7,6 +7,8 @@ Description: A convenience layer on top of the brand.yml ecosystem that
     Quarto, and R Markdown from a single '_brand.yml' file. Includes smart
     palette generation and CSS overrides for third-party widgets that
     Bootstrap 5 does not reach.
+Depends:
+    R (>= 4.1.0)
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -38,4 +40,6 @@ Suggests:
     quarto,
     showtext,
     sysfonts,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3
