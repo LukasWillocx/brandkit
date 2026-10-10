@@ -17,7 +17,9 @@ brand_plotly(
 \item{p}{A ggplot2 object.}
 
 \item{mode}{\code{"light"}, \code{"dark"}, or \code{NULL} (auto-detect from
-\code{brand_quarto_setup()} / \code{.onAttach}). Default \code{NULL}.}
+\code{brand_quarto_setup()} / \code{.onAttach}). Default \code{NULL}. After
+\code{brand_quarto_setup(adaptive = TRUE)}, \code{NULL} draws the plot in both
+modes (see Value).}
 
 \item{base_size}{Font size in points.}
 
@@ -30,7 +32,11 @@ For revealjs slides, \code{1000} works well.}
 For revealjs slides, \code{600} works well.}
 }
 \value{
-A plotly htmlwidget.
+A plotly htmlwidget. After \code{brand_quarto_setup(adaptive = TRUE)}
+(and with \code{mode = NULL}) it is instead a tag list holding a light and a
+dark widget, of which the page's stylesheet shows the one that matches
+its light/dark toggle; it prints in a Quarto chunk like a widget, but
+cannot be piped into further plotly functions.
 }
 \description{
 Applies \code{theme_brand()} then converts to an interactive plotly widget

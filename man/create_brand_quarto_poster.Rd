@@ -71,7 +71,8 @@ same template partials as \code{\link[=create_brand_quarto_pdf]{create_brand_qua
 column count and type scale. It also holds the two generated
 corner ornaments, \code{drift-top-right.svg} and
 \code{drift-bottom-left.svg}.}
-\item{\code{poster.qmd}}{Sample poster (if \code{examples = TRUE}).}
+\item{\code{poster.qmd}}{Sample poster on R's built-in \code{airquality} data (if
+\code{examples = TRUE}).}
 }
 
 In your \code{.qmd} YAML header, use the extension's format:

@@ -17,52 +17,58 @@ create_brand_quarto_html(path = ".", examples = TRUE, overwrite = FALSE)
 Invisibly returns a character vector of copied file paths.
 }
 \description{
-Copies \verb{_brand.yml}, custom SCSS overrides, and an example HTML report
+Copies \verb{_brand.yml}, the "drift" stylesheet and an example HTML report
 into a Quarto project directory. After running this, Quarto
-auto-detects \verb{_brand.yml} and applies it to HTML and dashboard
-formats. The SCSS file layers additional polish on top, including a
-full-bleed title banner drawing the same diagonal-stripe field as the
-Typst PDF template's (\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}) — a flat
-primary-coloured field behind the logo, title, subtitle, and
-author/date, switching to secondary-coloured stripes past an angled
-seam — but centred and mirrored rather than left-anchored, since an
-HTML page has no fixed width to anchor an asymmetric composition to.
+auto-detects \verb{_brand.yml} and applies it to HTML formats. The report is
+in the same "drift" look as the poster (\code{\link[=create_brand_quarto_poster]{create_brand_quarto_poster()}}),
+the print PDF (\code{\link[=create_brand_quarto_print_pdf]{create_brand_quarto_print_pdf()}}) and the Shiny starter
+app: the title as plain type with the logo above it, soft corner
+ornaments behind the page, and tables that follow the brand, all drawn
+from \verb{_brand.yml} and following the light/dark toggle.
 }
 \details{
 For a revealjs slide deck, see \code{\link[=create_brand_quarto_slides]{create_brand_quarto_slides()}}. For a
 PDF starting point rendered via Quarto's Typst engine, see
-\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}.
+\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}} and \code{\link[=create_brand_quarto_print_pdf]{create_brand_quarto_print_pdf()}}.
 
 This function copies the following into \code{path}:
 \describe{
 \item{\verb{_brand.yml}}{From the brandkit cache (your configured brand).}
-\item{\code{brandkit.scss}}{Custom SCSS overrides for the title banner and
-footer, plus cards, tables, scrollbars, and nav components —
-layered after brand in the Quarto theme. The banner's geometry is
-exposed as \verb{--brand-banner-*} custom properties at the top of the
-\code{.brand-banner} rule if you want to retune it.}
-\item{\code{report.qmd}}{Sample HTML report (if \code{examples = TRUE}), whose
-banner and footer divs pull title/subtitle/author/date from the
-YAML header via \verb{\\\{\\\{< meta ... >\\\}\\\}}.}
+\item{\code{drift.scss}}{The look, built from the brand's own Sass
+variables and compiled once per colour mode. It is divided into
+shared rules (tables), document rules (the masthead, headings and
+footer of a report) and dashboard rules, which a report simply never
+matches. Layered after brand in the Quarto theme.}
+\item{\verb{_ornaments.html}}{The two corner ornaments
+(\code{\link[=brand_ornaments_tag]{brand_ornaments_tag()}}), included after the page body. They are
+filled with the page's CSS colour variables rather than the brand's
+hex values, so the file never goes stale when the brand changes and
+follows the dark-mode toggle.}
+\item{\code{report.qmd}}{Sample HTML report on R's built-in \code{airquality}
+data (if \code{examples = TRUE}), whose masthead and footer divs pull
+title/subtitle/author/date from the YAML header via
+\verb{\\\{\\\{< meta ... >\\\}\\\}}.}
 }
 
-In your \code{.qmd} YAML header, reference the SCSS like this:
+In your \code{.qmd} YAML header, reference the files like this:
 
 \if{html}{\out{<div class="sourceCode yaml">}}\preformatted{format:
   html:
     theme:
-      light: [brand, brandkit.scss]
-      dark: [brand, brandkit.scss]
+      light: [brand, drift.scss]
+      dark: [brand, drift.scss]
+    include-after-body: _ornaments.html
 }\if{html}{\out{</div>}}
 
 The nested \verb{light:}/\verb{dark:} form is what gives readers a working
 light/dark toggle — Quarto compiles a Bootstrap stylesheet per mode
 from \verb{_brand.yml}'s \verb{color:}/\verb{color-dark:} entries and the toggle swaps
-between them. The flat \verb{theme: [brand, brandkit.scss]} form still shows
+between them. The flat \verb{theme: [brand, drift.scss]} form still shows
 a toggle but only switches syntax highlighting, leaving the Bootstrap
-layer light. Plots can't follow the toggle either way: they're static
-images baked in at render time in whichever mode you pass to
-\code{\link[=brand_quarto_setup]{brand_quarto_setup()}}.
+layer light. Plots are static images baked in at render time, so on
+their own they would not follow the toggle; \code{report.qmd} calls
+\code{brand_quarto_setup(adaptive = TRUE)}, which draws each figure in both
+modes and shows the one that matches (see \code{\link[=brand_quarto_setup]{brand_quarto_setup()}}).
 
 For ggplot2 theming, just add \code{library(brandkit)} in a setup chunk —
 the auto-applied theme and scales handle the rest.

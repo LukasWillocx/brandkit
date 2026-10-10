@@ -19,11 +19,16 @@ directory. Created if it doesn't exist.}
 Invisibly returns a character vector of copied file paths.
 }
 \description{
-Copies \verb{_brand.yml}, the brandkit SCSS overrides, and an example
+Copies \verb{_brand.yml}, the "drift" stylesheet, and an example
 \code{dashboard.qmd} into a Quarto project directory, configured to render
 to Quarto's \code{dashboard} format with a Shiny runtime. The result is a
-KPI dashboard — a row of value boxes over filtered charts and a table
-— driven by sidebar inputs.
+small dashboard of R's built-in \code{airquality} data (daily New York air
+quality, 1973) — a row of value boxes over two charts and a table,
+filtered by month and temperature in the sidebar — in the same "drift" look as the
+poster (\code{\link[=create_brand_quarto_poster]{create_brand_quarto_poster()}}) and the Shiny starter app
+(\code{\link[=create_brand_shiny_app]{create_brand_shiny_app()}}): soft corner ornaments behind the page,
+the title as plain type, and tinted cards under a solid header. It has
+a light/dark toggle, which the plots follow.
 }
 \details{
 This is the Quarto counterpart to \code{\link[=create_brand_shiny_dashboard]{create_brand_shiny_dashboard()}}.
@@ -39,15 +44,25 @@ This function copies the following into \code{path}:
 \describe{
 \item{\verb{_brand.yml}}{From the brandkit cache (your configured brand),
 in the Quarto-compatible format.}
-\item{\code{brandkit.scss}}{The same SCSS overrides the HTML report
-scaffold uses — layered after brand in the theme. Its title-banner
-rules are inert in a dashboard (there is no banner div to match),
-but its card, table, scrollbar, and nav styling all apply.}
+\item{\code{drift.scss}}{The look, about a hundred lines of Sass built
+from the brand's own variables. Quarto compiles it once per colour
+mode, so the same file serves light and dark. Edit it to retune the
+cards, the title or the sidebar.}
+\item{\verb{_ornaments.html}}{The two corner ornaments
+(\code{\link[=brand_ornaments_tag]{brand_ornaments_tag()}}), included after the page body. They are
+filled with the page's CSS colour variables rather than the brand's
+hex values, so the file never goes stale when the brand changes and
+follows the dark-mode toggle.}
 \item{\code{dashboard.qmd}}{Sample Shiny dashboard (if \code{examples = TRUE}).}
 }
 
-Because the document declares \code{server: shiny}, it is served rather
-than rendered to a static file:
+The dark-mode toggle comes from giving the document one theme per mode
+(\verb{theme: light: ... dark: ...}), which is how \code{dashboard.qmd} declares
+it. Plots are drawn live by Shiny, so \code{brand_quarto_setup(shiny = TRUE)}
+lets thematic redraw them in the card's colours when the mode changes.
+
+Because the document declares \code{server: shiny}, it is served rather than
+rendered to a static file:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{quarto serve dashboard.qmd
 }\if{html}{\out{</div>}}

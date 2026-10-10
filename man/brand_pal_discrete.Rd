@@ -4,12 +4,13 @@
 \alias{brand_pal_discrete}
 \title{Discrete Palette (Algorithmically Derived)}
 \usage{
-brand_pal_discrete(n = NULL, mode = "light")
+brand_pal_discrete(n = NULL, mode = brand_env$active_mode \%||\% "light")
 }
 \arguments{
 \item{n}{Number of colours needed. \code{NULL} returns all (up to 15).}
 
-\item{mode}{\code{"light"} or \code{"dark"}.}
+\item{mode}{\code{"light"} or \code{"dark"}. Defaults to the mode set by
+\code{\link[=brand_quarto_setup]{brand_quarto_setup()}}, or \code{"light"} if none has been.}
 }
 \value{
 Character vector of hex codes.

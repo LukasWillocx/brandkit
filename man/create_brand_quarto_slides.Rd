@@ -17,30 +17,36 @@ create_brand_quarto_slides(path = ".", examples = TRUE, overwrite = FALSE)
 Invisibly returns a character vector of copied file paths.
 }
 \description{
-Copies \verb{_brand.yml}, custom SCSS overrides, and an example revealjs
+Copies \verb{_brand.yml}, the "drift" stylesheet and an example revealjs
 presentation into a Quarto project directory. After running this,
 Quarto auto-detects \verb{_brand.yml} and applies it to the revealjs
-format. The SCSS file layers additional polish (logo sizing, nav
-pills, scrollbars) on top.
+format. The deck is in the same "drift" look as the poster
+(\code{\link[=create_brand_quarto_poster]{create_brand_quarto_poster()}}), the HTML report
+(\code{\link[=create_brand_quarto_html]{create_brand_quarto_html()}}) and the Shiny starter app: a plain,
+left-aligned title slide with no panel, headings in the brand's primary
+colour, and soft corner ornaments behind every slide.
 }
 \details{
 This function copies the following into \code{path}:
 \describe{
 \item{\verb{_brand.yml}}{From the brandkit cache (your configured brand).}
-\item{\code{brandkit.scss}}{Custom SCSS overrides — layered after brand in
-the Quarto theme.}
-\item{\code{slides.qmd}}{Sample revealjs presentation (if \code{examples = TRUE}).
-Its title slide background is written as a literal hex colour —
-the brand's primary colour darkened — computed at copy time so
-the deck's white title/subtitle/author/date text stays legible
-regardless of the brand's actual primary colour.}
+\item{\code{drift.scss}}{The look, layered after brand in the Quarto
+theme. It is the same file the HTML report and dashboard use; the
+slide rules are its Slides section.}
+\item{\verb{_ornaments.html}}{The two corner ornaments
+(\code{\link[=brand_ornaments_tag]{brand_ornaments_tag()}}), included after the slides with
+\verb{include-after-body:}. They are drawn in the brand colours of the
+deck's mode, so a \code{brand-mode: dark} deck gets the dark ones.}
+\item{\code{slides.qmd}}{Sample revealjs presentation on R's built-in
+\code{airquality} data (if \code{examples = TRUE}).}
 }
 
-In your \code{.qmd} YAML header, reference the SCSS like this:
+In your \code{.qmd} YAML header, reference the files like this:
 
 \if{html}{\out{<div class="sourceCode yaml">}}\preformatted{format:
   revealjs:
-    theme: [brand, brandkit.scss]
+    theme: [brand, drift.scss]
+    include-after-body: _ornaments.html
     logo: medium
 }\if{html}{\out{</div>}}
 

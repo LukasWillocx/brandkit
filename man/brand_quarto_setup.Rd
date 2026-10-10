@@ -4,7 +4,12 @@
 \alias{brand_quarto_setup}
 \title{Set Up brandkit for Quarto Rendering}
 \usage{
-brand_quarto_setup(mode = c("light", "dark"), transparent = TRUE)
+brand_quarto_setup(
+  mode = c("light", "dark"),
+  transparent = TRUE,
+  adaptive = FALSE,
+  shiny = FALSE
+)
 }
 \arguments{
 \item{mode}{\code{"light"} (default) or \code{"dark"}. Match this to your
@@ -15,6 +20,24 @@ transparent background, so they take on the colour of whatever they
 sit on (the page, a poster card); \code{FALSE} fills them with the brand's
 background colour. Applies to the ggplot2 theme and to the knitr
 device, which is what base graphics are drawn on.}
+
+\item{adaptive}{Logical. Set \code{TRUE} in an HTML document with a light/dark
+toggle to make its plots follow the toggle. Every figure is then drawn
+twice, once per colour mode, and the page shows the one that matches;
+\code{\link[=brand_plotly]{brand_plotly()}} does the same with a widget for each. Nothing in the
+document's chunks changes. The cost is a second render of every plot
+chunk, and the dark files must stay beside the page, so it does not
+work with \code{embed-resources: true}. The document's own \code{mode} is then
+always light. Default \code{FALSE}.}
+
+\item{shiny}{Logical. Set \code{TRUE} in a document with \code{server: shiny}
+(such as the \code{\link[=create_brand_quarto_dashboard]{create_brand_quarto_dashboard()}} dashboard). Plots are
+then drawn by Shiny, live, so they can follow the page's light/dark
+toggle: this switches on thematic, which gives each \code{renderPlot()} the
+colours, fonts and background of the card it sits on, redrawn when the
+mode changes, and discrete colour and fill scales take the brand's
+light or dark palette to match. \code{mode} and \code{transparent} no longer matter then; the page
+decides. Default \code{FALSE}.}
 }
 \value{
 Invisible \code{NULL}. Called for side effects.
@@ -30,6 +53,8 @@ brand and mode. This replaces the need for any per-plot theming.
 library(brandkit)
 brand_quarto_setup()           # light mode (default)
 brand_quarto_setup("dark")     # for brand-mode: dark documents
+brand_quarto_setup(adaptive = TRUE) # HTML pages with a dark-mode toggle
+brand_quarto_setup(shiny = TRUE) # server: shiny documents
 }
 
 }

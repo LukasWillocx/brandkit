@@ -36,7 +36,8 @@ This function copies the following into \code{path}:
 \describe{
 \item{\verb{_brand.yml}}{From the brandkit cache, in the bslib format
 (see \emph{Brand format} below).}
-\item{\code{app.R}}{The app template.}
+\item{\code{app.R}}{The app template, with R's built-in \code{airquality} data
+(daily New York air quality, 1973) as the sample to replace.}
 }
 Local font files and logo files referenced by the brand are copied
 alongside, preserving their relative paths.

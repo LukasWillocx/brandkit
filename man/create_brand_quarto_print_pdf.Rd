@@ -17,21 +17,28 @@ create_brand_quarto_print_pdf(path = ".", examples = TRUE, overwrite = FALSE)
 Invisibly returns a character vector of copied file paths.
 }
 \description{
-The print-oriented sibling of \code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}. Everything
-about the two formats is the same — the same code styling, coloured
-headings, coloured footer, type ramp and brand integration, from the
-same shared template files — except for how the title banner is drawn.
+The "drift" sibling of \code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}, and the one to use
+when the document will be printed. Everything about the two formats is
+the same — the same code styling, coloured headings, coloured footer,
+type ramp and brand integration, from the same shared template files —
+except for how the title is drawn.
 }
 \details{
-\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}} draws the diagonal-stripe banner
-full-bleed, spanning the whole physical page width from the page
-background. That looks right on screen but needs a printer that can
-bleed: on an ordinary office or home printer the panel either clips at
-the unprintable edge or leaves a white hairline frame around itself,
-and it lays down a full page-width solid that can show through lighter
-stock. This function instead insets the panel to the text measure and
-emits it as ordinary flow content, so no ink crosses the margin and
-the header area uses roughly a third less coverage.
+\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}} draws a diagonal-stripe banner full-bleed,
+spanning the whole physical page width from the page background. That
+looks right on screen but needs a printer that can bleed: on an
+ordinary office or home printer the panel either clips at the
+unprintable edge or leaves a white hairline frame around itself, and it
+lays down a full page-width solid that can show through lighter stock.
+This function instead opens with a plain masthead — the title in the
+brand's primary colour, the subtitle beneath it, a short rule and the
+author and date, with the logo on the right — and frames the first page
+with the pair of soft corner ornaments the poster
+(\code{\link[=create_brand_quarto_poster]{create_brand_quarto_poster()}}) and the HTML report
+(\code{\link[=create_brand_quarto_html]{create_brand_quarto_html()}}) use (see \code{\link[=brand_ornament]{brand_ornament()}}). No ink
+crosses the margin, there is no solid panel, and the ornaments are drawn
+at a low opacity, so the header area uses a small fraction of the
+striped banner's ink.
 
 Both formats install into separate extension directories and can
 coexist in one project, so you can render the same document either
@@ -43,29 +50,37 @@ This function copies the following into \code{path}:
 \item{\verb{_extensions/brandkit-print/}}{A Quarto Typst format extension
 contributing \code{brandkit-print-typst}. It installs the same template
 partials as \code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}}; its generated
-\verb{_extension.yml} sets \code{banner-inset}, which selects the inset
-panel in \code{page.typ} and makes \code{typst-template.typ} emit the banner
-into the flow rather than reserving space for a background-drawn
-one.}
-\item{\code{report-print.qmd}}{Sample report (if \code{examples = TRUE}).}
+\verb{_extension.yml} sets \code{drift}, which selects the plain masthead and
+the ornament background in \code{page.typ}, and \code{banner-inset}, which
+makes \code{typst-template.typ} emit the masthead into the flow. It also
+holds the two generated ornaments, \code{drift-top-right.svg} and
+\code{drift-bottom-left.svg}, which are drawn in the brand's colours at
+scaffold time — re-run with \code{overwrite = TRUE} after changing the
+brand.}
+\item{\code{report-print.qmd}}{Sample report on R's built-in \code{airquality}
+data (if \code{examples = TRUE}).}
 }
 
 In your \code{.qmd} YAML header, use the extension's format:
 
 \if{html}{\out{<div class="sourceCode yaml">}}\preformatted{format:
   brandkit-print-typst:
-    toc: true
+    toc: false
 }\if{html}{\out{</div>}}
 
-Because the panel is flow content rather than a fixed-height page
-background, it grows with its own content — a title long enough to
-overrun the full-bleed banner simply makes this one taller instead of
-being clipped.
+The ornaments are drawn on the first page only: a title page framed and
+the pages after it plain, which also keeps ink off pages that are all
+text and figures. In \code{page.typ} it is a single \code{if} to repeat them on
+every page. The running footer (rule, title and page number) likewise
+starts on page two, so the title page is left clean.
 
-The no-title case is unchanged from the full-bleed format: with no
-title there is no banner, and the logo falls back to a plain
-page-corner mark.
+Because the masthead is flow content rather than a fixed-height page
+background, it grows with its own content — a long title simply wraps
+instead of being clipped.
+
+The no-title case: with no title there is no masthead, and no
+ornaments either, so a logo falls back to a plain page-corner mark.
 }
 \seealso{
-\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}} for the full-bleed screen variant.
+\code{\link[=create_brand_quarto_pdf]{create_brand_quarto_pdf()}} for the full-bleed striped variant.
 }
