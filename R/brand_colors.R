@@ -53,10 +53,11 @@ brand_pal_div <- function(n = 11, reverse = FALSE, mode = "light") {
 #' No hardcoded hex values.
 #'
 #' @param n Number of colours needed. `NULL` returns all (up to 15).
-#' @param mode `"light"` or `"dark"`.
+#' @param mode `"light"` or `"dark"`. Defaults to the mode set by
+#'   [brand_quarto_setup()], or `"light"` if none has been.
 #' @return Character vector of hex codes.
 #' @export
-brand_pal_discrete <- function(n = NULL, mode = "light") {
+brand_pal_discrete <- function(n = NULL, mode = brand_env$active_mode %||% "light") {
   cols <- brand_colors(mode)
   max_n <- 15
 

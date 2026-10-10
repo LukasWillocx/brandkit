@@ -60,6 +60,54 @@ orn_shapes <- function(motif) {
 
 orn_motifs <- "drift"
 
+# The drawing itself, from explicit colours — brand_ornament() passes the
+# brand's, and the configurator passes whatever is in its colour pickers, which
+# are not saved to the brand yet. `primary` leads the top-right corner and
+# `secondary` the bottom-left; `accent` is the same in both. With `vars`, the
+# fills name Bootstrap's colour variables and the hex values are only the
+# fallbacks (see brand_ornament()).
+ornament_svg <- function(motif, corner, softness, primary, secondary, accent,
+                         vars = FALSE) {
+  hue <- if (corner == "top-right") {
+    list(p = primary,   s = secondary, t = accent)
+  } else {
+    list(p = secondary, s = primary,   t = accent)
+  }
+
+  # Which Bootstrap variable stands for each hex, so that swapping the two
+  # corners' lead colours above swaps the variables with them.
+  css_var <- c(p = "--bs-primary", s = "--bs-secondary", t = "--bs-info")
+  if (corner == "bottom-left") css_var[c("p", "s")] <- css_var[c("s", "p")]
+
+  body <- vapply(orn_shapes(motif), function(s) {
+    opacity <- orn_num(min(1, softness * s$m), 3)
+    if (vars) {
+      # The colour goes in `style` because var() is not valid in a
+      # presentation attribute; the hex after the comma is the fallback for
+      # a page that defines no Bootstrap variables.
+      sprintf('<%s style="fill:var(%s,%s)" fill-opacity="%s"/>',
+              s$el, css_var[[s$role]], hue[[s$role]], opacity)
+    } else {
+      sprintf('<%s fill="%s" fill-opacity="%s"/>', s$el, hue[[s$role]], opacity)
+    }
+  }, character(1))
+
+  if (corner == "bottom-left") {
+    body <- c('<g transform="rotate(180 50 50)">', body, "</g>")
+  }
+
+  paste0(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ',
+    'width="100" height="100">
+',
+    paste(body, collapse = "
+"),
+    "
+</svg>
+"
+  )
+}
+
 #' Brand Corner Ornament (SVG)
 #'
 #' Draws a soft geometric corner ornament in the brand's colours and returns
@@ -127,43 +175,12 @@ brand_ornament <- function(motif = "drift",
   }
 
   cols <- brand_colors(mode)
-  primary   <- cols$primary
-  secondary <- cols$secondary %||% primary
-  accent    <- cols$info %||% secondary
-
-  hue <- if (corner == "top-right") {
-    list(p = primary,   s = secondary, t = accent)
-  } else {
-    list(p = secondary, s = primary,   t = accent)
-  }
-
-  # Which Bootstrap variable stands for each hex, so that swapping the two
-  # corners' lead colours above swaps the variables with them.
-  css_var <- c(p = "--bs-primary", s = "--bs-secondary", t = "--bs-info")
-  if (corner == "bottom-left") css_var[c("p", "s")] <- css_var[c("s", "p")]
-
-  body <- vapply(orn_shapes(motif), function(s) {
-    opacity <- orn_num(min(1, softness * s$m), 3)
-    if (vars) {
-      # The colour goes in `style` because var() is not valid in a
-      # presentation attribute; the hex after the comma is the fallback for
-      # a page that defines no Bootstrap variables.
-      sprintf('<%s style="fill:var(%s,%s)" fill-opacity="%s"/>',
-              s$el, css_var[[s$role]], hue[[s$role]], opacity)
-    } else {
-      sprintf('<%s fill="%s" fill-opacity="%s"/>', s$el, hue[[s$role]], opacity)
-    }
-  }, character(1))
-
-  if (corner == "bottom-left") {
-    body <- c('<g transform="rotate(180 50 50)">', body, "</g>")
-  }
-
-  svg <- paste0(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ',
-    'width="100" height="100">\n',
-    paste(body, collapse = "\n"),
-    "\n</svg>\n"
+  svg <- ornament_svg(
+    motif, corner, softness,
+    primary   = cols$primary,
+    secondary = cols$secondary %||% cols$primary,
+    accent    = cols$info %||% cols$secondary %||% cols$primary,
+    vars      = vars
   )
 
   if (!is.null(file)) {
@@ -270,4 +287,16 @@ write_poster_ornaments <- function(dir) {
   brand_ornament("drift", "top-right",   poster_ornament_softness, file = paths[1])
   brand_ornament("drift", "bottom-left", poster_ornament_softness, file = paths[2])
   paths
+}
+
+# The same pair for a Quarto page, as an HTML snippet that
+# `include-after-body:` drops into the document. Unlike the poster's files
+# these carry no hex colours (see `vars` in brand_ornament()), so the file
+# never goes stale when the brand changes and follows Quarto's own
+# light/dark toggle: each mode's stylesheet defines the --bs-* variables
+# the ornaments are filled with.
+write_ornaments_html <- function(path) {
+  r <- htmltools::renderTags(brand_ornaments_tag())
+  writeBin(charToRaw(paste0(r$head, "\n", r$html, "\n")), path)
+  invisible(path)
 }

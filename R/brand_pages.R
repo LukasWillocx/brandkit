@@ -181,23 +181,7 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args,
   # We pass the brand discrete palette as qualitative so thematic
   # uses our colours instead of its own defaults.
   thematic_script <- NULL
-  if (requireNamespace("thematic", quietly = TRUE)) {
-    tryCatch({
-      font <- brand_fonts()$base
-      pal  <- brand_pal_discrete()
-      thematic::thematic_shiny(
-        font = font,
-        qualitative = pal
-      )
-      # thematic matches each plot's background to its container by
-      # remapping the fills in the ggplot theme, so the app-wide theme
-      # needs fills to remap. The one set when brandkit attaches is
-      # unfilled (it is built outside Shiny, where transparent is right),
-      # and with it a light/dark switch leaves some plots on the old
-      # mode's background. See theme_brand().
-      ggplot2::theme_set(theme_brand(transparent = FALSE))
-    }, error = function(e) NULL)
-  }
+  activate_thematic_shiny()
 
   # Dark mode toggle — fixed top-right corner
   toggle <- if (dark_mode) {
@@ -214,6 +198,83 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args,
     ornaments       = ornaments,
     thematic_script = thematic_script
   )
+}
+
+# --------------------------------------------------------------------------
+# Internal: switch on thematic for every renderPlot() in the app or document
+#
+# Shared by the Shiny page wrappers and brand_quarto_setup(shiny = TRUE),
+# which are the two places a Shiny app gets built from brandkit.
+# --------------------------------------------------------------------------
+
+activate_thematic_shiny <- function(mode = "light") {
+  if (!requireNamespace("thematic", quietly = TRUE)) return(invisible(FALSE))
+
+  tryCatch({
+    # A fallback for the moments when no plot is being drawn for a browser:
+    # rendering a Quarto document runs a knitr hook that asks thematic for
+    # the background, and with nothing to read it warns. Shiny's own output
+    # info outranks this, so it only ever applies outside renderPlot().
+    cols <- brand_colors(mode)
+    thematic::auto_config_set(thematic::auto_config(
+      bg = cols$background, fg = cols$foreground, accent = cols$primary
+    ))
+    # qualitative = NA: thematic would otherwise force one fixed palette
+    # onto every discrete scale, and the brand's light palette (a navy
+    # first colour) vanishes on a dark card. The ggplot2 scale options set
+    # below choose the palette per plot instead.
+    thematic::thematic_shiny(font = brand_fonts()$base, qualitative = NA)
+    options(
+      ggplot2.discrete.colour = output_discrete_scale("colour"),
+      ggplot2.discrete.fill   = output_discrete_scale("fill")
+    )
+    # thematic matches each plot's background to its container by
+    # remapping the fills in the ggplot theme, so the app-wide theme
+    # needs fills to remap. The one set when brandkit attaches is
+    # unfilled (it is built outside Shiny, where transparent is right),
+    # and with it a light/dark switch leaves some plots on the old
+    # mode's background. See theme_brand().
+    ggplot2::theme_set(theme_brand(mode = mode, transparent = FALSE))
+    invisible(TRUE)
+  }, error = function(e) invisible(FALSE))
+}
+
+# --------------------------------------------------------------------------
+# Internal: discrete colour/fill scales that follow the page's colour mode
+#
+# ggplot2 accepts a function as the default discrete scale, and calls it
+# when a plot is built — inside renderPlot(), where Shiny can say what
+# background the plot is going on. A dark one gets the brand's dark palette,
+# anything else the light one. Reading the background is reactive, so a
+# light/dark switch redraws the plot with the other palette, exactly as it
+# already does for the text and background colours.
+# --------------------------------------------------------------------------
+
+output_discrete_scale <- function(aesthetic) {
+  maker <- switch(aesthetic,
+    colour = ggplot2::scale_colour_manual,
+    fill   = ggplot2::scale_fill_manual
+  )
+  function(...) maker(..., values = brand_pal_discrete(mode = output_mode()))
+}
+
+output_mode <- function() {
+  bg <- tryCatch({
+    bg <- shiny::getCurrentOutputInfo()$bg
+    if (is.function(bg)) bg() else bg
+  }, error = function(e) NULL)
+  if (is.null(bg) || is.na(bg) || !nzchar(bg)) return("light")
+
+  rgb <- tryCatch(
+    grDevices::col2rgb(htmltools::parseCssColors(bg)),
+    error = function(e) NULL
+  )
+  if (is.null(rgb)) return("light")
+
+  # Relative luminance, close enough: this only has to tell a dark card
+  # from a light one.
+  lum <- sum(c(0.2126, 0.7152, 0.0722) * rgb[, 1]) / 255
+  if (lum < 0.5) "dark" else "light"
 }
 
 # --------------------------------------------------------------------------

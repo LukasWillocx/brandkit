@@ -29,7 +29,8 @@
 #' \describe{
 #'   \item{`_brand.yml`}{From the brandkit cache, in the bslib format
 #'     (see *Brand format* below).}
-#'   \item{`app.R`}{The app template.}
+#'   \item{`app.R`}{The app template, with R's built-in `airquality` data
+#'     (daily New York air quality, 1973) as the sample to replace.}
 #' }
 #' Local font files and logo files referenced by the brand are copied
 #' alongside, preserving their relative paths.

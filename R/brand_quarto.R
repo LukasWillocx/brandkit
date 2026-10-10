@@ -16,6 +16,22 @@
 #'   sit on (the page, a poster card); `FALSE` fills them with the brand's
 #'   background colour. Applies to the ggplot2 theme and to the knitr
 #'   device, which is what base graphics are drawn on.
+#' @param adaptive Logical. Set `TRUE` in an HTML document with a light/dark
+#'   toggle to make its plots follow the toggle. Every figure is then drawn
+#'   twice, once per colour mode, and the page shows the one that matches;
+#'   [brand_plotly()] does the same with a widget for each. Nothing in the
+#'   document's chunks changes. The cost is a second render of every plot
+#'   chunk, and the dark files must stay beside the page, so it does not
+#'   work with `embed-resources: true`. The document's own `mode` is then
+#'   always light. Default `FALSE`.
+#' @param shiny Logical. Set `TRUE` in a document with `server: shiny`
+#'   (such as the [create_brand_quarto_dashboard()] dashboard). Plots are
+#'   then drawn by Shiny, live, so they can follow the page's light/dark
+#'   toggle: this switches on thematic, which gives each `renderPlot()` the
+#'   colours, fonts and background of the card it sits on, redrawn when the
+#'   mode changes, and discrete colour and fill scales take the brand's
+#'   light or dark palette to match. `mode` and `transparent` no longer matter then; the page
+#'   decides. Default `FALSE`.
 #'
 #' @return Invisible `NULL`. Called for side effects.
 #'
@@ -25,17 +41,23 @@
 #' library(brandkit)
 #' brand_quarto_setup()           # light mode (default)
 #' brand_quarto_setup("dark")     # for brand-mode: dark documents
+#' brand_quarto_setup(adaptive = TRUE) # HTML pages with a dark-mode toggle
+#' brand_quarto_setup(shiny = TRUE) # server: shiny documents
 #' }
 #'
 #' @export
-brand_quarto_setup <- function(mode = c("light", "dark"), transparent = TRUE) {
+brand_quarto_setup <- function(mode = c("light", "dark"), transparent = TRUE,
+                               adaptive = FALSE, shiny = FALSE) {
   mode <- match.arg(mode)
+  if (isTRUE(adaptive)) mode <- "light"
   ensure_cache()
 
   cols <- brand_colors(mode)
 
   # Store active mode so brand_plotly() auto-detects
   brand_env$active_mode <- mode
+  brand_env$transparent <- transparent
+  brand_env$adaptive    <- FALSE
 
   # Set ggplot2 theme for this mode
   ggplot2::theme_set(theme_brand(mode = mode, transparent = transparent))
@@ -46,6 +68,15 @@ brand_quarto_setup <- function(mode = c("light", "dark"), transparent = TRUE) {
     ggplot2.discrete.colour = pal,
     ggplot2.discrete.fill   = pal
   )
+
+  # Live plots are drawn by Shiny's own devices, not knitr's, so the device
+  # background and par() hook below have nothing to act on. Worse, the par()
+  # hook opens a device at render time, where thematic has no output to read
+  # colours from and warns.
+  if (isTRUE(shiny)) {
+    activate_thematic_shiny(mode)
+    return(invisible(NULL))
+  }
 
   # Set the knitr device background. It has to be set explicitly either
   # way: left alone the device paints white, which bleeds through the
@@ -58,11 +89,12 @@ brand_quarto_setup <- function(mode = c("light", "dark"), transparent = TRUE) {
       dev.args = list(bg = if (isTRUE(transparent)) "transparent" else cols$background)
     )
 
-    # Hook sets par() before each chunk's graphics device
-    fg <- cols$foreground
-    bg <- cols$background
+    # Hook sets par() before each chunk's graphics device. The colour is
+    # read when the hook runs rather than when it is registered, so a chunk
+    # drawn for the other mode (see `adaptive`) gets that mode's text colour.
     knitr::knit_hooks$set(brandkit_par = function(before, options, envir) {
       if (before) {
+        fg <- brand_colors(brand_env$active_mode %||% "light")$foreground
         par(
           col.main = fg, col.sub = fg, col.lab = fg,
           col.axis = fg, fg = fg
@@ -72,26 +104,26 @@ brand_quarto_setup <- function(mode = c("light", "dark"), transparent = TRUE) {
     knitr::opts_chunk$set(brandkit_par = TRUE)
   }
 
+  if (isTRUE(adaptive)) setup_adaptive()
+
   invisible(NULL)
 }
 
 
 #' Set Up a Quarto HTML Project
 #'
-#' Copies `_brand.yml`, custom SCSS overrides, and an example HTML report
+#' Copies `_brand.yml`, the "drift" stylesheet and an example HTML report
 #' into a Quarto project directory. After running this, Quarto
-#' auto-detects `_brand.yml` and applies it to HTML and dashboard
-#' formats. The SCSS file layers additional polish on top, including a
-#' full-bleed title banner drawing the same diagonal-stripe field as the
-#' Typst PDF template's ([create_brand_quarto_pdf()]) — a flat
-#' primary-coloured field behind the logo, title, subtitle, and
-#' author/date, switching to secondary-coloured stripes past an angled
-#' seam — but centred and mirrored rather than left-anchored, since an
-#' HTML page has no fixed width to anchor an asymmetric composition to.
+#' auto-detects `_brand.yml` and applies it to HTML formats. The report is
+#' in the same "drift" look as the poster ([create_brand_quarto_poster()]),
+#' the print PDF ([create_brand_quarto_print_pdf()]) and the Shiny starter
+#' app: the title as plain type with the logo above it, soft corner
+#' ornaments behind the page, and tables that follow the brand, all drawn
+#' from `_brand.yml` and following the light/dark toggle.
 #'
 #' For a revealjs slide deck, see [create_brand_quarto_slides()]. For a
 #' PDF starting point rendered via Quarto's Typst engine, see
-#' [create_brand_quarto_pdf()].
+#' [create_brand_quarto_pdf()] and [create_brand_quarto_print_pdf()].
 #'
 #' @param path Project directory. Defaults to the current working directory.
 #' @param examples Logical. Copy the example `report.qmd`? Default `TRUE`.
@@ -101,33 +133,41 @@ brand_quarto_setup <- function(mode = c("light", "dark"), transparent = TRUE) {
 #' This function copies the following into `path`:
 #' \describe{
 #'   \item{`_brand.yml`}{From the brandkit cache (your configured brand).}
-#'   \item{`brandkit.scss`}{Custom SCSS overrides for the title banner and
-#'     footer, plus cards, tables, scrollbars, and nav components —
-#'     layered after brand in the Quarto theme. The banner's geometry is
-#'     exposed as `--brand-banner-*` custom properties at the top of the
-#'     `.brand-banner` rule if you want to retune it.}
-#'   \item{`report.qmd`}{Sample HTML report (if `examples = TRUE`), whose
-#'     banner and footer divs pull title/subtitle/author/date from the
-#'     YAML header via `\{\{< meta ... >\}\}`.}
+#'   \item{`drift.scss`}{The look, built from the brand's own Sass
+#'     variables and compiled once per colour mode. It is divided into
+#'     shared rules (tables), document rules (the masthead, headings and
+#'     footer of a report) and dashboard rules, which a report simply never
+#'     matches. Layered after brand in the Quarto theme.}
+#'   \item{`_ornaments.html`}{The two corner ornaments
+#'     ([brand_ornaments_tag()]), included after the page body. They are
+#'     filled with the page's CSS colour variables rather than the brand's
+#'     hex values, so the file never goes stale when the brand changes and
+#'     follows the dark-mode toggle.}
+#'   \item{`report.qmd`}{Sample HTML report on R's built-in `airquality`
+#'     data (if `examples = TRUE`), whose masthead and footer divs pull
+#'     title/subtitle/author/date from the YAML header via
+#'     `\{\{< meta ... >\}\}`.}
 #' }
 #'
-#' In your `.qmd` YAML header, reference the SCSS like this:
+#' In your `.qmd` YAML header, reference the files like this:
 #' ```yaml
 #' format:
 #'   html:
 #'     theme:
-#'       light: [brand, brandkit.scss]
-#'       dark: [brand, brandkit.scss]
+#'       light: [brand, drift.scss]
+#'       dark: [brand, drift.scss]
+#'     include-after-body: _ornaments.html
 #' ```
 #'
 #' The nested `light:`/`dark:` form is what gives readers a working
 #' light/dark toggle — Quarto compiles a Bootstrap stylesheet per mode
 #' from `_brand.yml`'s `color:`/`color-dark:` entries and the toggle swaps
-#' between them. The flat `theme: [brand, brandkit.scss]` form still shows
+#' between them. The flat `theme: [brand, drift.scss]` form still shows
 #' a toggle but only switches syntax highlighting, leaving the Bootstrap
-#' layer light. Plots can't follow the toggle either way: they're static
-#' images baked in at render time in whichever mode you pass to
-#' [brand_quarto_setup()].
+#' layer light. Plots are static images baked in at render time, so on
+#' their own they would not follow the toggle; `report.qmd` calls
+#' `brand_quarto_setup(adaptive = TRUE)`, which draws each figure in both
+#' modes and shows the one that matches (see [brand_quarto_setup()]).
 #'
 #' For ggplot2 theming, just add `library(brandkit)` in a setup chunk —
 #' the auto-applied theme and scales handle the rest.
@@ -158,13 +198,20 @@ create_brand_quarto_html <- function(path = ".", examples = TRUE, overwrite = FA
   brand_dest <- write_brand_yml_for_quarto(path, overwrite)
   if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
 
-  # --- brandkit.scss ---
-  scss_src  <- system.file("quarto/brandkit.scss", package = "brandkit")
-  scss_dest <- file.path(path, "brandkit.scss")
+  # --- drift.scss + the corner ornaments ---
+  scss_src  <- system.file("quarto/drift.scss", package = "brandkit")
+  scss_dest <- file.path(path, "drift.scss")
   if (nzchar(scss_src) && (!file.exists(scss_dest) || overwrite)) {
     file.copy(scss_src, scss_dest, overwrite = overwrite)
     copied <- c(copied, scss_dest)
-    message("Copied brandkit.scss")
+    message("Copied drift.scss")
+  }
+
+  orn_dest <- file.path(path, "_ornaments.html")
+  if (!file.exists(orn_dest) || overwrite) {
+    write_ornaments_html(orn_dest)
+    copied <- c(copied, orn_dest)
+    message("Wrote _ornaments.html")
   }
 
   # --- Example report ---
@@ -185,7 +232,7 @@ create_brand_quarto_html <- function(path = ".", examples = TRUE, overwrite = FA
   copy_brand_logo(path, overwrite)
 
   message("\nDone. In your .qmd YAML, use:")
-  message('  theme: [brand, brandkit.scss]')
+  message('  theme: [brand, drift.scss]')
   message('Then add library(brandkit) in a setup chunk for ggplot2 theming.')
 
   invisible(copied)
@@ -194,11 +241,14 @@ create_brand_quarto_html <- function(path = ".", examples = TRUE, overwrite = FA
 
 #' Set Up a Quarto Revealjs Slides Project
 #'
-#' Copies `_brand.yml`, custom SCSS overrides, and an example revealjs
+#' Copies `_brand.yml`, the "drift" stylesheet and an example revealjs
 #' presentation into a Quarto project directory. After running this,
 #' Quarto auto-detects `_brand.yml` and applies it to the revealjs
-#' format. The SCSS file layers additional polish (logo sizing, nav
-#' pills, scrollbars) on top.
+#' format. The deck is in the same "drift" look as the poster
+#' ([create_brand_quarto_poster()]), the HTML report
+#' ([create_brand_quarto_html()]) and the Shiny starter app: a plain,
+#' left-aligned title slide with no panel, headings in the brand's primary
+#' colour, and soft corner ornaments behind every slide.
 #'
 #' @param path Project directory. Defaults to the current working directory.
 #' @param examples Logical. Copy the example `slides.qmd`? Default `TRUE`.
@@ -208,20 +258,23 @@ create_brand_quarto_html <- function(path = ".", examples = TRUE, overwrite = FA
 #' This function copies the following into `path`:
 #' \describe{
 #'   \item{`_brand.yml`}{From the brandkit cache (your configured brand).}
-#'   \item{`brandkit.scss`}{Custom SCSS overrides — layered after brand in
-#'     the Quarto theme.}
-#'   \item{`slides.qmd`}{Sample revealjs presentation (if `examples = TRUE`).
-#'     Its title slide background is written as a literal hex colour —
-#'     the brand's primary colour darkened — computed at copy time so
-#'     the deck's white title/subtitle/author/date text stays legible
-#'     regardless of the brand's actual primary colour.}
+#'   \item{`drift.scss`}{The look, layered after brand in the Quarto
+#'     theme. It is the same file the HTML report and dashboard use; the
+#'     slide rules are its Slides section.}
+#'   \item{`_ornaments.html`}{The two corner ornaments
+#'     ([brand_ornaments_tag()]), included after the slides with
+#'     `include-after-body:`. They are drawn in the brand colours of the
+#'     deck's mode, so a `brand-mode: dark` deck gets the dark ones.}
+#'   \item{`slides.qmd`}{Sample revealjs presentation on R's built-in
+#'     `airquality` data (if `examples = TRUE`).}
 #' }
 #'
-#' In your `.qmd` YAML header, reference the SCSS like this:
+#' In your `.qmd` YAML header, reference the files like this:
 #' ```yaml
 #' format:
 #'   revealjs:
-#'     theme: [brand, brandkit.scss]
+#'     theme: [brand, drift.scss]
+#'     include-after-body: _ornaments.html
 #'     logo: medium
 #' ```
 #'
@@ -255,13 +308,20 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
   brand_dest <- write_brand_yml_for_quarto(path, overwrite)
   if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
 
-  # --- brandkit.scss ---
-  scss_src  <- system.file("quarto/brandkit.scss", package = "brandkit")
-  scss_dest <- file.path(path, "brandkit.scss")
+  # --- drift.scss + the corner ornaments ---
+  scss_src  <- system.file("quarto/drift.scss", package = "brandkit")
+  scss_dest <- file.path(path, "drift.scss")
   if (nzchar(scss_src) && (!file.exists(scss_dest) || overwrite)) {
     file.copy(scss_src, scss_dest, overwrite = overwrite)
     copied <- c(copied, scss_dest)
-    message("Copied brandkit.scss")
+    message("Copied drift.scss")
+  }
+
+  orn_dest <- file.path(path, "_ornaments.html")
+  if (!file.exists(orn_dest) || overwrite) {
+    write_ornaments_html(orn_dest)
+    copied <- c(copied, orn_dest)
+    message("Wrote _ornaments.html")
   }
 
   # --- Example slides ---
@@ -269,16 +329,7 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
     src  <- system.file("quarto/slides.qmd", package = "brandkit")
     dest <- file.path(path, "slides.qmd")
     if (nzchar(src) && (!file.exists(dest) || overwrite)) {
-      # Substitute a literal, pre-darkened hex colour for the title
-      # slide background — passing a CSS color-mix()/var() expression
-      # through revealjs's data-background-color attribute depends on
-      # its own JS accepting arbitrary CSS functions there, which isn't
-      # reliable; a plain hex value has no such uncertainty.
       lines <- readLines(src, warn = FALSE)
-      lines <- gsub(
-        "__BRANDKIT_TITLE_BG__", title_slide_bg_color(), lines,
-        fixed = TRUE
-      )
       # Drop the `logo: medium` line entirely when no logo is configured
       # — left in place, revealjs still tries to render a logo image
       # that doesn't exist, showing a broken-image icon in its corner
@@ -299,7 +350,7 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
   copy_brand_logo(path, overwrite)
 
   message("\nDone. In your .qmd YAML, use:")
-  message('  theme: [brand, brandkit.scss]')
+  message('  theme: [brand, drift.scss]')
   message('Then add library(brandkit) and brand_quarto_setup() in a setup chunk.')
 
   invisible(copied)
@@ -308,11 +359,16 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
 
 #' Set Up a Quarto Shiny Dashboard Project
 #'
-#' Copies `_brand.yml`, the brandkit SCSS overrides, and an example
+#' Copies `_brand.yml`, the "drift" stylesheet, and an example
 #' `dashboard.qmd` into a Quarto project directory, configured to render
 #' to Quarto's `dashboard` format with a Shiny runtime. The result is a
-#' KPI dashboard — a row of value boxes over filtered charts and a table
-#' — driven by sidebar inputs.
+#' small dashboard of R's built-in `airquality` data (daily New York air
+#' quality, 1973) — a row of value boxes over two charts and a table,
+#' filtered by month and temperature in the sidebar — in the same "drift" look as the
+#' poster ([create_brand_quarto_poster()]) and the Shiny starter app
+#' ([create_brand_shiny_app()]): soft corner ornaments behind the page,
+#' the title as plain type, and tinted cards under a solid header. It has
+#' a light/dark toggle, which the plots follow.
 #'
 #' This is the Quarto counterpart to [create_brand_shiny_dashboard()].
 #' The two produce a similar layout by different routes: this one lays
@@ -334,15 +390,25 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
 #' \describe{
 #'   \item{`_brand.yml`}{From the brandkit cache (your configured brand),
 #'     in the Quarto-compatible format.}
-#'   \item{`brandkit.scss`}{The same SCSS overrides the HTML report
-#'     scaffold uses — layered after brand in the theme. Its title-banner
-#'     rules are inert in a dashboard (there is no banner div to match),
-#'     but its card, table, scrollbar, and nav styling all apply.}
+#'   \item{`drift.scss`}{The look, about a hundred lines of Sass built
+#'     from the brand's own variables. Quarto compiles it once per colour
+#'     mode, so the same file serves light and dark. Edit it to retune the
+#'     cards, the title or the sidebar.}
+#'   \item{`_ornaments.html`}{The two corner ornaments
+#'     ([brand_ornaments_tag()]), included after the page body. They are
+#'     filled with the page's CSS colour variables rather than the brand's
+#'     hex values, so the file never goes stale when the brand changes and
+#'     follows the dark-mode toggle.}
 #'   \item{`dashboard.qmd`}{Sample Shiny dashboard (if `examples = TRUE`).}
 #' }
 #'
-#' Because the document declares `server: shiny`, it is served rather
-#' than rendered to a static file:
+#' The dark-mode toggle comes from giving the document one theme per mode
+#' (`theme: light: ... dark: ...`), which is how `dashboard.qmd` declares
+#' it. Plots are drawn live by Shiny, so `brand_quarto_setup(shiny = TRUE)`
+#' lets thematic redraw them in the card's colours when the mode changes.
+#'
+#' Because the document declares `server: shiny`, it is served rather than
+#' rendered to a static file:
 #' ```
 #' quarto serve dashboard.qmd
 #' ```
@@ -388,13 +454,20 @@ create_brand_quarto_dashboard <- function(path = ".", examples = TRUE,
   brand_dest <- write_brand_yml_for_quarto(path, overwrite)
   if (!is.null(brand_dest)) copied <- c(copied, brand_dest)
 
-  # --- brandkit.scss ---
-  scss_src  <- system.file("quarto/brandkit.scss", package = "brandkit")
-  scss_dest <- file.path(path, "brandkit.scss")
+  # --- drift.scss + the corner ornaments ---
+  scss_src  <- system.file("quarto/drift.scss", package = "brandkit")
+  scss_dest <- file.path(path, "drift.scss")
   if (nzchar(scss_src) && (!file.exists(scss_dest) || overwrite)) {
     file.copy(scss_src, scss_dest, overwrite = overwrite)
     copied <- c(copied, scss_dest)
-    message("Copied brandkit.scss")
+    message("Copied drift.scss")
+  }
+
+  orn_dest <- file.path(path, "_ornaments.html")
+  if (!file.exists(orn_dest) || overwrite) {
+    write_ornaments_html(orn_dest)
+    copied <- c(copied, orn_dest)
+    message("Wrote _ornaments.html")
   }
 
   # --- Example dashboard ---
@@ -658,7 +731,10 @@ is_quarto_compatible_brand_yml <- function(path) {
 # --------------------------------------------------------------------------
 
 write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
-                                           poster = NULL) {
+                                           poster = NULL, drift = FALSE) {
+  # The poster is a drift layout with columns and cards on top.
+  drift <- isTRUE(drift) || !is.null(poster)
+
   radius <- css_rem_to_typst_em(brand_env$theme_vars[["border-radius"]])
 
   # The poster's whole type ramp — body, headings, code, masthead — is
@@ -726,10 +802,11 @@ write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
     typst_fmt$`banner-inset` <- TRUE
   }
 
-  if (!is.null(poster)) {
-    typst_fmt$papersize <- poster$paper
-    typst_fmt$poster <- TRUE
-    typst_fmt$`poster-scale` <- type_scale
+  # Selects the plain masthead and the corner-ornament background in
+  # page.typ, in place of the striped panel. Written only when TRUE, for
+  # the same reason as banner-inset.
+  if (drift) {
+    typst_fmt$drift <- TRUE
     # The corner ornaments page.typ draws as the page background. Quarto
     # copies format-resources next to the rendered document, which is
     # what lets page.typ name them without a path: the compiled .typ sits
@@ -737,6 +814,12 @@ write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
     # extension directory is only a fixed distance away for documents at
     # the project root.
     typst_fmt$`format-resources` <- as.list(poster_ornament_files)
+  }
+
+  if (!is.null(poster)) {
+    typst_fmt$papersize <- poster$paper
+    typst_fmt$poster <- TRUE
+    typst_fmt$`poster-scale` <- type_scale
     # Read by typst-show.typ as the *flow* column count, not Typst page
     # columns — page.typ's poster branch pins those to 1. Overridable
     # per document from the .qmd YAML like any other format option.
@@ -910,19 +993,6 @@ css_rem_to_typst_em <- function(css_length, fallback = "0.3em") {
   paste0(num, "em")
 }
 
-# Darkened hex colour for the revealjs title slide background — dark
-# enough that the slide's white title/subtitle/author/date text (set in
-# brandkit.scss) stays legible regardless of how light the brand's own
-# primary colour is.
-title_slide_bg_color <- function() {
-  primary <- brand_env$colors$primary %||% "#2c3e50"
-  tryCatch(
-    unname(colorspace::darken(primary, amount = 0.4)),
-    error = function(e) primary
-  )
-}
-
-
 # --------------------------------------------------------------------------
 # Convert a bslib-format brand config to the Quarto-compatible one.
 # Drops bslib-only keys (theme:, color-dark:), folds dark colours into
@@ -1086,7 +1156,8 @@ copy_brand_logo <- function(dest_dir, overwrite = FALSE) {
 # --------------------------------------------------------------------------
 
 copy_typst_extension <- function(path, ext_name, banner_inset, overwrite,
-                                 poster = NULL) {
+                                 poster = NULL, drift = FALSE) {
+  drift <- isTRUE(drift) || !is.null(poster)
   copied <- character(0)
 
   ext_src_dir  <- system.file("quarto/typst/_extensions/brandkit", package = "brandkit")
@@ -1104,15 +1175,16 @@ copy_typst_extension <- function(path, ext_name, banner_inset, overwrite,
   ext_yml_dest <- file.path(ext_dest_dir, "_extension.yml")
   if (!file.exists(ext_yml_dest) || overwrite) {
     write_extension_yml_for_quarto(ext_yml_dest, banner_inset = banner_inset,
-                                   poster = poster)
+                                   poster = poster, drift = drift)
     copied <- c(copied, ext_yml_dest)
     message("Wrote _extensions/", ext_name, "/_extension.yml")
   }
 
   # The corner ornaments are generated like _extension.yml, and for the
   # same reason: they are drawn in the brand's colours, which only the
-  # R side knows. Poster only; the report formats keep the striped banner.
-  if (!is.null(poster)) {
+  # R side knows. The drift layouts only (the poster and the print report);
+  # the full-bleed report keeps the striped banner.
+  if (drift) {
     orn_dest <- file.path(ext_dest_dir, poster_ornament_files)
     if (overwrite || !all(file.exists(orn_dest))) {
       write_poster_ornaments(ext_dest_dir)
@@ -1142,20 +1214,27 @@ copy_typst_extension <- function(path, ext_name, banner_inset, overwrite,
 
 #' Set Up a Print-Friendly Quarto Typst PDF Project
 #'
-#' The print-oriented sibling of [create_brand_quarto_pdf()]. Everything
-#' about the two formats is the same — the same code styling, coloured
-#' headings, coloured footer, type ramp and brand integration, from the
-#' same shared template files — except for how the title banner is drawn.
+#' The "drift" sibling of [create_brand_quarto_pdf()], and the one to use
+#' when the document will be printed. Everything about the two formats is
+#' the same — the same code styling, coloured headings, coloured footer,
+#' type ramp and brand integration, from the same shared template files —
+#' except for how the title is drawn.
 #'
-#' [create_brand_quarto_pdf()] draws the diagonal-stripe banner
-#' full-bleed, spanning the whole physical page width from the page
-#' background. That looks right on screen but needs a printer that can
-#' bleed: on an ordinary office or home printer the panel either clips at
-#' the unprintable edge or leaves a white hairline frame around itself,
-#' and it lays down a full page-width solid that can show through lighter
-#' stock. This function instead insets the panel to the text measure and
-#' emits it as ordinary flow content, so no ink crosses the margin and
-#' the header area uses roughly a third less coverage.
+#' [create_brand_quarto_pdf()] draws a diagonal-stripe banner full-bleed,
+#' spanning the whole physical page width from the page background. That
+#' looks right on screen but needs a printer that can bleed: on an
+#' ordinary office or home printer the panel either clips at the
+#' unprintable edge or leaves a white hairline frame around itself, and it
+#' lays down a full page-width solid that can show through lighter stock.
+#' This function instead opens with a plain masthead — the title in the
+#' brand's primary colour, the subtitle beneath it, a short rule and the
+#' author and date, with the logo on the right — and frames the first page
+#' with the pair of soft corner ornaments the poster
+#' ([create_brand_quarto_poster()]) and the HTML report
+#' ([create_brand_quarto_html()]) use (see [brand_ornament()]). No ink
+#' crosses the margin, there is no solid panel, and the ornaments are drawn
+#' at a low opacity, so the header area uses a small fraction of the
+#' striped banner's ink.
 #'
 #' Both formats install into separate extension directories and can
 #' coexist in one project, so you can render the same document either
@@ -1172,31 +1251,39 @@ copy_typst_extension <- function(path, ext_name, banner_inset, overwrite,
 #'   \item{`_extensions/brandkit-print/`}{A Quarto Typst format extension
 #'     contributing `brandkit-print-typst`. It installs the same template
 #'     partials as [create_brand_quarto_pdf()]; its generated
-#'     `_extension.yml` sets `banner-inset`, which selects the inset
-#'     panel in `page.typ` and makes `typst-template.typ` emit the banner
-#'     into the flow rather than reserving space for a background-drawn
-#'     one.}
-#'   \item{`report-print.qmd`}{Sample report (if `examples = TRUE`).}
+#'     `_extension.yml` sets `drift`, which selects the plain masthead and
+#'     the ornament background in `page.typ`, and `banner-inset`, which
+#'     makes `typst-template.typ` emit the masthead into the flow. It also
+#'     holds the two generated ornaments, `drift-top-right.svg` and
+#'     `drift-bottom-left.svg`, which are drawn in the brand's colours at
+#'     scaffold time — re-run with `overwrite = TRUE` after changing the
+#'     brand.}
+#'   \item{`report-print.qmd`}{Sample report on R's built-in `airquality`
+#'     data (if `examples = TRUE`).}
 #' }
 #'
 #' In your `.qmd` YAML header, use the extension's format:
 #' ```yaml
 #' format:
 #'   brandkit-print-typst:
-#'     toc: true
+#'     toc: false
 #' ```
 #'
-#' Because the panel is flow content rather than a fixed-height page
-#' background, it grows with its own content — a title long enough to
-#' overrun the full-bleed banner simply makes this one taller instead of
-#' being clipped.
+#' The ornaments are drawn on the first page only: a title page framed and
+#' the pages after it plain, which also keeps ink off pages that are all
+#' text and figures. In `page.typ` it is a single `if` to repeat them on
+#' every page. The running footer (rule, title and page number) likewise
+#' starts on page two, so the title page is left clean.
 #'
-#' The no-title case is unchanged from the full-bleed format: with no
-#' title there is no banner, and the logo falls back to a plain
-#' page-corner mark.
+#' Because the masthead is flow content rather than a fixed-height page
+#' background, it grows with its own content — a long title simply wraps
+#' instead of being clipped.
+#'
+#' The no-title case: with no title there is no masthead, and no
+#' ornaments either, so a logo falls back to a plain page-corner mark.
 #'
 #' @return Invisibly returns a character vector of copied file paths.
-#' @seealso [create_brand_quarto_pdf()] for the full-bleed screen variant.
+#' @seealso [create_brand_quarto_pdf()] for the full-bleed striped variant.
 #' @export
 create_brand_quarto_print_pdf <- function(path = ".", examples = TRUE,
                                           overwrite = FALSE) {
@@ -1213,6 +1300,7 @@ create_brand_quarto_print_pdf <- function(path = ".", examples = TRUE,
   # --- _extensions/brandkit-print/ (Typst format extension) ---
   copied <- c(copied, copy_typst_extension(path, "brandkit-print",
                                            banner_inset = TRUE,
+                                           drift = TRUE,
                                            overwrite = overwrite))
 
   # --- Example report ---
@@ -1292,7 +1380,8 @@ create_brand_quarto_print_pdf <- function(path = ".", examples = TRUE,
 #'     column count and type scale. It also holds the two generated
 #'     corner ornaments, `drift-top-right.svg` and
 #'     `drift-bottom-left.svg`.}
-#'   \item{`poster.qmd`}{Sample poster (if `examples = TRUE`).}
+#'   \item{`poster.qmd`}{Sample poster on R's built-in `airquality` data (if
+#'     `examples = TRUE`).}
 #' }
 #'
 #' In your `.qmd` YAML header, use the extension's format:
