@@ -31,7 +31,7 @@ test_that("create_brand_shiny_steps writes the step-by-step template", {
 
   expect_setequal(basename(copied), c("_brand.yml", "app.R"))
   app <- readLines(file.path(dir, "app.R"))
-  expect_true(any(grepl("navset_pill_list", app, fixed = TRUE)))
+  expect_true(any(grepl("navset_pill(", app, fixed = TRUE)))
   expect_true(any(grepl("navset_hidden", app, fixed = TRUE)))
   # The template parses, and leaves colour to the brand.
   expect_no_error(parse(file.path(dir, "app.R")))

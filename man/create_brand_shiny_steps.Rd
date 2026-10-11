@@ -28,10 +28,10 @@ logo files, exactly as \code{\link[=create_brand_shiny_app]{create_brand_shiny_a
 documentation for how the brand file is written and converted.
 
 The layout is plain bslib, which is why there is no dedicated page
-wrapper for it. \code{bslib::navset_pill_list()} provides the pills, but
-draws a content pane of its own beside them, which would end up inside
-the sidebar. So the pills carry no content, and the pages live in a
-\code{bslib::navset_hidden()} in the main area; one \code{observeEvent()} selects
+wrapper for it. \code{bslib::navset_pill()} provides the pills (stacked into
+a column by a line of CSS, so they sit directly in the sidebar and take
+its full width), but a navset owns its content too. So the pills carry
+none, and the pages live in a \code{bslib::navset_hidden()} in the main area; one \code{observeEvent()} selects
 the page that matches the pill. Everything that changes step — a pill,
 a button, or \code{nav_select("step", "report")} from your own code — moves
 the pills, and the page follows.

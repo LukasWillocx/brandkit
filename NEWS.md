@@ -7,7 +7,7 @@
   (already in Suggests), and the scaffold reports it if it is missing.
 * New `create_brand_shiny_steps()` template for a workflow that runs in order:
   numbered pills in the sidebar select the page for each step, with Back /
-  Next buttons. It is `brand_page_sidebar()` plus a `navset_pill_list()` and a
+  Next buttons. It is `brand_page_sidebar()` plus a `navset_pill()` and a
   `navset_hidden()`, so no new page wrapper was needed.
 
 # brandkit 0.3.0

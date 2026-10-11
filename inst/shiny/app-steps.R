@@ -7,13 +7,11 @@
 # on the right. It is brand_page_sidebar() with two additions, both plain
 # bslib:
 #
-#   navset_pill_list()   the pills, in the sidebar. On its own it would draw
-#                        its own content pane next to them, so its panels
-#                        are empty and only the pills are used...
-#   navset_hidden()      ...and this holds the real pages, with no tab
-#                        strip of its own. One observer below keeps the two
-#                        in step, and the Back / Next buttons just move the
-#                        pills.
+#   navset_pill()    the pills, in the sidebar, stacked into a column by one
+#                    CSS rule. Its panels are empty: only the pills are used...
+#   navset_hidden()  ...and this holds the real pages, with no tab strip of
+#                    its own. One observer below keeps the two in step, and
+#                    the Back / Next buttons just move the pills.
 #
 # The theming is the usual brandkit one: nothing below sets a colour. The
 # step badges and the button row take theirs from the Bootstrap variables
@@ -58,6 +56,8 @@ step_buttons <- function(id, back = FALSE, nxt = TRUE) {
 # On the active pill the disc swaps to the page colour, or it would be the
 # pill's own colour on the pill.
 step_css <- "
+/* The pills run down the sidebar, one per row, each the full width of it. */
+.sidebar .nav-pills { flex-direction: column; flex-wrap: nowrap; }
 .nav-pills .nav-link { display: flex; align-items: center; }
 .step-badge {
   display: inline-flex; align-items: center; justify-content: center;
@@ -83,7 +83,7 @@ ui <- brand_page_sidebar(
   sidebar = sidebar(
     title = "Steps",
     open  = "always",
-    navset_pill_list(
+    navset_pill(
       id = "step",
       nav_panel(step_title(1, "Data"),     value = "data"),
       nav_panel(step_title(2, "Analysis"), value = "analysis"),
