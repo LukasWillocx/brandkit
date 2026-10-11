@@ -17,9 +17,10 @@ Invisibly returns a character vector of copied file paths.
 }
 \description{
 Scaffolds a minimal single-file Shiny app built on
-\code{\link[=brand_page_sidebar]{brand_page_sidebar()}} — a sidebar of inputs, a plot, a palette
-preview, and a summary panel, with no theming code in it. Use this as
-the starting point for a new branded app.
+\code{\link[=brand_page_sidebar]{brand_page_sidebar()}} — a sidebar of inputs, a plot shown both as a
+static ggplot and as an interactive plotly widget (\code{\link[=brand_plotly]{brand_plotly()}}), a
+palette preview, and a summary panel, with no theming code in it. Use
+this as the starting point for a new branded app.
 }
 \details{
 The app uses \code{style = "drift"}, the look shared with
@@ -46,6 +47,10 @@ Unlike the Quarto scaffolds, nothing else needs copying: the
 \verb{brand_page_*()} wrappers pull brandkit's widget CSS overrides,
 dark-mode CSS, and the dark-mode toggle in at runtime, so there is no
 stylesheet to place in the project.
+
+The template needs the \pkg{plotly} package. It is optional for
+brandkit, so this function reports it if it is missing rather than
+leaving you to hit the error at app start.
 }
 \section{Brand format}{
 

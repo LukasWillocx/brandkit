@@ -6,9 +6,10 @@
 #' Set Up a Branded Shiny App
 #'
 #' Scaffolds a minimal single-file Shiny app built on
-#' [brand_page_sidebar()] — a sidebar of inputs, a plot, a palette
-#' preview, and a summary panel, with no theming code in it. Use this as
-#' the starting point for a new branded app.
+#' [brand_page_sidebar()] — a sidebar of inputs, a plot shown both as a
+#' static ggplot and as an interactive plotly widget ([brand_plotly()]), a
+#' palette preview, and a summary panel, with no theming code in it. Use
+#' this as the starting point for a new branded app.
 #'
 #' The app uses `style = "drift"`, the look shared with
 #' [create_brand_quarto_poster()]: soft geometric ornaments in the corners
@@ -39,6 +40,10 @@
 #' `brand_page_*()` wrappers pull brandkit's widget CSS overrides,
 #' dark-mode CSS, and the dark-mode toggle in at runtime, so there is no
 #' stylesheet to place in the project.
+#'
+#' The template needs the \pkg{plotly} package. It is optional for
+#' brandkit, so this function reports it if it is missing rather than
+#' leaving you to hit the error at app start.
 #'
 #' @section Brand format:
 #' This is the mirror image of what [create_brand_quarto_html()] and
@@ -80,7 +85,7 @@ create_brand_shiny_app <- function(path = ".", overwrite = FALSE) {
     path      = path,
     template  = "app-starter.R",
     overwrite = overwrite,
-    packages  = character(0)
+    packages  = "plotly"
   )
 }
 
@@ -165,6 +170,54 @@ create_brand_shiny_map <- function(path = ".", overwrite = FALSE) {
     template  = "app-map.R",
     overwrite = overwrite,
     packages  = c("leaflet", "plotly")
+  )
+}
+
+
+#' Set Up a Branded Shiny Step-by-Step App
+#'
+#' Scaffolds a single-file app for a workflow that runs in order — set up,
+#' analyse, report — built on [brand_page_sidebar()] in the `"drift"`
+#' style. The sidebar holds a column of numbered pills, one per step, and
+#' the main area shows the page for the current step, with Back and Next
+#' buttons at the foot of each.
+#'
+#' @inheritParams create_brand_shiny_app
+#'
+#' @details
+#' Copies `_brand.yml` (bslib format), `app.R`, and any local font and
+#' logo files, exactly as [create_brand_shiny_app()] does — see its
+#' documentation for how the brand file is written and converted.
+#'
+#' The layout is plain bslib, which is why there is no dedicated page
+#' wrapper for it. `bslib::navset_pill_list()` provides the pills, but
+#' draws a content pane of its own beside them, which would end up inside
+#' the sidebar. So the pills carry no content, and the pages live in a
+#' `bslib::navset_hidden()` in the main area; one `observeEvent()` selects
+#' the page that matches the pill. Everything that changes step — a pill,
+#' a button, or `nav_select("step", "report")` from your own code — moves
+#' the pills, and the page follows.
+#'
+#' The step number is a disc in the pill, drawn from Bootstrap's
+#' `--bs-primary` and `--bs-body-bg`, so like everything else it takes its
+#' colours from `_brand.yml` and follows the dark-mode toggle. The template
+#' needs no packages beyond the ones brandkit already depends on.
+#'
+#' @return Invisibly returns a character vector of copied file paths.
+#'
+#' @examples
+#' \dontrun{
+#' create_brand_shiny_steps(path = "my-steps-app")
+#' shiny::runApp("my-steps-app")
+#' }
+#'
+#' @export
+create_brand_shiny_steps <- function(path = ".", overwrite = FALSE) {
+  scaffold_shiny_app(
+    path      = path,
+    template  = "app-steps.R",
+    overwrite = overwrite,
+    packages  = character(0)
   )
 }
 

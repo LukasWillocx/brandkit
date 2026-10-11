@@ -239,15 +239,17 @@ There is one template per page wrapper. Each writes a bslib-format `_brand.yml`,
 create_brand_shiny_app(path = "my-app")             # brand_page_sidebar
 create_brand_shiny_dashboard(path = "my-dashboard") # brand_page_navbar
 create_brand_shiny_map(path = "my-map")             # brand_page_fluid
+create_brand_shiny_steps(path = "my-steps")         # brand_page_sidebar, pill-list steps
 
 shiny::runApp("my-app")
 ```
 
 | Template | Wrapper | Shows off | Needs |
 |---|---|---|---|
-| `create_brand_shiny_app()` | `brand_page_sidebar(style = "drift")` | The zero-boilerplate baseline, in the poster's look: sidebar inputs, a ggplot, a `brand_pal_discrete()` swatch, corner ornaments | — |
+| `create_brand_shiny_app()` | `brand_page_sidebar(style = "drift")` | The zero-boilerplate baseline, in the poster's look: sidebar inputs, the same scatter plot as a ggplot and as an interactive `brand_plotly()` widget, a `brand_pal_discrete()` swatch, corner ornaments | `plotly` |
 | `create_brand_shiny_dashboard()` | `brand_page_navbar()` | Value-box KPI row, multi-tab layout, a DT table styled in both modes | `DT` |
 | `create_brand_shiny_map()` | `brand_page_fluid()` | `brand_pal_seq()` driving a leaflet colour ramp, `brand_plotly()`, tiles that follow the dark-mode toggle | `leaflet`, `plotly` |
+| `create_brand_shiny_steps()` | `brand_page_sidebar(style = "drift")` | A workflow in order: numbered pills in the sidebar (`navset_pill_list()`) driving a `navset_hidden()` of step pages, with Back / Next buttons | — |
 
 Templates that need a suggested package say so at scaffold time rather than letting you hit the error when the app starts — the files are written either way.
 

@@ -23,8 +23,23 @@ test_that("create_brand_shiny_app never overwrites app.R unless asked", {
   expect_false(identical(readLines(file.path(dir, "app.R")), "# mine"))
 })
 
+test_that("create_brand_shiny_steps writes the step-by-step template", {
+  local_brand(test_brand_bslib())
+  dir <- file.path(withr::local_tempdir(), "my-steps")
+
+  suppressMessages(copied <- create_brand_shiny_steps(dir))
+
+  expect_setequal(basename(copied), c("_brand.yml", "app.R"))
+  app <- readLines(file.path(dir, "app.R"))
+  expect_true(any(grepl("navset_pill_list", app, fixed = TRUE)))
+  expect_true(any(grepl("navset_hidden", app, fixed = TRUE)))
+  # The template parses, and leaves colour to the brand.
+  expect_no_error(parse(file.path(dir, "app.R")))
+  expect_false(any(grepl("#[0-9a-fA-F]{3,8}\\b", app)))
+})
+
 test_that("the bundled Shiny templates are all installed", {
-  for (tpl in c("app-starter.R", "app-dashboard.R", "app-map.R")) {
+  for (tpl in c("app-starter.R", "app-dashboard.R", "app-map.R", "app-steps.R")) {
     expect_true(nzchar(system.file("shiny", tpl, package = "brandkit")), info = tpl)
   }
 })

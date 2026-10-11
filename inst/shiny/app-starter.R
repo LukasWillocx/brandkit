@@ -8,6 +8,11 @@
 # renderPlot() picks up brand colours and fonts. There is no theming code
 # below on purpose — that's the point.
 #
+# The scatter plot appears twice: as a static renderPlot(), and as an
+# interactive plotly widget via brand_plotly(). plotly sits outside
+# thematic's reach, so that one takes the dark-mode toggle by hand
+# (brand_dark_mode()). Requires the plotly package.
+#
 # style = "drift" is the page look shared with brandkit's poster template:
 # soft geometric ornaments in the window's top-right and bottom-left
 # corners, the title as plain type, and cards as tinted surfaces with a
@@ -19,6 +24,7 @@
 library(shiny)
 library(bslib)
 library(ggplot2)
+library(plotly)
 library(brandkit)
 
 # Sample data - replace with your own. airquality is built into R: daily
@@ -45,27 +51,36 @@ ui <- brand_page_sidebar(
   ),
 
   layout_columns(
-    col_widths = c(8, 4),
+    col_widths = c(6, 6),
     card(
       card_header("Temperature and air quality"),
       plotOutput("scatter", height = "380px")
     ),
     card(
-      card_header("Brand palette"),
-      plotOutput("palette", height = "380px")
+      card_header("Temperature and air quality (interactive)"),
+      plotlyOutput("scatter_interactive", height = "380px")
     )
   ),
 
-  card(
-    card_header("Summary"),
-    verbatimTextOutput("summary")
+  layout_columns(
+    col_widths = c(4, 8),
+    card(
+      card_header("Brand palette"),
+      plotOutput("palette", height = "240px")
+    ),
+    card(
+      card_header("Summary"),
+      verbatimTextOutput("summary")
+    )
   )
 )
 
 
 server <- function(input, output, session) {
 
-  output$scatter <- renderPlot({
+  # The scatter plot is a reactive so renderPlot() and the optional plotly
+  # version below can share it.
+  scatter_plot <- reactive({
     d <- aq[!is.na(aq[[input$measure]]), ]
 
     p <- ggplot(d, aes(Temp, .data[[input$measure]], color = Month)) +
@@ -78,6 +93,18 @@ server <- function(input, output, session) {
       p <- p + geom_smooth(aes(color = NULL), method = "lm", formula = y ~ x, se = FALSE)
     }
     p
+  })
+
+  output$scatter <- renderPlot(scatter_plot())
+
+  # The same scatter plot, interactive. brand_plotly() turns any ggplot into
+  # a branded plotly widget (hover tooltips, zoom). Unlike renderPlot(),
+  # plotly is not themed by thematic, so the dark-mode toggle is passed in
+  # by hand via brand_dark_mode().
+  dm <- brand_dark_mode(input)
+
+  output$scatter_interactive <- renderPlotly({
+    brand_plotly(scatter_plot(), mode = dm$mode(), tooltip = c("x", "y"))
   })
 
   # brand_pal_discrete() pulls the qualitative palette straight from
