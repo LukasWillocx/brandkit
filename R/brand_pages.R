@@ -258,18 +258,27 @@ output_discrete_scale <- function(aesthetic) {
   function(...) maker(..., values = brand_pal_discrete(mode = output_mode()))
 }
 
-output_mode <- function() {
+output_mode <- function() detect_output_mode() %||% "light"
+
+# The same reading, but NULL when there is nothing to read — outside a Shiny
+# render, or before the browser has reported the output's colours — so a
+# caller can tell "light" from "don't know" and fall back on something else
+# (see brand_plotly()).
+detect_output_mode <- function() {
+  # Nothing to ask unless Shiny is already running in this process.
+  if (!isNamespaceLoaded("shiny")) return(NULL)
+
   bg <- tryCatch({
     bg <- shiny::getCurrentOutputInfo()$bg
     if (is.function(bg)) bg() else bg
   }, error = function(e) NULL)
-  if (is.null(bg) || is.na(bg) || !nzchar(bg)) return("light")
+  if (is.null(bg) || is.na(bg) || !nzchar(bg)) return(NULL)
 
   rgb <- tryCatch(
     grDevices::col2rgb(htmltools::parseCssColors(bg)),
     error = function(e) NULL
   )
-  if (is.null(rgb)) return("light")
+  if (is.null(rgb)) return(NULL)
 
   # Relative luminance, close enough: this only has to tell a dark card
   # from a light one.

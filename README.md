@@ -407,6 +407,16 @@ output$plot <- renderPlotly({
 })
 ```
 
+**Usage in a Quarto dashboard (`server: shiny`):**
+
+Leave `mode` out. Inside a Shiny render, `brand_plotly()` reads the light or dark background of the card it sits on, so the plot follows Quarto's light/dark toggle (redrawing when it changes):
+
+```r
+output$plot <- plotly::renderPlotly({
+  brand_plotly(p, tooltip = c("x", "y"))
+})
+```
+
 **Usage in Quarto (revealjs slides):**
 
 For slides, pass fixed dimensions to prevent overflow:
@@ -428,7 +438,7 @@ For HTML documents, leave width/height as NULL (automatic sizing).
 **What brand_plotly does NOT handle:**
 
 - Tooltip positioning near container edges (plotly limitation)
-- Automatic dark mode toggling — pass `mode` explicitly in Shiny
+- Dark mode toggling in a Shiny *app* — the starter templates still pass `mode` explicitly (see above); a Quarto dashboard needs no `mode`
 
 ---
 
@@ -623,11 +633,11 @@ For plotly in slides, always pass fixed dimensions: `brand_plotly(p, width = 100
 
 `create_brand_quarto_dashboard()` scaffolds a small Shiny-backed Quarto dashboard in the same "drift" look as the poster and the Shiny starter: soft corner ornaments behind the page, the title as plain type, tinted cards under a solid header, a transparent sidebar rail. The sample is R's built-in `airquality` data (daily New York air quality, 1973), filtered by month and temperature. It is three short files you edit directly:
 
-- `dashboard.qmd` — the dashboard: sidebar inputs, a row of value boxes, two charts and a table, in about 130 lines of Quarto markdown and Shiny code.
+- `dashboard.qmd` — the dashboard: sidebar inputs, a row of value boxes, two charts (one an interactive `brand_plotly()` widget) and a table, in about 135 lines of Quarto markdown and Shiny code.
 - `drift.scss` — the look, built from the brand's own Sass variables. Quarto compiles it once per colour mode, so one file serves both.
 - `_ornaments.html` — the two corner ornaments, drawn with the page's CSS colour variables rather than hex values, so they follow the brand and the dark-mode toggle without being regenerated.
 
-Dark mode is on by default: the document declares one theme per mode (`theme: light: [brand, drift.scss]  dark: [...]`), which is what puts the toggle in the navbar. Plots are drawn live by Shiny rather than baked in at render time, so — unlike the static report — they follow the toggle too. `brand_quarto_setup(shiny = TRUE)` is the one line that arranges that: it switches on thematic, which gives every `renderPlot()` the colours, fonts and background of the card it sits in and redraws it when the mode changes — including the discrete palette, which switches to the brand's dark colours on a dark card. Add `# Page` headings for more pages; the tab strip appears once there are two. Serve with `quarto serve dashboard.qmd`.
+Dark mode is on by default: the document declares one theme per mode (`theme: light: [brand, drift.scss]  dark: [...]`), which is what puts the toggle in the navbar. Plots are drawn live by Shiny rather than baked in at render time, so — unlike the static report — they follow the toggle too. `brand_quarto_setup(shiny = TRUE)` is the one line that arranges that: it switches on thematic, which gives every `renderPlot()` the colours, fonts and background of the card it sits in and redraws it when the mode changes — including the discrete palette, which switches to the brand's dark colours on a dark card. The plotly chart follows it as well, with no `mode` argument: inside a Shiny render `brand_plotly()` reads the background of its card. The sample needs the `plotly` package. Add `# Page` headings for more pages; the tab strip appears once there are two. Serve with `quarto serve dashboard.qmd`.
 
 ### PDF documents (Typst)
 

@@ -10,10 +10,14 @@
 #' detects the active mode set by `brand_quarto_setup()`.
 #'
 #' @param p A ggplot2 object.
-#' @param mode `"light"`, `"dark"`, or `NULL` (auto-detect from
-#'   `brand_quarto_setup()` / `.onAttach`). Default `NULL`. After
-#'   `brand_quarto_setup(adaptive = TRUE)`, `NULL` draws the plot in both
-#'   modes (see Value).
+#' @param mode `"light"`, `"dark"`, or `NULL` (auto-detect). Default `NULL`.
+#'   Inside a Shiny render (a Shiny app, or a Quarto dashboard with
+#'   `server: shiny`), `NULL` follows the light or dark background of the
+#'   page the plot sits on, redrawing when it changes, so no mode needs
+#'   passing. Elsewhere it uses the mode set by `brand_quarto_setup()` /
+#'   `.onAttach`; after `brand_quarto_setup(adaptive = TRUE)` it draws the
+#'   plot in both modes (see Value). An explicit `"light"` or `"dark"`
+#'   always wins.
 #' @param base_size Font size in points.
 #' @param tooltip Aesthetics to show on hover.
 #' @param width Widget width in pixels. Default `NULL` (automatic).
@@ -33,6 +37,11 @@ brand_plotly <- function(p, mode = NULL, base_size = 14, tooltip = "y",
   if (!requireNamespace("plotly", quietly = TRUE)) {
     stop("Install the plotly package to use brand_plotly().", call. = FALSE)
   }
+
+  # Inside a Shiny render, the output's own background says which mode the
+  # page is in, which is what lets a dashboard follow Quarto's toggle with no
+  # input to read it from. Reading it is reactive, so a switch redraws.
+  if (is.null(mode)) mode <- detect_output_mode()
 
   if (is.null(mode) && isTRUE(brand_env$adaptive)) {
     one <- function(m) {

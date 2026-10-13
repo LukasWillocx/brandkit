@@ -399,13 +399,21 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
 #'     filled with the page's CSS colour variables rather than the brand's
 #'     hex values, so the file never goes stale when the brand changes and
 #'     follows the dark-mode toggle.}
-#'   \item{`dashboard.qmd`}{Sample Shiny dashboard (if `examples = TRUE`).}
+#'   \item{`dashboard.qmd`}{Sample Shiny dashboard (if `examples = TRUE`).
+#'     One chart is a static ggplot, the other an interactive
+#'     [brand_plotly()] widget.}
 #' }
 #'
 #' The dark-mode toggle comes from giving the document one theme per mode
 #' (`theme: light: ... dark: ...`), which is how `dashboard.qmd` declares
 #' it. Plots are drawn live by Shiny, so `brand_quarto_setup(shiny = TRUE)`
-#' lets thematic redraw them in the card's colours when the mode changes.
+#' lets thematic redraw them in the card's colours when the mode changes. The
+#' plotly chart follows it too: inside a Shiny render [brand_plotly()] reads
+#' the card's background, so it needs no `mode`.
+#'
+#' The sample needs the \pkg{plotly} package. It is optional for brandkit,
+#' so this function reports it if it is missing rather than leaving you to
+#' hit the error when the dashboard starts.
 #'
 #' Because the document declares `server: shiny`, it is served rather than
 #' rendered to a static file:

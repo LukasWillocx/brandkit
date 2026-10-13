@@ -1,5 +1,14 @@
 # brandkit (development version)
 
+* `brand_plotly()` now follows the page's light/dark mode inside a Shiny
+  render when `mode` is left `NULL`, by reading the background of the output
+  it sits on. This is what lets it work in a Quarto dashboard (`server:
+  shiny`), whose toggle gives Shiny no input to read. An explicit `mode`
+  still wins.
+* The `create_brand_quarto_dashboard()` template now shows its ozone scatter
+  as an interactive `brand_plotly()` card, which follows the dark-mode toggle.
+  The template needs plotly (already in Suggests), and the scaffold reports it
+  if it is missing.
 * Declared dependencies that were used but not listed: `later` and `utils`
   in Imports, `htmlwidgets` in Suggests.
 * The `create_brand_shiny_app()` template now shows its scatter plot a second

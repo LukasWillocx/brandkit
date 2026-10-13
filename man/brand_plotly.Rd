@@ -16,10 +16,14 @@ brand_plotly(
 \arguments{
 \item{p}{A ggplot2 object.}
 
-\item{mode}{\code{"light"}, \code{"dark"}, or \code{NULL} (auto-detect from
-\code{brand_quarto_setup()} / \code{.onAttach}). Default \code{NULL}. After
-\code{brand_quarto_setup(adaptive = TRUE)}, \code{NULL} draws the plot in both
-modes (see Value).}
+\item{mode}{\code{"light"}, \code{"dark"}, or \code{NULL} (auto-detect). Default \code{NULL}.
+Inside a Shiny render (a Shiny app, or a Quarto dashboard with
+\code{server: shiny}), \code{NULL} follows the light or dark background of the
+page the plot sits on, redrawing when it changes, so no mode needs
+passing. Elsewhere it uses the mode set by \code{brand_quarto_setup()} /
+\code{.onAttach}; after \code{brand_quarto_setup(adaptive = TRUE)} it draws the
+plot in both modes (see Value). An explicit \code{"light"} or \code{"dark"}
+always wins.}
 
 \item{base_size}{Font size in points.}
 

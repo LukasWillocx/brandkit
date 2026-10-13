@@ -79,7 +79,7 @@ plotOutput("temp_plot")
 
 ```{r}
 #| title: "Ozone and temperature"
-plotOutput("ozone_plot")
+plotly::plotlyOutput("ozone_plot")
 ```
 
 ## Row {height="35%"}
@@ -108,11 +108,15 @@ output$temp_plot <- renderPlot({
     labs(x = NULL, y = "Temperature (°F)")
 })
 
-output$ozone_plot <- renderPlot({
+# An interactive chart. Written as an ordinary ggplot; brand_plotly() turns it
+# into a plotly widget in the brand's colours and fonts, and follows the
+# dark-mode toggle without being told which mode the page is in.
+output$ozone_plot <- plotly::renderPlotly({
   req(nrow(d()) > 0)
-  ggplot(na.omit(d()), aes(Temp, Ozone, color = Month)) +
+  p <- ggplot(na.omit(d()), aes(Temp, Ozone, color = Month)) +
     geom_point(size = 3) +
     labs(x = "Temperature (°F)", y = "Ozone (ppb)", color = NULL)
+  brand_plotly(p, tooltip = c("x", "y", "colour"))
 })
 
 output$monthly <- renderTable({
