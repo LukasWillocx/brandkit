@@ -208,8 +208,7 @@ create_brand_quarto_html <- function(path = ".", examples = TRUE, overwrite = FA
   }
 
   orn_dest <- file.path(path, "_ornaments.html")
-  if (!file.exists(orn_dest) || overwrite) {
-    write_ornaments_html(orn_dest)
+  if (write_ornaments_html(orn_dest, overwrite)) {
     copied <- c(copied, orn_dest)
     message("Wrote _ornaments.html")
   }
@@ -318,8 +317,7 @@ create_brand_quarto_slides <- function(path = ".", examples = TRUE, overwrite = 
   }
 
   orn_dest <- file.path(path, "_ornaments.html")
-  if (!file.exists(orn_dest) || overwrite) {
-    write_ornaments_html(orn_dest)
+  if (write_ornaments_html(orn_dest, overwrite)) {
     copied <- c(copied, orn_dest)
     message("Wrote _ornaments.html")
   }
@@ -472,8 +470,7 @@ create_brand_quarto_dashboard <- function(path = ".", examples = TRUE,
   }
 
   orn_dest <- file.path(path, "_ornaments.html")
-  if (!file.exists(orn_dest) || overwrite) {
-    write_ornaments_html(orn_dest)
+  if (write_ornaments_html(orn_dest, overwrite)) {
     copied <- c(copied, orn_dest)
     message("Wrote _ornaments.html")
   }
@@ -509,14 +506,20 @@ create_brand_quarto_dashboard <- function(path = ".", examples = TRUE,
 #' via Quarto's Typst engine. Quarto's own `_brand.yml` integration
 #' already applies brand colours and fonts to headings, links, and body
 #' text in Typst output — but not to code, so the `_extensions/brandkit/`
-#' extension this function installs closes that gap: both inline code
-#' spans and fenced code blocks pick up the brand's configured monospace
-#' font, sized to match the surrounding body text (Typst has no
-#' root-relative unit equivalent to CSS `rem`, so this is resolved to an
-#' absolute length rather than left to compound), and inline code spans
-#' additionally get a colour of their own — a blend of the brand's
-#' secondary accent and foreground colour — so they stand out in running
-#' text. The extension also layers a full-bleed title banner on top — a
+#' extension this function installs closes that gap: fenced code blocks
+#' pick up the brand's configured monospace font, keep the syntax colours
+#' of the highlighting theme, and sit in a box tinted with the brand's
+#' primary colour (the same tint the HTML templates give code), and the
+#' text size of blocks and inline code is matched to the surrounding body
+#' text (Typst has no root-relative unit equivalent to CSS `rem`, so this
+#' is resolved to an absolute length rather than left to compound). Inline
+#' code spans stay in the body font, because a monospace face looks
+#' oversized beside the text around it even at the same size, and get a
+#' colour of their own — a blend of the brand's secondary accent and
+#' foreground colour — so they stand out in running text. (A small pandoc
+#' filter, `inline-code.lua`, sets them as plain text; the highlighter
+#' otherwise gives inline code and fenced blocks the same element, which
+#' no styling rule can tell apart.) The extension also layers a full-bleed title banner on top — a
 #' diagonal-stripe field (Linux Mint wallpaper style, drawn as Typst
 #' polygons, no image asset) that runs primary-coloured behind the
 #' title/subtitle and switches to secondary-coloured stripes past an
@@ -539,9 +542,10 @@ create_brand_quarto_dashboard <- function(path = ".", examples = TRUE,
 #'     `typst-show.typ`, `page.typ`, and Quarto's own supporting partials)
 #'     that adds a full-bleed diagonal-stripe title banner (with the logo,
 #'     if configured, placed inline in it), coloured headings, a coloured
-#'     footer, and brand-matched code styling (monospace font and body-
-#'     matched size for inline code and fenced blocks alike, plus a
-#'     secondary/foreground colour blend on inline code) on top of
+#'     footer, and brand-matched code styling (the monospace font and a
+#'     primary-tinted box for fenced blocks, the body font and a
+#'     secondary/foreground colour blend for inline code, a body-matched
+#'     size for both; `inline-code.lua` is the filter behind this) on top of
 #'     Quarto's default Typst article template. When there's no title,
 #'     the banner is skipped and the logo falls back to a plain
 #'     page-corner mark instead.}
@@ -794,7 +798,10 @@ write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
       `padding-right` = "0.5in",
       `padding-top` = "0.25in"
     ),
-    `code-radius` = radius
+    `code-radius` = radius,
+    # Sets inline code as plain text rather than `raw`, which is what lets it
+    # differ from a fenced block; see inline-code.lua. Every format has it.
+    filters = list("inline-code.lua")
   )
 
   # Selects the inset (print) banner in page.typ and typst-template.typ.
@@ -833,7 +840,7 @@ write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
     # per document from the .qmd YAML like any other format option.
     typst_fmt$columns <- poster$columns
     # Groups each level-2 section into a card panel; see poster.lua.
-    typst_fmt$filters <- list("poster.lua")
+    typst_fmt$filters <- c(typst_fmt$filters, list("poster.lua"))
   }
 
   # An explicit absolute `fontsize:` here takes the $if(fontsize)$ branch
@@ -870,6 +877,44 @@ write_extension_yml_for_quarto <- function(dest, banner_inset = FALSE,
   )
 
   yaml::write_yaml(cfg, dest)
+}
+
+# Bring the brand-derived values of an existing _extension.yml back in line
+# with the current brand, leaving every other key as the user has it. These
+# are the only values write_extension_yml_for_quarto() computes from the
+# brand: the base font size (and, for the poster, the scale and logo width
+# that follow from it) and the code-block corner radius. Returns the names
+# of the keys that changed; the file is only rewritten when some did.
+sync_extension_yml_brand_values <- function(dest, banner_inset = FALSE,
+                                            poster = NULL, drift = FALSE) {
+  old <- tryCatch(yaml::read_yaml(dest), error = function(e) NULL)
+  old_typst <- old$contributes$formats$typst
+  if (is.null(old_typst)) return(character(0))
+
+  fresh <- tempfile(fileext = ".yml")
+  on.exit(unlink(fresh), add = TRUE)
+  write_extension_yml_for_quarto(fresh, banner_inset = banner_inset,
+                                 poster = poster, drift = drift)
+  new_typst <- yaml::read_yaml(fresh)$contributes$formats$typst
+
+  changed <- character(0)
+  for (key in c("fontsize", "code-radius", "poster-scale")) {
+    if (!identical(old_typst[[key]], new_typst[[key]])) {
+      old_typst[[key]] <- new_typst[[key]]
+      changed <- c(changed, key)
+    }
+  }
+  if (!identical(old_typst$logo$width, new_typst$logo$width) &&
+      !is.null(old_typst$logo)) {
+    old_typst$logo$width <- new_typst$logo$width
+    changed <- c(changed, "logo width")
+  }
+
+  if (length(changed)) {
+    old$contributes$formats$typst <- old_typst
+    yaml::write_yaml(old, dest)
+  }
+  changed
 }
 
 # Convert a CSS-style base font size (rem/em/px/pt) to an absolute Typst
@@ -1186,6 +1231,22 @@ copy_typst_extension <- function(path, ext_name, banner_inset, overwrite,
                                    poster = poster, drift = drift)
     copied <- c(copied, ext_yml_dest)
     message("Wrote _extensions/", ext_name, "/_extension.yml")
+  } else {
+    # Left alone otherwise, so hand edits (margins, extra options) survive
+    # a re-run — but the brand-derived values in it go stale the moment the
+    # brand changes, and a stale `fontsize:` wins over _brand.yml in
+    # typst-show.typ, so a new base size would silently never reach the PDF.
+    changed <- sync_extension_yml_brand_values(
+      ext_yml_dest, banner_inset = banner_inset, poster = poster, drift = drift
+    )
+    if (length(changed)) {
+      copied <- c(copied, ext_yml_dest)
+      message(
+        "Updated ", paste(changed, collapse = ", "), " in _extensions/",
+        ext_name, "/_extension.yml to match the brand ",
+        "(use overwrite = TRUE to regenerate the whole file)"
+      )
+    }
   }
 
   # The corner ornaments are generated like _extension.yml, and for the
@@ -1193,11 +1254,10 @@ copy_typst_extension <- function(path, ext_name, banner_inset, overwrite,
   # R side knows. The drift layouts only (the poster and the print report);
   # the full-bleed report keeps the striped banner.
   if (drift) {
-    orn_dest <- file.path(ext_dest_dir, poster_ornament_files)
-    if (overwrite || !all(file.exists(orn_dest))) {
-      write_poster_ornaments(ext_dest_dir)
-      copied <- c(copied, orn_dest)
-      message("Wrote _extensions/", ext_name, "/ ", paste(poster_ornament_files, collapse = ", "))
+    wrote <- write_poster_ornaments(ext_dest_dir, overwrite)
+    if (length(wrote)) {
+      copied <- c(copied, wrote)
+      message("Wrote _extensions/", ext_name, "/ ", paste(basename(wrote), collapse = ", "))
     }
   }
 

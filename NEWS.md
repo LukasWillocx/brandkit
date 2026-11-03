@@ -1,5 +1,37 @@
 # brandkit (development version)
 
+* Inline code now matches the text around it. In the HTML templates (report,
+  slides, dashboard) it is set in the body font at the surrounding size, in a
+  small-cornered box padded sideways only, so a span can no longer reach the
+  line above or below (it was a monospace face that read larger, in a box with
+  the brand's pill-shaped radius). In the Typst PDFs inline code is likewise
+  set in the body font and told apart by its colour, and fenced blocks keep the
+  monospace font.
+* Typst code blocks now match the HTML ones. Their box is the brand's primary
+  mixed 7% into the page, the colour the HTML templates give code (it was the
+  highlighting theme's fixed grey, one level off the page and close to
+  invisible; the brand-derived fill the template meant to apply never reached
+  highlighted blocks), and their tokens keep the highlighting theme's syntax
+  colours (they had all been tinted the inline-code colour). Pandoc gives inline
+  code and fenced blocks the same element, which no styling rule can tell apart,
+  so a new filter, `inline-code.lua`, sets inline code as plain text; the
+  extension's `typst-show.typ` also wraps skylighting's block to set its fill.
+  Existing projects get this, and the HTML change, from `drift.scss`,
+  `definitions.typ`, `typst-show.typ`, `typst-template.typ`, `inline-code.lua`
+  and `_extension.yml`, which are only copied over with `overwrite = TRUE`.
+* The top-right corner ornament can carry a short label (a brand name, say),
+  set along the swell beside its largest circle, in capitals in the heading
+  font. Set it in the configurator's *Meta & Logo* tab (blank by default) or
+  with `meta: ornament-label:` in `_brand.yml`; `brand_ornament()` gains a
+  `label` argument. It is stored under `meta:` because Quarto rejects a new
+  top-level key in `_brand.yml` but accepts one there. Web pages set it as one
+  text-on-path line; the SVG files Typst draws place each letter themselves,
+  because Typst spaces text-on-path letters unevenly.
+* Re-running a `create_brand_quarto_*()` function now brings the generated
+  files up to date with a changed brand without `overwrite = TRUE`: the base
+  font size and code radius in a Typst `_extension.yml` (a stale `fontsize:`
+  silently beat the brand's size), and the baked ornament SVGs and
+  `_ornaments.html`. Other hand edits to `_extension.yml` are kept.
 * `brand_plotly()` now follows the page's light/dark mode inside a Shiny
   render when `mode` is left `NULL`, by reading the background of the output
   it sits on. This is what lets it work in a Quarto dashboard (`server:

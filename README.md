@@ -649,7 +649,7 @@ Dark mode is on by default: the document declares one theme per mode (`theme: li
 
 It suits paper for three reasons. Nothing is full-bleed, so there is no ink near the unprintable edge of an ordinary printer (the ornaments are faint enough that a clipped edge does not show); there is no solid panel to show through lighter stock; and the ornaments are drawn at a low opacity, so the header area uses a fraction of the ink of the striped banner. They appear on the first page only, as a title page framed and the pages after it plain — in `page.typ` it is a single `if` to repeat them on every page. The running footer (rule, title and page number) is the other way round: it starts on page two, so the title page carries nothing but the masthead and the ornaments.
 
-The masthead is flow content rather than a fixed-height background, so it sizes itself to its content — a long title simply wraps. The ornaments are generated from `_brand.yml` at scaffold time (`drift-top-right.svg`, `drift-bottom-left.svg`); re-run with `overwrite = TRUE` after changing the brand. The sample is the `airquality` data.
+The masthead is flow content rather than a fixed-height background, so it sizes itself to its content — a long title simply wraps. The ornaments are generated from `_brand.yml` at scaffold time (`drift-top-right.svg`, `drift-bottom-left.svg`); re-run the `create_*()` function after changing the brand and they are rewritten if they changed. The sample is the `airquality` data.
 
 One caveat if you are optimising for print: Quarto fills the whole page with `_brand.yml`'s `color.background`, independently of the ornaments. If your brand's background is anything other than white, that tint is itself full-bleed and will clip at an ordinary printer's unprintable edge. Set `color.background` to white for a print-targeted brand.
 
@@ -724,6 +724,8 @@ Each shape is a full brand colour at a low opacity, so the extra shades come fro
 cat(brand_ornament("drift", "top-right"))
 brand_ornament("drift", "bottom-left", softness = 0.1, file = "corner.svg")
 ```
+
+To personalise the top-right ornament, add a short line of text (a brand name, say) in the configurator's *Meta & Logo* tab, or set `meta: ornament-label:` in `_brand.yml`. It is set in capitals along the swell's curve, in the heading font, on the side of the curve away from the wave: the part of the largest circle the swell does not cover, so it never sits on the overlap. It is blank by default, top-right only, and truncated at 16 characters. Pass `label =` to `brand_ornament()` to set or override it, or `label = NULL` for none.
 
 The poster uses a lower opacity (0.12) than the function's default (0.17): the default was tuned on page-sized layouts, and the same value across an A0 sheet reads as large flat blocks of colour. Re-run `create_brand_quarto_poster(overwrite = TRUE)` after changing the brand to redraw them in the new colours.
 

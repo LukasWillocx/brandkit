@@ -9,6 +9,7 @@ brand_ornament(
   corner = c("top-right", "bottom-left"),
   softness = 0.17,
   mode = c("light", "dark"),
+  label = brand_ornament_label(),
   file = NULL,
   vars = FALSE
 )
@@ -27,6 +28,14 @@ build up from this, so useful values are small; the default is \code{0.17}.}
 
 \item{mode}{\code{"light"} or \code{"dark"}: which of the brand's palettes to draw
 with.}
+
+\item{label}{Optional short text set along the swell of the \code{"top-right"}
+ornament, in capitals in the brand's heading font, beside its largest
+orb: a brand name or a tagline. It sits on the part of the orb the swell
+does not cover, and is ignored for \code{"bottom-left"}. Short text reads
+best, and anything over 16 characters is truncated. Defaults to the
+brand's \verb{meta: ornament-label:} (which \code{\link[=configure_brand]{configure_brand()}} writes); \code{NULL}
+or \code{""} draws none.}
 
 \item{file}{Optional path. If given, the SVG is also written there.}
 

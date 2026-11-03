@@ -22,14 +22,20 @@ report into a Quarto project directory, configured to render to PDF
 via Quarto's Typst engine. Quarto's own \verb{_brand.yml} integration
 already applies brand colours and fonts to headings, links, and body
 text in Typst output — but not to code, so the \verb{_extensions/brandkit/}
-extension this function installs closes that gap: both inline code
-spans and fenced code blocks pick up the brand's configured monospace
-font, sized to match the surrounding body text (Typst has no
-root-relative unit equivalent to CSS \code{rem}, so this is resolved to an
-absolute length rather than left to compound), and inline code spans
-additionally get a colour of their own — a blend of the brand's
-secondary accent and foreground colour — so they stand out in running
-text. The extension also layers a full-bleed title banner on top — a
+extension this function installs closes that gap: fenced code blocks
+pick up the brand's configured monospace font, keep the syntax colours
+of the highlighting theme, and sit in a box tinted with the brand's
+primary colour (the same tint the HTML templates give code), and the
+text size of blocks and inline code is matched to the surrounding body
+text (Typst has no root-relative unit equivalent to CSS \code{rem}, so this
+is resolved to an absolute length rather than left to compound). Inline
+code spans stay in the body font, because a monospace face looks
+oversized beside the text around it even at the same size, and get a
+colour of their own — a blend of the brand's secondary accent and
+foreground colour — so they stand out in running text. (A small pandoc
+filter, \code{inline-code.lua}, sets them as plain text; the highlighter
+otherwise gives inline code and fenced blocks the same element, which
+no styling rule can tell apart.) The extension also layers a full-bleed title banner on top — a
 diagonal-stripe field (Linux Mint wallpaper style, drawn as Typst
 polygons, no image asset) that runs primary-coloured behind the
 title/subtitle and switches to secondary-coloured stripes past an
@@ -48,9 +54,10 @@ and an absolute base font size; \code{template.typ}, \code{typst-template.typ},
 \code{typst-show.typ}, \code{page.typ}, and Quarto's own supporting partials)
 that adds a full-bleed diagonal-stripe title banner (with the logo,
 if configured, placed inline in it), coloured headings, a coloured
-footer, and brand-matched code styling (monospace font and body-
-matched size for inline code and fenced blocks alike, plus a
-secondary/foreground colour blend on inline code) on top of
+footer, and brand-matched code styling (the monospace font and a
+primary-tinted box for fenced blocks, the body font and a
+secondary/foreground colour blend for inline code, a body-matched
+size for both; \code{inline-code.lua} is the filter behind this) on top of
 Quarto's default Typst article template. When there's no title,
 the banner is skipped and the logo falls back to a plain
 page-corner mark instead.}

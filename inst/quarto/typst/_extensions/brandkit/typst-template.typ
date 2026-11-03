@@ -100,6 +100,16 @@
   // text already scaled by that same relative factor once, would
   // compound multiplicatively instead of matching.
   show raw: set text(size: fontsize)
+  // brandkit: the monospace font is for fenced blocks. Inline code is not
+  // `raw` at all — inline-code.lua turns it into brandkit-inline-code()
+  // (see typst-show.typ), plain text in the body font — so this rule only
+  // ever reaches blocks. It has to be that way round: pandoc's highlighter
+  // emits inline code and every token of a fenced block as the same `raw`
+  // element, so no show rule on `raw` can treat the two differently, and
+  // any rule that coloured or re-fonted one coloured or re-fonted the other.
+  // At one and the same point size a monospace face reads larger than the
+  // text around it — wider glyphs, taller x-height — which is why an inline
+  // span is not set in it.
   show raw: set text(font: codefont) if codefont != none
 
   // brandkit: code is typeset literally, so the font's contextual
@@ -123,51 +133,29 @@
   // every token the highlighter doesn't colour — punctuation, braces,
   // plain identifiers — lands at about 1.2:1 and disappears.
   //
-  // Mixing a little of the brand's secondary into the background instead
-  // keeps the block a shade off the page it sits on, carries the same
-  // accent the banner rail and inline code already use, and follows the
-  // brand into dark mode automatically. 12% is enough to read as a
-  // deliberate tint rather than a neutral grey while leaving the block
-  // firmly a background: across the light, tinted and dark brands this
-  // was checked against, foreground on this fill stays between 10.4:1
-  // and 15.2:1.
+  // The brand's primary mixed 7% into the page: the same tint the HTML
+  // templates give code and cards (--bk-card in drift.scss), so a code box
+  // is the same colour in a report and in its PDF. It keeps the block a
+  // shade off the page and follows the brand into dark mode automatically.
+  // The mix is in sRGB, as CSS's is; Typst's default (Oklab) lands a few
+  // levels off.
   //
-  // Falls back to foreground when a brand defines no secondary, since a
-  // tint of nothing would leave the block indistinguishable from the
-  // page.
+  // This reaches blocks that really are `raw` — what pandoc emits when
+  // syntax highlighting is off. Highlighted blocks, which is nearly all of
+  // them, are drawn by skylighting's own block, whose box is wrapped in
+  // typst-show.typ with this same colour; keep the two in step.
   //
   // Only the fill is set here; width, inset and the brand-derived corner
   // radius stay in definitions.typ, and its luma(230) still applies
   // whenever article() is called without these parameters — they are
   // always supplied by typst-show.typ, so in practice that is the
   // direct-call case rather than anything Quarto renders.
-  let code-block-tint = if secondary-accent != none { secondary-accent } else { foreground }
-  let code-block-fill = if code-block-tint != none and background != none {
-    color.mix((code-block-tint, 12%), (background, 88%))
+  let code-block-fill = if accent != none and background != none {
+    color.mix((accent, 7%), (background, 93%), space: rgb)
   } else {
     none
   }
   show raw.where(block: true): set block(fill: code-block-fill) if code-block-fill != none
-
-  // brandkit: inline code (raw spans set with single backticks in running
-  // body text) gets a colour of its own — a 75/25 blend weighted toward
-  // the brand's secondary accent, with its foreground/dark colour
-  // rounding it out — so it stands out from surrounding prose (and reads
-  // as distinct from primary-coloured headings/links/footer). Fenced
-  // code blocks are deliberately left out of this (raw.where(block:
-  // false) only): they already stand out via the shaded block background
-  // set in definitions.typ, and tinting every token in a whole block the
-  // same flat colour would fight with syntax highlighting there.
-  let inline-code-color = if secondary-accent != none and foreground != none {
-    color.mix((secondary-accent, 75%), (foreground, 25%))
-  } else if secondary-accent != none {
-    secondary-accent
-  } else if accent != none {
-    accent
-  } else {
-    black
-  }
-  show raw.where(block: false): set text(fill: inline-code-color)
 
   set heading(numbering: sectionnumbering)
 

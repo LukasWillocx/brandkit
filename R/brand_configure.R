@@ -336,6 +336,15 @@ configure_brand <- function(path = ".",
         bslib::accordion_panel(
           "Meta & Logo",
           shiny::textInput("brand_name", "Brand name:", d$brand_name),
+          htmltools::tagQuery(
+            shiny::textInput("ornament_label", "Ornament text (optional):",
+                             d$ornament_label, placeholder = "e.g. your brand name")
+          )$find("input")$addAttrs(maxlength = 16)$allTags(),
+          htmltools::div(
+            style = "font-size: 0.8rem; color: #666; margin-top: -0.5rem; margin-bottom: 0.5rem;",
+            "Set along the top-right corner ornament, in the heading font. ",
+            "Short text reads best (up to 16 characters)."
+          ),
           shiny::fileInput("logo_file", "Logo (optional):",
                            accept = c("image/png", "image/svg+xml", "image/jpeg")),
           if (!is.null(existing_logo)) {
@@ -566,7 +575,12 @@ configure_brand <- function(path = ".",
       ornament <- function(corner, position) {
         svg <- ornament_svg("drift", corner, web_ornament_softness,
                             primary = lc$primary, secondary = lc$secondary,
-                            accent = lc$info)
+                            accent = lc$info,
+                            label = input$ornament_label,
+                            font = input$font_heading,
+                            # The preview is a web page, so it shows the form
+                            # the web pages get, not the one baked for Typst.
+                            label_layout = "path")
         htmltools::div(
           style = paste0("position: absolute; width: 8rem; height: 8rem; ",
                          "pointer-events: none; ", position),
@@ -702,7 +716,15 @@ configure_brand <- function(path = ".",
       dc <- dark_cols()
 
       cfg <- list(
-        meta = list(name = input$brand_name),
+        meta = c(
+          list(name = input$brand_name),
+          # Under meta: because Quarto's validation lets an extra key through
+          # there and nowhere else; omitted when blank, so a brand that does
+          # not use it is unchanged.
+          if (nzchar(trimws(input$ornament_label %||% ""))) {
+            list(`ornament-label` = trimws(input$ornament_label))
+          }
+        ),
         color = list(
           primary = lc$primary, secondary = lc$secondary,
           success = lc$success, danger = lc$danger,
@@ -983,6 +1005,7 @@ resolve_existing_logo <- function(path, logo) {
 configurator_defaults <- function(cfg, presets, font_pairs) {
   d <- list(
     brand_name    = "My Brand",
+    ornament_label = "",
     cols          = presets[["Wine & Sage"]],
     preset        = "Wine & Sage",
     auto_dark     = TRUE,
@@ -1020,6 +1043,8 @@ configurator_defaults <- function(cfg, presets, font_pairs) {
   d$logo      <- cfg$logo
 
   if (!is.null(cfg$meta$name)) d$brand_name <- cfg$meta$name
+  lab <- cfg$meta[["ornament-label"]]
+  if (is.character(lab) && length(lab) == 1 && !is.na(lab)) d$ornament_label <- lab
 
   # -- Typography --
   ty <- cfg$typography

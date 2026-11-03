@@ -6,10 +6,52 @@
 // back to `brand-color.primary`; the subtitle falls back to
 // `brand-color.secondary`; the footer rule is drawn in
 // `brand-color.foreground`; inline code text is tinted a blend of
-// `brand-color.secondary` and `brand-color.foreground` (see typst-template.typ).
+// `brand-color.secondary` and `brand-color.foreground` (see
+// brandkit-inline-code below).
 // The brand logo itself is handled entirely by Quarto's own typst pipeline
 // (page.typ, via the pandoc `$logo$` variable) as a page background — not
 // something this file touches.
+
+// brandkit: inline code. inline-code.lua rewrites every inline code span to
+// a call of this, so it is plain text and not `raw`: pandoc's highlighter
+// emits inline code and each token of a fenced block as the same `raw`
+// element, which leaves a show rule on `raw` no way to treat the two
+// differently. As text it takes the body font and size from the page, and
+// is set apart by a colour of its own — a 75/25 blend of the brand's
+// secondary accent and its foreground, so it reads as distinct from the
+// primary-coloured headings, links and footer. Contextual alternates are
+// off, so a face that turns an ASCII arrow into one glyph shows the
+// characters that were typed. Defined here because `brand-color` is only
+// in scope from this point on.
+#let brandkit-inline-code(s) = text(
+  fill: color.mix((brand-color.secondary, 75%), (brand-color.foreground, 25%)),
+  features: (calt: 0),
+  hyphenate: false,
+  s,
+)
+
+$if(highlighting-definitions)$
+// brandkit: a fenced block's box. Skylighting draws it with a fixed
+// background from the highlighting theme (a grey one step off a light page,
+// which is close to invisible), set as an explicit argument, so no rule can
+// override it from outside; the one place to change it is the block itself,
+// as it passes through. The colour is the one the HTML templates give code
+// (the brand's primary mixed 7% into the page, in sRGB), and the same as
+// article()'s fill for blocks that are not highlighted. A show rule that
+// returns a block matches its own result, hence the early return once the
+// fill is already right. Only the fill changes: the syntax colours are the
+// highlighting theme's, which nothing else here touches.
+#let brandkit-skylighting = Skylighting
+#let Skylighting(..args) = {
+  let fill = color.mix((brand-color.primary, 7%), (brand-color.background, 93%), space: rgb)
+  show block: it => if it.fill == fill { it } else {
+    let fields = it.fields()
+    let _ = fields.remove("body")
+    block.with(..fields, fill: fill)(it.body)
+  }
+  brandkit-skylighting(..args)
+}
+$endif$
 
 #show: doc => article(
 $if(title)$

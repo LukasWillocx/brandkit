@@ -31,6 +31,28 @@
   --bk-card: #{mix($primary, $body-bg, 7%)};
 }
 
+/* --- Inline code: the body font, in a quiet tinted box ---
+   A span in running prose, not a block. In the code font it reads larger than
+   the text around it even at the same size (a monospace face has wider glyphs
+   and a taller x-height), so it stays in the body font at exactly the
+   surrounding size, set apart by the tint. The box is padded sideways only: an
+   inline box is as tall as its font's glyph area, not the line, and any
+   vertical padding on top of that lets the box on one line reach the next
+   line's. Contextual alternates are off so a face that turns `<-` into an
+   arrow shows the characters that were typed. The corner is small and fixed
+   rather than the brand's radius, which turns a short span into a pill. */
+:root :not(pre) > code:not(.sourceCode) {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 0 0.35em;
+  border-radius: 0.3em;
+  background-color: var(--bk-card);
+  font-variant-ligatures: none;
+  font-feature-settings: "calt" 0;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
 /* --- Tables: header tinted, stripes a step off the surface ---
    The stripe is the text colour at 5%, which darkens a light surface and
    lightens a dark one. Translucent, so tables follow whatever they sit on. */
@@ -66,9 +88,8 @@
 
 /* Code takes the card tint. Bootstrap's own code background is a fixed light
    grey that does not follow the page into dark mode, leaving pale boxes
-   with light text on them. */
-#quarto-document-content div.sourceCode,
-#quarto-document-content :not(pre) > code {
+   with light text on them. (Inline code is in the Shared part above.) */
+#quarto-document-content div.sourceCode {
   background-color: var(--bk-card);
 }
 
@@ -209,9 +230,9 @@ html {
   }
 }
 
-/* Code takes the card tint, as in the reports. */
-.reveal div.sourceCode,
-.reveal :not(pre) > code {
+/* Code takes the card tint, as in the reports. (Inline code is in the Shared
+   part above, and applies to slides too.) */
+.reveal div.sourceCode {
   background-color: var(--bk-card);
 }
 

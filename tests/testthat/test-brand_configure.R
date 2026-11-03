@@ -143,3 +143,23 @@ test_that("configurator_defaults seeds light/dark from background/foreground", {
   expect_equal(d$cols$dark, "#050505")
   expect_false(d$auto_dark)
 })
+
+test_that("configurator_defaults carries the ornament label, blank by default", {
+  expect_equal(
+    configurator_defaults(NULL, test_presets(), test_font_pairs())$ornament_label, ""
+  )
+  cfg <- test_brand_bslib()
+  expect_equal(
+    configurator_defaults(cfg, test_presets(), test_font_pairs())$ornament_label, ""
+  )
+  cfg$meta$`ornament-label` <- "Acme"
+  expect_equal(
+    configurator_defaults(cfg, test_presets(), test_font_pairs())$ornament_label, "Acme"
+  )
+})
+
+test_that("the ornament label survives conversion to the Quarto dialect", {
+  cfg <- test_brand_bslib()
+  cfg$meta$`ornament-label` <- "Acme"
+  expect_equal(quarto_brand_cfg(cfg, keep_logo = FALSE)$meta$`ornament-label`, "Acme")
+})

@@ -34,22 +34,42 @@ orn_orb <- function(cx, cy, r) {
 # edge, bowing away from the corner in its first half and towards it in the
 # second, closed off outside the box so only the curve is ever visible.
 orn_swell <- function(reach, bow = .14) {
-  x0 <- 100 - reach
-  k  <- reach * bow
+  pt <- orn_swell_points(reach, bow)
   sprintf(
     'path d="M %s -10 L %s 0 Q %s %s %s %s T 100 %s L 110 %s L 110 -10 Z"',
-    orn_num(x0), orn_num(x0),
-    orn_num(x0 + .25 * reach - k), orn_num(.25 * reach + k),
-    orn_num(x0 + .5 * reach), orn_num(.5 * reach),
+    orn_num(pt$p0[1]), orn_num(pt$p0[1]),
+    orn_num(pt$c1[1]), orn_num(pt$c1[2]),
+    orn_num(pt$p1[1]), orn_num(pt$p1[2]),
     orn_num(reach), orn_num(reach)
   )
 }
 
+# The swell's anchor points: start on the top edge, the first control point,
+# the joint between the two curves, and the end on the right edge. The
+# second curve (`T`) reflects the first control point through the joint.
+# Shared by orn_swell() and the label, which runs along the same curve.
+orn_swell_points <- function(reach, bow = .14) {
+  x0 <- 100 - reach
+  k  <- reach * bow
+  list(
+    p0 = c(x0, 0),
+    c1 = c(x0 + .25 * reach - k, .25 * reach + k),
+    p1 = c(x0 + .5 * reach, .5 * reach),
+    p2 = c(100, reach)
+  )
+}
+
+# The drift motif's swell and its largest orb, named because the label is
+# placed from them (see orn_label_svg()).
+orn_drift_reach <- 74
+orn_drift_orb   <- c(60, 38, 21)
+
 orn_shapes <- function(motif) {
   switch(motif,
     drift = list(
-      orn_shape(orn_swell(74),          1.0, "p"),
-      orn_shape(orn_orb(60, 38, 21),    1.0, "s"),
+      orn_shape(orn_swell(orn_drift_reach), 1.0, "p"),
+      orn_shape(orn_orb(orn_drift_orb[1], orn_drift_orb[2], orn_drift_orb[3]),
+                1.0, "s"),
       orn_shape(orn_orb(86, 62, 13),    1.2, "t"),
       orn_shape(orn_orb(30, 13, 8),     1.1, "s"),
       orn_shape(orn_orb(66, 74, 6),     1.4, "p")
@@ -60,6 +80,138 @@ orn_shapes <- function(motif) {
 
 orn_motifs <- "drift"
 
+# --------------------------------------------------------------------------
+# The label: a short line of text set along the swell, beside its largest
+# orb. Top-right corner only, and only for the drift motif.
+#
+# The text runs along the swell's own curve, so it follows the wave rather
+# than cutting across it, and sits on the side of that curve away from the
+# wave — the part of the orb the swell does not cover. Letters laid on the
+# overlap itself would sit on two stacked tints and lose contrast; here
+# they sit on one.
+#
+# The baseline is offset from the curve by `dy`, a perpendicular shift in
+# the glyphs' own frame, so it holds along the whole bend. It is centred on
+# the point of the curve nearest the orb's centre. The size shrinks with the
+# length of the text so it stays within the orb, down to a floor below
+# which it would be too small to read at any scale this is drawn at.
+# --------------------------------------------------------------------------
+
+orn_label_max_chars <- 16
+
+orn_xml_escape <- function(x) {
+  x <- gsub("&", "&amp;", x, fixed = TRUE)
+  x <- gsub("<", "&lt;", x, fixed = TRUE)
+  x <- gsub(">", "&gt;", x, fixed = TRUE)
+  gsub('"', "&quot;", x, fixed = TRUE)
+}
+
+# Advance widths, in em, of capitals in a typical bold sans (Helvetica Bold's
+# metrics), for laying letters out one at a time. A different heading face is
+# a few percent narrower or wider, which the tracking absorbs.
+orn_cap_width <- function(ch) {
+  w <- c(A = .722, B = .722, C = .722, D = .722, E = .667, F = .611, G = .778,
+         H = .722, I = .278, J = .556, K = .722, L = .611, M = .833, N = .722,
+         O = .778, P = .667, Q = .778, R = .722, S = .667, T = .611, U = .722,
+         V = .667, W = .944, X = .667, Y = .667, Z = .611,
+         " " = .278, "&" = .722, "-" = .333, "." = .278, "'" = .238)
+  out <- unname(w[ch])
+  out[is.na(out)] <- .556   # digits and anything else
+  out
+}
+
+# `layout = "path"` sets the whole line as one text-on-path element, which
+# browsers lay out with the real font's metrics. `layout = "glyphs"` places
+# each letter itself as a plain rotated <text>: Typst's SVG renderer spaces
+# the letters of a text-on-path line unevenly (wide at the start, tight at
+# the end, whatever the path is made of), but lays out a straight line of
+# text exactly, so the files Typst draws get the second form.
+orn_label_svg <- function(label, font, fill, vars = FALSE,
+                          layout = c("path", "glyphs")) {
+  layout <- match.arg(layout)
+  label <- toupper(trimws(label))
+  if (nchar(label) > orn_label_max_chars) {
+    warning("Ornament label is longer than ", orn_label_max_chars,
+            " characters; truncating it.", call. = FALSE)
+    label <- substr(label, 1, orn_label_max_chars)
+  }
+
+  # Where the label goes: the swell's curve, and how far along it the orb's
+  # centre falls, measured in arc length from the curve's start.
+  pt <- orn_swell_points(orn_drift_reach)
+  bez <- function(a, b, c, t) (1 - t)^2 * a + 2 * (1 - t) * t * b + t^2 * c
+  t <- seq(0, 1, length.out = 401)
+  c2 <- 2 * pt$p1 - pt$c1
+  curve <- rbind(
+    cbind(bez(pt$p0[1], pt$c1[1], pt$p1[1], t), bez(pt$p0[2], pt$c1[2], pt$p1[2], t)),
+    cbind(bez(pt$p1[1], c2[1],    pt$p2[1], t), bez(pt$p1[2], c2[2],    pt$p2[2], t))[-1, ]
+  )
+  along <- c(0, cumsum(sqrt(rowSums(diff(curve)^2))))
+  centre <- which.min((curve[, 1] - orn_drift_orb[1])^2 +
+                      (curve[, 2] - orn_drift_orb[2])^2)
+
+  # Capitals in a bold heading face run about 0.72em wide, plus the
+  # tracking; the room is the chord of the orb at the label's offset.
+  tracking <- 0.12
+  size <- min(5.2, max(2.5, 34 / (nchar(label) * (0.72 + tracking))))
+
+  path <- sprintf("M %s %s Q %s %s %s %s T %s %s",
+                  orn_num(pt$p0[1]), orn_num(pt$p0[2]),
+                  orn_num(pt$c1[1]), orn_num(pt$c1[2]),
+                  orn_num(pt$p1[1]), orn_num(pt$p1[2]),
+                  orn_num(pt$p2[1]), orn_num(pt$p2[2]))
+
+  family <- paste0("'", gsub("['\"]", "", font), "', sans-serif")
+  paint  <- if (vars) {
+    sprintf('style="fill:var(--bs-primary,%s);font-family:%s"', fill, family)
+  } else {
+    sprintf('fill="%s" font-family="%s"', fill, family)
+  }
+
+  if (layout == "glyphs") {
+    chars <- strsplit(label, "")[[1]]
+    adv   <- orn_cap_width(chars)
+    # Sized from the real advances rather than an average, and laid out with
+    # the same tracking between letters as the path form.
+    size  <- min(5.2, max(2.5, 34 / (sum(adv) + tracking * (length(chars) - 1))))
+    pitch <- size * (adv + tracking)                 # advance + tracking, each
+    total <- sum(pitch) - size * tracking
+    # Arc-length position of each letter's centre, centred on the orb.
+    mid <- along[centre] - total / 2 + cumsum(pitch) - pitch + size * adv / 2
+    at <- function(s, v) stats::approx(along, v, xout = s, rule = 2)$y
+    px <- at(mid, curve[, 1]); py <- at(mid, curve[, 2])
+    # Tangent from a short step either side, so the angle is smooth.
+    ang <- atan2(at(mid + .5, curve[, 2]) - at(mid - .5, curve[, 2]),
+                 at(mid + .5, curve[, 1]) - at(mid - .5, curve[, 1])) * 180 / pi
+    keep <- chars != " "
+    glyphs <- sprintf(
+      '<text transform="translate(%s %s) rotate(%s)" y="%s">%s</text>',
+      orn_num(px[keep], 3), orn_num(py[keep], 3), orn_num(ang[keep], 2),
+      orn_num(1.15 * size, 3), orn_xml_escape(chars[keep])
+    )
+    return(paste0(
+      sprintf('<g %s font-size="%s" font-weight="700" fill-opacity="0.8" text-anchor="middle">',
+              paint, orn_num(size)),
+      "\n", paste(glyphs, collapse = "\n"), "\n</g>\n"
+    ))
+  }
+
+  paste0(
+    '<defs><path id="bk-orn-label" d="', path, '" fill="none"/></defs>
+',
+    sprintf(
+      paste0('<text %s font-size="%s" font-weight="700" letter-spacing="%s" ',
+             'fill-opacity="0.8" text-anchor="middle">',
+             '<textPath href="#bk-orn-label" startOffset="%s">',
+             '<tspan dy="%s">%s</tspan></textPath></text>'),
+      paint, orn_num(size), orn_num(tracking * size, 3),
+      orn_num(along[centre]), orn_num(1.15 * size), orn_xml_escape(label)
+    ),
+    "
+"
+  )
+}
+
 # The drawing itself, from explicit colours — brand_ornament() passes the
 # brand's, and the configurator passes whatever is in its colour pickers, which
 # are not saved to the brand yet. `primary` leads the top-right corner and
@@ -67,7 +219,8 @@ orn_motifs <- "drift"
 # fills name Bootstrap's colour variables and the hex values are only the
 # fallbacks (see brand_ornament()).
 ornament_svg <- function(motif, corner, softness, primary, secondary, accent,
-                         vars = FALSE) {
+                         vars = FALSE, label = NULL, font = NULL,
+                         label_layout = if (vars) "path" else "glyphs") {
   hue <- if (corner == "top-right") {
     list(p = primary,   s = secondary, t = accent)
   } else {
@@ -94,6 +247,10 @@ ornament_svg <- function(motif, corner, softness, primary, secondary, accent,
 
   if (corner == "bottom-left") {
     body <- c('<g transform="rotate(180 50 50)">', body, "</g>")
+  } else if (!is.null(label) && nzchar(trimws(label))) {
+    # Top-right only. Appended after the shapes so it is drawn over them.
+    body <- c(body, orn_label_svg(label, font %||% "sans-serif", primary, vars,
+                                  layout = label_layout))
   }
 
   paste0(
@@ -139,6 +296,13 @@ ornament_svg <- function(motif, corner, softness, primary, secondary, accent,
 #'   build up from this, so useful values are small; the default is `0.17`.
 #' @param mode `"light"` or `"dark"`: which of the brand's palettes to draw
 #'   with.
+#' @param label Optional short text set along the swell of the `"top-right"`
+#'   ornament, in capitals in the brand's heading font, beside its largest
+#'   orb: a brand name or a tagline. It sits on the part of the orb the swell
+#'   does not cover, and is ignored for `"bottom-left"`. Short text reads
+#'   best, and anything over 16 characters is truncated. Defaults to the
+#'   brand's `meta: ornament-label:` (which [configure_brand()] writes); `NULL`
+#'   or `""` draws none.
 #' @param file Optional path. If given, the SVG is also written there.
 #' @param vars Logical. `FALSE` (default) writes the brand colours into the
 #'   SVG as hex values, which is what a standalone file, an `<img>` or a
@@ -162,6 +326,7 @@ brand_ornament <- function(motif = "drift",
                            corner = c("top-right", "bottom-left"),
                            softness = 0.17,
                            mode = c("light", "dark"),
+                           label = brand_ornament_label(),
                            file = NULL,
                            vars = FALSE) {
 
@@ -180,7 +345,9 @@ brand_ornament <- function(motif = "drift",
     primary   = cols$primary,
     secondary = cols$secondary %||% cols$primary,
     accent    = cols$info %||% cols$secondary %||% cols$primary,
-    vars      = vars
+    vars      = vars,
+    label     = label,
+    font      = brand_fonts()$heading
   )
 
   if (!is.null(file)) {
@@ -191,6 +358,21 @@ brand_ornament <- function(motif = "drift",
     return(invisible(svg))
   }
   svg
+}
+
+# The brand's ornament label, or NULL. It lives under `meta:` because that is
+# the one place in _brand.yml that Quarto's validation lets an extra key
+# through (a new top-level section is rejected), and bslib and brand.yml
+# read the file with the same schema.
+brand_ornament_label <- function() {
+  ensure_cache()
+  label <- brand_env$meta[["ornament-label"]]
+  if (is.character(label) && length(label) == 1 && !is.na(label) &&
+      nzchar(trimws(label))) {
+    trimws(label)
+  } else {
+    NULL
+  }
 }
 
 # `t` of colour `a` mixed into colour `b`, as a hex string: the same mix the
@@ -282,11 +464,28 @@ poster_ornament_files <- c(
   "drift-bottom-left.svg"
 )
 
-write_poster_ornaments <- function(dir) {
+# Writes the pair into `dir`, but only the files whose contents differ from
+# what is already there (all of them with `overwrite`), and returns the paths
+# it wrote. They are generated from the brand — colours and the label — so a
+# plain re-run has to catch up with a changed brand, not leave stale files.
+write_poster_ornaments <- function(dir, overwrite = FALSE) {
   paths <- file.path(dir, poster_ornament_files)
-  brand_ornament("drift", "top-right",   poster_ornament_softness, file = paths[1])
-  brand_ornament("drift", "bottom-left", poster_ornament_softness, file = paths[2])
-  paths
+  corners <- c("top-right", "bottom-left")
+  wrote <- character(0)
+  for (i in seq_along(paths)) {
+    svg <- brand_ornament("drift", corners[i], poster_ornament_softness)
+    if (overwrite || !identical(read_file_bytes(paths[i]), charToRaw(svg))) {
+      writeBin(charToRaw(svg), paths[i])
+      wrote <- c(wrote, paths[i])
+    }
+  }
+  wrote
+}
+
+# The file's bytes, or NULL if it does not exist.
+read_file_bytes <- function(path) {
+  if (!file.exists(path)) return(NULL)
+  readBin(path, "raw", file.info(path)$size)
 }
 
 # The same pair for a Quarto page, as an HTML snippet that
@@ -295,8 +494,13 @@ write_poster_ornaments <- function(dir) {
 # never goes stale when the brand changes and follows Quarto's own
 # light/dark toggle: each mode's stylesheet defines the --bs-* variables
 # the ornaments are filled with.
-write_ornaments_html <- function(path) {
+#
+# Colours never go stale, but the label does, so like the poster's files this
+# is rewritten when its contents differ. Returns TRUE if it wrote the file.
+write_ornaments_html <- function(path, overwrite = FALSE) {
   r <- htmltools::renderTags(brand_ornaments_tag())
-  writeBin(charToRaw(paste0(r$head, "\n", r$html, "\n")), path)
-  invisible(path)
+  bytes <- charToRaw(paste0(r$head, "\n", r$html, "\n"))
+  if (!overwrite && identical(read_file_bytes(path), bytes)) return(FALSE)
+  writeBin(bytes, path)
+  TRUE
 }
