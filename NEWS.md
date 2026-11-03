@@ -15,7 +15,9 @@
   colours (they had all been tinted the inline-code colour). Pandoc gives inline
   code and fenced blocks the same element, which no styling rule can tell apart,
   so a new filter, `inline-code.lua`, sets inline code as plain text; the
-  extension's `typst-show.typ` also wraps skylighting's block to set its fill.
+  extension's `typst-show.typ` also wraps skylighting's block to set its fill
+  and corner radius. Code blocks and callouts in the Typst PDFs now round their
+  corners with the brand's border-radius (both had a fixed 2pt).
   Existing projects get this, and the HTML change, from `drift.scss`,
   `definitions.typ`, `typst-show.typ`, `typst-template.typ`, `inline-code.lua`
   and `_extension.yml`, which are only copied over with `overwrite = TRUE`.

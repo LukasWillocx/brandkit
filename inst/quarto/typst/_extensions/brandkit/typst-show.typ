@@ -40,14 +40,18 @@ $if(highlighting-definitions)$
 // article()'s fill for blocks that are not highlighted. A show rule that
 // returns a block matches its own result, hence the early return once the
 // fill is already right. Only the fill changes: the syntax colours are the
-// highlighting theme's, which nothing else here touches.
+// highlighting theme's, which nothing else here touches. The corners are
+// the same: Skylighting hard-codes a 2pt radius, so the brand's own
+// border-radius (the value the HTML templates round code with) is set here
+// along with the fill.
 #let brandkit-skylighting = Skylighting
 #let Skylighting(..args) = {
   let fill = color.mix((brand-color.primary, 7%), (brand-color.background, 93%), space: rgb)
+  let radius = $if(code-radius)$$code-radius$$else$0.3em$endif$
   show block: it => if it.fill == fill { it } else {
     let fields = it.fields()
     let _ = fields.remove("body")
-    block.with(..fields, fill: fill)(it.body)
+    block.with(..fields, fill: fill, radius: radius)(it.body)
   }
   brandkit-skylighting(..args)
 }

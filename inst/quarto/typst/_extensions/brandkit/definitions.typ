@@ -275,7 +275,14 @@
     fill: background_color,
     stroke: (paint: icon_color, thickness: 0.5pt, cap: "round"),
     width: 100%,
-    radius: 2pt,
+    // brandkit: the brand's border-radius, as for code blocks and the HTML
+    // templates' callouts, in place of Quarto's fixed 2pt. (The variable is
+    // named for code, which it was first used for.)
+    radius: $if(code-radius)$$code-radius$$else$0.3em$endif$,
+    // The title and body below are square blocks with fills of their own,
+    // which at 2pt nobody could see poking out of the corners but at the
+    // brand's radius do, so they are clipped to the rounded outline.
+    clip: true,
     block(
       inset: 1pt,
       width: 100%,

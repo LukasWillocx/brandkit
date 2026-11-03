@@ -103,3 +103,22 @@ test_that("the inline-code macro and the skylighting wrapper are in the template
   expect_gt(start, 0)
   expect_true(wrapper > start && wrapper < close)
 })
+
+test_that("code blocks and callouts take the brand radius, not a hard-coded one", {
+  cfg <- test_brand_quarto()
+  cfg$defaults$bootstrap$defaults$`border-radius` <- "1.5rem"
+  dir <- withr::local_tempdir()
+  write_test_brand(cfg, dir)
+  suppressMessages(create_brand_quarto_print_pdf(dir, examples = FALSE))
+  ext  <- file.path(dir, "_extensions", "brandkit-print")
+  read <- function(f) paste(readLines(file.path(ext, f)), collapse = "\n")
+
+  expect_equal(extension_typst(dir)$`code-radius`, "1.5em")
+  # Skylighting hard-codes radius: 2pt; the wrapper in typst-show.typ replaces it.
+  expect_match(read("typst-show.typ"), "block.with(..fields, fill: fill, radius: radius)", fixed = TRUE)
+  # Quarto's callout hard-codes the same, and clips its square-cornered title
+  # and body to the rounded outline.
+  defs <- read("definitions.typ")
+  expect_no_match(defs, "radius: 2pt", fixed = TRUE)
+  expect_match(defs, "clip: true", fixed = TRUE)
+})
