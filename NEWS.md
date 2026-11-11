@@ -1,80 +1,85 @@
-# brandkit (development version)
+# brandkit 0.4.0
 
-* The interactive templates no longer draw the same plot twice, once as a static
-  ggplot and again as a plotly widget. The Shiny starter app, the HTML report
-  and the slide deck keep only the `brand_plotly()` version (still written as an
-  ordinary ggplot and passed to `brand_plotly()`), which now takes the width the
-  pair shared. The PDF, print and poster templates are static and keep their
-  ggplot figures, and the dashboards show different plots side by side, so they
-  are unchanged. Re-run the scaffold with `overwrite = TRUE` to update an
-  existing project.
+Everything below is relative to 0.3.0.
 
-* The ornament text can sit on the bottom-left ornament instead of the
-  top-right one. The configurator's *Meta & Logo* tab has a new "Ornament text
-  sits on the" toggle (Top / Bottom), with the live preview following it; it is
-  stored as `meta: ornament-label-corner: bottom-left` in `_brand.yml` (absent
-  for the default, the top). The bottom text is laid out on the turned curve so
-  it still reads left to right, on the side of the curve away from the wave,
-  and each corner's text path now has its own id. `brand_ornament()` draws the
-  brand's text only on the corner the brand picks; a `label` you pass is drawn
-  on whichever corner you ask for. Re-run the `create_brand_quarto_*()`
-  functions to refresh the generated ornament files.
+## Upgrading
 
-* The `create_brand_quarto_*()` scaffolds now all create a missing project
-  directory, as the dashboard and Shiny scaffolds already did (the HTML,
-  slides, PDF, print and poster ones stopped with an error instead).
-* `scale_*_brand_*()`, `brand_pal_seq()` and `brand_pal_div()` default to the
-  mode set by `brand_quarto_setup()` (or `"light"`), as `brand_pal_discrete()`
-  already did, instead of always `"light"`. In a dark document the scales no
-  longer need `mode = "dark"` spelled out.
-* `brand_dark_css()` no longer repeats the checkbox, radio and focus rules that
-  `brand_theme()` already compiles in; it keeps the datepicker rules, which
-  are the ones that need it. Nothing changes on the page.
-* Internal tidy-up with no change in behaviour: the scaffolds share their
-  directory, template and asset handling (`R/brand_scaffold.R`), the Typst
-  extension code moved to `R/brand_typst.R`, the bslib and Quarto `_brand.yml`
-  converters share their logo and colour handling, and the ornament files the
-  print report and poster share are no longer named for the poster. The print
-  report's `_extension.yml` is titled "brandkit Typst Print Report".
+* `brand_activate_thematic()` is removed. The `brand_page_*()` wrappers and
+  `brand_quarto_setup(shiny = TRUE)` already do what it did, and its docs
+  pointed at a `brand_server()` that never existed.
+* `brand_dark_mode()` no longer takes `session` (it was never used). If you
+  called `brand_dark_mode(input, session)`, drop the second argument:
+  `brand_dark_mode(input)`. `input_id` is now the second argument.
+* The scales (`scale_*_brand_*()`) and `brand_pal_seq()` / `brand_pal_div()`
+  now default to the mode set by `brand_quarto_setup()` (or `"light"`), as
+  `brand_pal_discrete()` already did, instead of always `"light"`.
+* The scaffolds' templates changed (see below). Existing projects only get the
+  changes when you re-run the scaffold with `overwrite = TRUE`, which replaces
+  every file it writes; the generated ornament and `_extension.yml` values are
+  refreshed without it.
+
+## New
+
+* **Vignettes and a shorter README.** The 1050-line README is now a front door
+  (pitch, install, quick start, what-you-get and template tables, a gallery),
+  and the detail lives in six articles: getting started, Shiny apps, plots,
+  Quarto documents, PDFs and posters, and troubleshooting. The design history
+  moved to `CONTRIBUTING.md`. Install with `build_vignettes = TRUE` to read
+  them with `vignette()`.
+* **Ornament text on either corner.** The corner ornament can carry a short
+  label (a brand name, say), set along the swell beside its largest circle in
+  capitals in the heading font. Set it in the configurator's *Meta & Logo* tab,
+  where a new "Ornament text sits on the" toggle (Top / Bottom) chooses the
+  corner and the live preview follows it, or in `_brand.yml` with
+  `meta: ornament-label:` and `meta: ornament-label-corner: bottom-left` (the
+  top-right is the default and is left out). The bottom text is laid out on the
+  turned curve so it still reads left to right. `brand_ornament()` gains a
+  `label` argument: by default it draws the brand's text on the corner the
+  brand picks, and a label you pass is drawn on whichever corner you ask for.
+  Web pages set the text as one text-on-path line; the SVG files Typst draws
+  place each letter themselves, because Typst spaces text-on-path letters
+  unevenly. The settings live under `meta:` because Quarto rejects a new
+  top-level key in `_brand.yml` but accepts one there.
+* **`style = "drift"` on all three page wrappers.** `brand_page_navbar()` and
+  `brand_page_fluid()` now take it, as `brand_page_sidebar()` did (the 0.3.0
+  notes said all three did, but only the sidebar wrapper had the argument). On
+  a navbar page the bar loses its rule as well as its background, and the brand
+  name is set as plain type like the sidebar page's title.
+* **`create_brand_shiny_steps()`**, a template for a workflow that runs in
+  order: numbered pills in the sidebar select the page for each step, with
+  Back / Next buttons. It is `brand_page_sidebar()` plus a `navset_pill()` and
+  a `navset_hidden()`, so no new page wrapper was needed.
+* **`brand_plotly()` follows the page's light/dark mode** inside a Shiny render
+  when `mode` is left `NULL`, by reading the background of the output it sits
+  on. This is what lets it work in a Quarto dashboard (`server: shiny`), whose
+  toggle gives Shiny no input to read. An explicit `mode` still wins.
 * New tests for `brand_theme()`, `theme_brand()` and the scales,
   `brand_dark_mode()`, `brand_quarto_setup()` (including the light/dark twin
-  figures, rendered through knitr), the output-mode detection and the
-  scaffold helpers.
+  figures, rendered through knitr), the output-mode detection, the page
+  wrappers, the scaffold helpers and `brand_register_fonts()`.
 
-* Removed code nothing used: `shift_color()`, the exported
-  `brand_activate_thematic()` (superseded by what the `brand_page_*()`
-  wrappers and `brand_quarto_setup(shiny = TRUE)` do, and its docs pointed at
-  a `brand_server()` that never existed), a placeholder return value in the
-  page wrappers, and the `session` argument of `brand_dark_mode()`. If you
-  called `brand_dark_mode(input, session)`, drop the second argument
-  (`brand_dark_mode(input)`); `input_id` is now second.
-* `brand_register_fonts()` is better behaved. A font entry with no `source:`
-  is now a Google font, as everywhere else (it used to be read as a local
-  file and silently registered nothing). Families already registered in the
-  session are skipped, so loading or calling it again no longer downloads
-  them again, and `showtext` is only switched on once something has been
-  registered. The `inst/fonts` fallback it mentioned never existed and is
-  gone. Set `options(brandkit.register_fonts = FALSE)` before loading
-  brandkit to skip registration at load.
-* The `create_brand_shiny_dashboard()` template now uses R's built-in
-  `airquality` data, like the other templates, in place of its invented sales
-  figures (whose order counts also changed on every launch). The tabs and
-  layout are as before: temperature, ozone, wind and hot-day tiles, a
-  temperature-by-month chart and an ozone-level pie, a daily temperature line,
-  an ozone histogram and scatter, and a table of the readings.
-* `brand_page_navbar()` and `brand_page_fluid()` now take `style = "drift"`,
-  as `brand_page_sidebar()` already did (the 0.3.0 notes said all three did,
-  but only the sidebar wrapper had the argument). On a navbar page the bar
-  loses its rule as well as its background, and the brand name is set as plain
-  type like the sidebar page's title.
+## Templates
+
+* The Shiny starter app, the HTML report and the slide deck no longer draw the
+  same plot twice, once as a static ggplot and again as a plotly widget. They
+  keep only the `brand_plotly()` version (still written as an ordinary ggplot),
+  which takes the width the pair shared. The PDF, print and poster templates
+  are static and keep their ggplot figures, and the dashboards show different
+  plots side by side, so they are unchanged.
+* The `create_brand_shiny_dashboard()` template uses R's built-in `airquality`
+  data, like the other templates, in place of invented sales figures (whose
+  order counts also changed on every launch). The tabs and layout are as
+  before.
+* The `create_brand_quarto_dashboard()` template shows its ozone scatter as an
+  interactive `brand_plotly()` card, which follows the dark-mode toggle. The
+  template needs plotly (already in Suggests), and the scaffold reports it if
+  it is missing.
 * The `create_brand_shiny_map()` template, the README and
   `examples/app_fluid_leaflet.R` no longer use CARTO's Positron / DarkMatter
   tiles (they now watermark every tile without an API key) or Stadia's Toner.
   The template draws Esri's grey canvas through a small `add_basemap()` helper,
   in the light or dark version to match the page, and keeps OpenStreetMap and
-  Esri Topo as manual choices. Re-run `create_brand_shiny_map(overwrite = TRUE)`
-  to get it in an existing project.
-
+  Esri Topo as manual choices.
 * Inline code now matches the text around it. In the HTML templates (report,
   slides, dashboard) it is set in the body font at the surrounding size, in a
   small-cornered box padded sideways only, so a span can no longer reach the
@@ -87,46 +92,51 @@
   highlighting theme's fixed grey, one level off the page and close to
   invisible; the brand-derived fill the template meant to apply never reached
   highlighted blocks), and their tokens keep the highlighting theme's syntax
-  colours (they had all been tinted the inline-code colour). Pandoc gives inline
-  code and fenced blocks the same element, which no styling rule can tell apart,
-  so a new filter, `inline-code.lua`, sets inline code as plain text; the
-  extension's `typst-show.typ` also wraps skylighting's block to set its fill
-  and corner radius. Code blocks and callouts in the Typst PDFs now round their
-  corners with the brand's border-radius (both had a fixed 2pt).
-  Existing projects get this, and the HTML change, from `drift.scss`,
-  `definitions.typ`, `typst-show.typ`, `typst-template.typ`, `inline-code.lua`
-  and `_extension.yml`, which are only copied over with `overwrite = TRUE`.
-* The top-right corner ornament can carry a short label (a brand name, say),
-  set along the swell beside its largest circle, in capitals in the heading
-  font. Set it in the configurator's *Meta & Logo* tab (blank by default) or
-  with `meta: ornament-label:` in `_brand.yml`; `brand_ornament()` gains a
-  `label` argument. It is stored under `meta:` because Quarto rejects a new
-  top-level key in `_brand.yml` but accepts one there. Web pages set it as one
-  text-on-path line; the SVG files Typst draws place each letter themselves,
-  because Typst spaces text-on-path letters unevenly.
-* Re-running a `create_brand_quarto_*()` function now brings the generated
-  files up to date with a changed brand without `overwrite = TRUE`: the base
-  font size and code radius in a Typst `_extension.yml` (a stale `fontsize:`
-  silently beat the brand's size), and the baked ornament SVGs and
-  `_ornaments.html`. Other hand edits to `_extension.yml` are kept.
-* `brand_plotly()` now follows the page's light/dark mode inside a Shiny
-  render when `mode` is left `NULL`, by reading the background of the output
-  it sits on. This is what lets it work in a Quarto dashboard (`server:
-  shiny`), whose toggle gives Shiny no input to read. An explicit `mode`
-  still wins.
-* The `create_brand_quarto_dashboard()` template now shows its ozone scatter
-  as an interactive `brand_plotly()` card, which follows the dark-mode toggle.
-  The template needs plotly (already in Suggests), and the scaffold reports it
-  if it is missing.
-* Declared dependencies that were used but not listed: `later` and `utils`
-  in Imports, `htmlwidgets` in Suggests.
-* The `create_brand_shiny_app()` template shows its scatter plot as an
-  interactive `brand_plotly()` card. The template needs plotly (already in
-  Suggests), and the scaffold reports it if it is missing.
-* New `create_brand_shiny_steps()` template for a workflow that runs in order:
-  numbered pills in the sidebar select the page for each step, with Back /
-  Next buttons. It is `brand_page_sidebar()` plus a `navset_pill()` and a
-  `navset_hidden()`, so no new page wrapper was needed.
+  colours (they had all been tinted the inline-code colour). Pandoc gives
+  inline code and fenced blocks the same element, which no styling rule can
+  tell apart, so a new filter, `inline-code.lua`, sets inline code as plain
+  text; the extension's `typst-show.typ` also wraps skylighting's block to set
+  its fill and corner radius. Code blocks and callouts in the Typst PDFs now
+  round their corners with the brand's border-radius (both had a fixed 2pt).
+  This comes from `drift.scss`, `definitions.typ`, `typst-show.typ`,
+  `typst-template.typ`, `inline-code.lua` and `_extension.yml`, which are only
+  copied over with `overwrite = TRUE`.
+
+## Improvements and fixes
+
+* `brand_register_fonts()` is better behaved. A font entry with no `source:`
+  is now a Google font, as everywhere else (it used to be read as a local file
+  and silently registered nothing). Families already registered in the session
+  are skipped, so loading or calling it again no longer downloads them again,
+  and `showtext` is only switched on once something has been registered. The
+  `inst/fonts` fallback it mentioned never existed and is gone. Set
+  `options(brandkit.register_fonts = FALSE)` before loading brandkit to skip
+  registration at load.
+* The `create_brand_quarto_*()` scaffolds now all create a missing project
+  directory, as the dashboard and Shiny scaffolds already did (the HTML,
+  slides, PDF, print and poster ones stopped with an error instead).
+* Re-running a `create_brand_quarto_*()` function brings the generated files up
+  to date with a changed brand without `overwrite = TRUE`: the base font size
+  and code radius in a Typst `_extension.yml` (a stale `fontsize:` silently
+  beat the brand's size), and the baked ornament SVGs and `_ornaments.html`.
+  Other hand edits to `_extension.yml` are kept.
+* `brand_dark_css()` no longer repeats the checkbox, radio and focus rules that
+  `brand_theme()` already compiles in; it keeps the datepicker rules, which are
+  the ones that need it. Nothing changes on the page.
+* Declared dependencies that were used but not listed: `later` and `utils` in
+  Imports, `htmlwidgets` in Suggests. DESCRIPTION also gains `URL` and
+  `BugReports`.
+
+## Internal
+
+* Removed code nothing used: `shift_color()` and a placeholder return value in
+  the page wrappers.
+* The scaffolds share their directory, template and asset handling
+  (`R/brand_scaffold.R`), the Typst extension code moved to `R/brand_typst.R`,
+  the bslib and Quarto `_brand.yml` converters share their logo and colour
+  handling, and the ornament files the print report and poster share are no
+  longer named for the poster. The print report's `_extension.yml` is titled
+  "brandkit Typst Print Report".
 
 # brandkit 0.3.0
 

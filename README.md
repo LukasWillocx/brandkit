@@ -22,7 +22,7 @@ adds what sits around it:
 devtools::install_github("LukasWillocx/brandkit", build_vignettes = TRUE)
 
 # or pin a release (see NEWS.md for what changed in each)
-devtools::install_github("LukasWillocx/brandkit@v0.3.0")
+devtools::install_github("LukasWillocx/brandkit@v0.4.0")
 ```
 
 R 4.1 or later, bslib 0.9 or later, and (for the document templates) Quarto 1.8
