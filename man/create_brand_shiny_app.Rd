@@ -17,10 +17,10 @@ Invisibly returns a character vector of copied file paths.
 }
 \description{
 Scaffolds a minimal single-file Shiny app built on
-\code{\link[=brand_page_sidebar]{brand_page_sidebar()}} — a sidebar of inputs, a plot shown both as a
-static ggplot and as an interactive plotly widget (\code{\link[=brand_plotly]{brand_plotly()}}), a
-palette preview, and a summary panel, with no theming code in it. Use
-this as the starting point for a new branded app.
+\code{\link[=brand_page_sidebar]{brand_page_sidebar()}} — a sidebar of inputs, an interactive plotly scatter
+plot (\code{\link[=brand_plotly]{brand_plotly()}}, built from an ordinary ggplot), a palette preview,
+and a summary panel, with no theming code in it. Use this as the starting
+point for a new branded app.
 }
 \details{
 The app uses \code{style = "drift"}, the look shared with

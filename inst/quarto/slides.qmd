@@ -38,20 +38,11 @@ the corner ornaments; edit either to adapt it.
 
 ```{r}
 #| label: scatter
-#| fig-width: 8
-#| fig-height: 4
 p <- ggplot(aq, aes(Temp, Ozone, color = Month)) +
   geom_point(size = 3, na.rm = TRUE) +
   labs(x = "Temperature (°F)", y = "Ozone (ppb)", color = NULL)
-p
-```
 
-## Interactive Version
-
-The same plot, made interactive with one extra function call:
-
-```{r}
-#| label: plotly
+# Fixed dimensions keep the widget inside the slide.
 brand_plotly(p, tooltip = c("x", "y", "colour"), width = 1000, height = 600)
 ```
 

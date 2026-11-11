@@ -95,7 +95,7 @@ create_brand_quarto_html("my-report")
 
 | Function | Gives you | Look |
 |---|---|---|
-| `create_brand_shiny_app()` | sidebar app: inputs, a ggplot and a plotly chart | drift |
+| `create_brand_shiny_app()` | sidebar app: inputs and an interactive plotly chart | drift |
 | `create_brand_shiny_dashboard()` | KPI dashboard: value boxes, tabs, a DT table | classic |
 | `create_brand_shiny_map()` | leaflet map with a brand colour ramp and tiles that follow the mode | classic |
 | `create_brand_shiny_steps()` | a workflow in order, with numbered steps in the sidebar | drift |

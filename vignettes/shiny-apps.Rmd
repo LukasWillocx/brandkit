@@ -225,7 +225,7 @@ shiny::runApp("my-app")
 
 | Template | Wrapper | Shows | Needs |
 |---|---|---|---|
-| `create_brand_shiny_app()` | `brand_page_sidebar(style = "drift")` | sidebar inputs, one scatter plot as a ggplot and as a `brand_plotly()` widget, a palette swatch, ornaments | `plotly` |
+| `create_brand_shiny_app()` | `brand_page_sidebar(style = "drift")` | sidebar inputs, an interactive `brand_plotly()` scatter plot, a palette swatch, ornaments | `plotly` |
 | `create_brand_shiny_dashboard()` | `brand_page_navbar()` | a row of value boxes, charts, three tabs, a DT table | `DT` |
 | `create_brand_shiny_map()` | `brand_page_fluid()` | a leaflet colour ramp, tiles that follow the mode, `brand_plotly()` | `leaflet`, `plotly` |
 | `create_brand_shiny_steps()` | `brand_page_sidebar(style = "drift")` | a workflow in order: numbered pills in the sidebar, Back / Next buttons | nothing extra |

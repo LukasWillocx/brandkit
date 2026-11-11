@@ -6,10 +6,10 @@
 #' Set Up a Branded Shiny App
 #'
 #' Scaffolds a minimal single-file Shiny app built on
-#' [brand_page_sidebar()] — a sidebar of inputs, a plot shown both as a
-#' static ggplot and as an interactive plotly widget ([brand_plotly()]), a
-#' palette preview, and a summary panel, with no theming code in it. Use
-#' this as the starting point for a new branded app.
+#' [brand_page_sidebar()] — a sidebar of inputs, an interactive plotly scatter
+#' plot ([brand_plotly()], built from an ordinary ggplot), a palette preview,
+#' and a summary panel, with no theming code in it. Use this as the starting
+#' point for a new branded app.
 #'
 #' The app uses `style = "drift"`, the look shared with
 #' [create_brand_quarto_poster()]: soft geometric ornaments in the corners

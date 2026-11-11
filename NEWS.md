@@ -1,5 +1,14 @@
 # brandkit (development version)
 
+* The interactive templates no longer draw the same plot twice, once as a static
+  ggplot and again as a plotly widget. The Shiny starter app, the HTML report
+  and the slide deck keep only the `brand_plotly()` version (still written as an
+  ordinary ggplot and passed to `brand_plotly()`), which now takes the width the
+  pair shared. The PDF, print and poster templates are static and keep their
+  ggplot figures, and the dashboards show different plots side by side, so they
+  are unchanged. Re-run the scaffold with `overwrite = TRUE` to update an
+  existing project.
+
 * The ornament text can sit on the bottom-left ornament instead of the
   top-right one. The configurator's *Meta & Logo* tab has a new "Ornament text
   sits on the" toggle (Top / Bottom), with the live preview following it; it is
@@ -111,9 +120,9 @@
   if it is missing.
 * Declared dependencies that were used but not listed: `later` and `utils`
   in Imports, `htmlwidgets` in Suggests.
-* The `create_brand_shiny_app()` template now shows its scatter plot a second
-  time as an interactive `brand_plotly()` card. The template needs plotly
-  (already in Suggests), and the scaffold reports it if it is missing.
+* The `create_brand_shiny_app()` template shows its scatter plot as an
+  interactive `brand_plotly()` card. The template needs plotly (already in
+  Suggests), and the scaffold reports it if it is missing.
 * New `create_brand_shiny_steps()` template for a workflow that runs in order:
   numbered pills in the sidebar select the page for each step, with Back /
   Next buttons. It is `brand_page_sidebar()` plus a `navset_pill()` and a
