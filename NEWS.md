@@ -1,5 +1,11 @@
 # brandkit (development version)
 
+* The `create_brand_shiny_dashboard()` template now uses R's built-in
+  `airquality` data, like the other templates, in place of its invented sales
+  figures (whose order counts also changed on every launch). The tabs and
+  layout are as before: temperature, ozone, wind and hot-day tiles, a
+  temperature-by-month chart and an ozone-level pie, a daily temperature line,
+  an ozone histogram and scatter, and a table of the readings.
 * `brand_page_navbar()` and `brand_page_fluid()` now take `style = "drift"`,
   as `brand_page_sidebar()` already did (the 0.3.0 notes said all three did,
   but only the sidebar wrapper had the argument). On a navbar page the bar

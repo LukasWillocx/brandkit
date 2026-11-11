@@ -93,8 +93,9 @@ create_brand_shiny_app <- function(path = ".", overwrite = FALSE) {
 #' Set Up a Branded Shiny Dashboard
 #'
 #' Scaffolds a single-file KPI dashboard built on [brand_page_navbar()]:
-#' a row of `bslib::value_box()` tiles, revenue and product-mix charts, a
-#' trends tab, and a DT data table — all driven by sample data you
+#' a row of `bslib::value_box()` tiles, a temperature chart and an ozone-level
+#' pie, a trends tab, and a DT table of daily readings — all driven by R's
+#' built-in `airquality` data (daily New York air quality, 1973), which you
 #' replace with your own.
 #'
 #' @inheritParams create_brand_shiny_app
