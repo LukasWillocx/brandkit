@@ -228,7 +228,7 @@ brand_page_fluid(
 When you use `brand_page_sidebar()` instead of `bslib::page_sidebar()`, the following happens behind the scenes:
 
 1. `brand_theme()` is called to build the bslib Bootstrap 5 theme from `_brand.yml`
-2. `brand_dark_css()` injects `<style>` overrides for datepicker, Shiny checkbox/radio containers
+2. `brand_dark_css()` injects `<style>` overrides for the datepicker
 3. A dark mode toggle is positioned `fixed` at top-right (`z-index: 1050`)
 4. The brand logo (if configured) is prepended inline next to the title
 5. `thematic::thematic_shiny()` is activated with the brand font. Discrete ggplot2 colour and fill scales pick the brand's light or dark palette (`brand_pal_discrete(mode = )`) according to the card each plot sits on, so a light/dark switch redraws them with colours that stay legible; base-graphics palettes are left to thematic's defaults
@@ -787,7 +787,6 @@ brandkit ships two CSS layers:
 Static overrides loaded via `brand_theme()` for components Bootstrap 5 compiles at build time and never updates on dark mode toggle:
 
 - ionRangeSlider handle, bar, and label colours
-- Shiny checkbox/radio containers (compiled outside bslib)
 - Selectize focus rings, active option highlights
 - Bootstrap-datepicker active/today states
 - Form input backgrounds and focus states
@@ -803,7 +802,7 @@ SCSS rules layered after brand in Quarto's theme pipeline, for the HTML report, 
 
 ### `brand_dark_css()` (runtime injection)
 
-Returns a `tags$head(tags$style(...))` block for datepicker and Shiny widget containers that load their own stylesheets independently of bslib. Already included by `brand_page_*()` wrappers.
+Returns a `tags$head(tags$style(...))` block for the datepicker, which loads its own stylesheet independently of bslib (checkboxes, radios and the other widgets are covered by the theme). Already included by `brand_page_*()` wrappers.
 
 ### Dynamic dark mode CSS generation
 
@@ -882,7 +881,7 @@ brandkit/
 |   +-- brand_quarto.R       # Quarto scaffolding + render-time setup
 |   +-- brand_shiny.R        # Shiny app scaffolding (+ bslib _brand.yml writer)
 |   +-- brand_theme.R        # bslib theme + dark mode CSS generation
-|   +-- utils.R              # Hex conversion, colour shifting helpers
+|   +-- utils.R              # Hex-to-RGB/RGBA helpers
 |   +-- zzz.R                # .onLoad / .onAttach (auto-apply theme + scales)
 +-- inst/
 |   +-- _brand.yml           # Bundled default brand (Slate & Teal / Inter)

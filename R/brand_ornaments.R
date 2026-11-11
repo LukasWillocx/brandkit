@@ -450,16 +450,16 @@ brand_ornaments_tag <- function(motif = "drift", softness = web_ornament_softnes
   )
 }
 
-# The two files the poster extension ships. Named for the corner rather
+# The two files the drift Typst formats (print report, poster) ship. Named for the corner rather
 # than the motif so page.typ does not have to change when the motif does.
 #
 # Softer than brand_ornament()'s default. The default was tuned on page-
 # sized mock-ups, where the shapes are small; stretched across an A0 sheet
 # the same opacity reads as large flat blocks of colour behind the text,
-# so the poster takes a lower one.
-poster_ornament_softness <- 0.12
+# so the Typst formats take a lower one.
+typst_ornament_softness <- 0.12
 
-poster_ornament_files <- c(
+typst_ornament_files <- c(
   "drift-top-right.svg",
   "drift-bottom-left.svg"
 )
@@ -468,12 +468,12 @@ poster_ornament_files <- c(
 # what is already there (all of them with `overwrite`), and returns the paths
 # it wrote. They are generated from the brand — colours and the label — so a
 # plain re-run has to catch up with a changed brand, not leave stale files.
-write_poster_ornaments <- function(dir, overwrite = FALSE) {
-  paths <- file.path(dir, poster_ornament_files)
+write_typst_ornaments <- function(dir, overwrite = FALSE) {
+  paths <- file.path(dir, typst_ornament_files)
   corners <- c("top-right", "bottom-left")
   wrote <- character(0)
   for (i in seq_along(paths)) {
-    svg <- brand_ornament("drift", corners[i], poster_ornament_softness)
+    svg <- brand_ornament("drift", corners[i], typst_ornament_softness)
     if (overwrite || !identical(read_file_bytes(paths[i]), charToRaw(svg))) {
       writeBin(charToRaw(svg), paths[i])
       wrote <- c(wrote, paths[i])

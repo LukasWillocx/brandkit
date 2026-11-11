@@ -30,7 +30,7 @@ ui <- page_sidebar(
 server <- function(input, output, session) {
 
   # manual: reactive dark mode tracking
-  dm <- brand_dark_mode(input, session)
+  dm <- brand_dark_mode(input)
 
   output$scatter <- renderPlot({
     d <- switch(input$dataset, mtcars = mtcars, iris = iris, faithful = faithful)

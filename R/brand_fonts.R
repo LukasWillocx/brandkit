@@ -6,12 +6,21 @@
 #' Register Brand Fonts for Plotting
 #'
 #' Reads font definitions from the brand cache and registers them via
-#' sysfonts/showtext. Called automatically in `.onLoad` when both
-#' packages are available.
+#' sysfonts/showtext, so base and ggplot2 graphics can draw in the brand's
+#' typefaces. Called when brandkit loads, if both packages are installed;
+#' set `options(brandkit.register_fonts = FALSE)` before loading to skip
+#' that.
 #'
-#' @param font_dir Directory containing `.ttf`/`.otf` files. Defaults to
-#'   `inst/fonts` inside the package, or the directory containing
-#'   `_brand.yml` if fonts use relative paths.
+#' A font entry with no `source:` is a Google font, as in Quarto. Google
+#' fonts are downloaded, so registering one needs a network connection and
+#' takes a moment; a family that is already registered in this session is
+#' skipped, so calling this again costs nothing. A failed download is
+#' reported with a message, not an error. `showtext` is only switched on
+#' once at least one family is registered.
+#'
+#' @param font_dir Directory that relative `files:` paths of local
+#'   (`source: file`) fonts are resolved against. Defaults to the directory
+#'   containing `_brand.yml`.
 #'
 #' @return Invisible `NULL`. Called for side effects.
 #' @export
@@ -29,19 +38,26 @@ brand_register_fonts <- function(font_dir = NULL) {
   # Resolve base directory for font file paths
   base_dir <- font_dir %||% dirname(brand_env$path)
 
+  registered <- FALSE
+
   for (fdef in fonts_raw) {
     family <- fdef$family
     if (is.null(family)) next
 
-    source <- fdef$source %||% "file"
+    # Nothing to do twice, and for a Google font "twice" means another
+    # download.
+    if (family %in% sysfonts::font_families()) next
+
+    source <- fdef$source %||% "google"
 
     if (source == "google") {
-      tryCatch(
-        sysfonts::font_add_google(family, family),
-        error = function(e) {
-          message("brandkit: could not load Google Font '", family, "': ", e$message)
-        }
-      )
+      registered <- tryCatch({
+        sysfonts::font_add_google(family, family)
+        TRUE
+      }, error = function(e) {
+        message("brandkit: could not load Google Font '", family, "': ", e$message)
+        registered
+      })
     } else {
       # Local font files — collect weights
       files <- fdef$files %||% list()
@@ -49,10 +65,6 @@ brand_register_fonts <- function(font_dir = NULL) {
 
       for (f in files) {
         path <- file.path(base_dir, f$path)
-        if (!file.exists(path)) {
-          # Try inst/fonts fallback
-          path <- system.file("fonts", basename(f$path), package = "brandkit")
-        }
         if (!file.exists(path)) next
 
         style  <- f$style  %||% "normal"
@@ -65,23 +77,24 @@ brand_register_fonts <- function(font_dir = NULL) {
       }
 
       if (!is.null(regular)) {
-        tryCatch(
+        registered <- tryCatch({
           sysfonts::font_add(
             family   = family,
             regular  = regular,
             bold     = bold       %||% regular,
             italic   = italic     %||% regular,
             bolditalic = bolditalic %||% bold %||% regular
-          ),
-          error = function(e) {
-            message("brandkit: could not register font '", family, "': ", e$message)
-          }
-        )
+          )
+          TRUE
+        }, error = function(e) {
+          message("brandkit: could not register font '", family, "': ", e$message)
+          registered
+        })
       }
     }
   }
 
-  showtext::showtext_auto()
+  if (registered) showtext::showtext_auto()
   invisible(NULL)
 }
 

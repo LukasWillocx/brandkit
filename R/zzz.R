@@ -16,11 +16,14 @@ NULL
     error = function(e) NULL
   )
 
-  # Register fonts from cache (reads _brand.yml typography section)
-  tryCatch(
-    brand_register_fonts(),
-    error = function(e) NULL
-  )
+  # Register fonts from cache (reads _brand.yml typography section). Google
+  # fonts are downloaded, so this can be switched off for a quick load.
+  if (isTRUE(getOption("brandkit.register_fonts", TRUE))) {
+    tryCatch(
+      brand_register_fonts(),
+      error = function(e) NULL
+    )
+  }
 }
 
 .onAttach <- function(libname, pkgname) {

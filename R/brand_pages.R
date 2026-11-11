@@ -52,8 +52,7 @@ brand_page_sidebar <- function(...,
     setup$head_tags,
     setup$toggle,
     setup$ornaments,
-    ...,
-    setup$thematic_script
+    ...
   )
 }
 
@@ -132,8 +131,7 @@ brand_page_fluid <- function(...,
     setup$head_tags,
     setup$toggle,
     setup$ornaments,
-    ...,
-    setup$thematic_script
+    ...
   )
 }
 
@@ -188,10 +186,9 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args,
   # Activate thematic as a side effect during UI construction.
   # thematic_shiny() must run before the app starts, which is exactly
   # when page_*() functions evaluate. This gives every renderPlot()
-  # automatic brand colours, fonts, and transparent backgrounds.
-  # We pass the brand discrete palette as qualitative so thematic
-  # uses our colours instead of its own defaults.
-  thematic_script <- NULL
+  # automatic brand colours, fonts, and backgrounds that match their
+  # container; the discrete palette is chosen per plot (see
+  # activate_thematic_shiny()).
   activate_thematic_shiny()
 
   # Dark mode toggle — fixed top-right corner
@@ -203,11 +200,10 @@ build_page_setup <- function(dark_mode, dark_mode_id, theme_args,
   }
 
   list(
-    theme           = theme,
-    head_tags       = head_tags,
-    toggle          = toggle,
-    ornaments       = ornaments,
-    thematic_script = thematic_script
+    theme     = theme,
+    head_tags = head_tags,
+    toggle    = toggle,
+    ornaments = ornaments
   )
 }
 
@@ -365,34 +361,4 @@ plot_settle_script <- function() {
   });
 })();
 ')))
-}
-
-
-
-# --------------------------------------------------------------------------
-# Thematic server-side activation
-# --------------------------------------------------------------------------
-
-#' Activate Thematic for Branded Plots
-#'
-#' Call once at the top of your server function (or not at all — the
-#' `brand_page_*()` wrappers handle this automatically if you use the
-#' `brand_server()` helper). Sets up `thematic::thematic_shiny()` so
-#' all `renderPlot()` outputs inherit brand colours and fonts with
-#' transparent backgrounds that match dark/light mode.
-#'
-#' @param font Font family to use for plots. Default reads from brand cache.
-#'
-#' @return Invisible `NULL`. Called for side effect.
-#' @export
-brand_activate_thematic <- function(font = NULL) {
-  if (!requireNamespace("thematic", quietly = TRUE)) {
-    message("Install the 'thematic' package for automatic plot theming.")
-    return(invisible(NULL))
-  }
-
-  font <- font %||% brand_fonts()$base
-  pal  <- brand_pal_discrete()
-  thematic::thematic_shiny(font = font, qualitative = pal)
-  invisible(NULL)
 }

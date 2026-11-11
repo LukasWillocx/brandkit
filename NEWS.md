@@ -1,5 +1,20 @@
 # brandkit (development version)
 
+* Removed code nothing used: `shift_color()`, the exported
+  `brand_activate_thematic()` (superseded by what the `brand_page_*()`
+  wrappers and `brand_quarto_setup(shiny = TRUE)` do, and its docs pointed at
+  a `brand_server()` that never existed), a placeholder return value in the
+  page wrappers, and the `session` argument of `brand_dark_mode()`. If you
+  called `brand_dark_mode(input, session)`, drop the second argument
+  (`brand_dark_mode(input)`); `input_id` is now second.
+* `brand_register_fonts()` is better behaved. A font entry with no `source:`
+  is now a Google font, as everywhere else (it used to be read as a local
+  file and silently registered nothing). Families already registered in the
+  session are skipped, so loading or calling it again no longer downloads
+  them again, and `showtext` is only switched on once something has been
+  registered. The `inst/fonts` fallback it mentioned never existed and is
+  gone. Set `options(brandkit.register_fonts = FALSE)` before loading
+  brandkit to skip registration at load.
 * The `create_brand_shiny_dashboard()` template now uses R's built-in
   `airquality` data, like the other templates, in place of its invented sales
   figures (whose order counts also changed on every launch). The tabs and

@@ -4,14 +4,6 @@ test_that("hex_to_rgb_str and hex_to_rgba convert hex to CSS channel values", {
   expect_equal(hex_to_rgba("#000000"), "rgba(0, 0, 0, 1)")
 })
 
-test_that("shift_color lightens for positive and darkens for negative amounts", {
-  lum <- function(hex) sum(grDevices::col2rgb(hex) * c(0.299, 0.587, 0.114))
-  base <- "#808080"
-  expect_gt(lum(shift_color(base, 0.3)), lum(base))
-  expect_lt(lum(shift_color(base, -0.3)), lum(base))
-  expect_equal(lum(shift_color(base, 0)), lum(base), tolerance = 1)
-})
-
 test_that("is_dark_colour splits at perceptual luminance", {
   expect_true(is_dark_colour("#000000"))
   expect_true(is_dark_colour("#1b2a4a"))

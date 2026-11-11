@@ -187,15 +187,15 @@ test_that("the label sits beside the swell's curve, on the side away from the wa
   expect_gt(attr_num(svg, "dy"), 0)
 })
 
-test_that("write_poster_ornaments rewrites only what changed", {
+test_that("write_typst_ornaments rewrites only what changed", {
   dir <- withr::local_tempdir()
   local_brand()
-  expect_length(write_poster_ornaments(dir), 2)       # first write: both files
-  expect_length(write_poster_ornaments(dir), 0)       # unchanged: nothing
-  expect_length(write_poster_ornaments(dir, overwrite = TRUE), 2)
+  expect_length(write_typst_ornaments(dir), 2)       # first write: both files
+  expect_length(write_typst_ornaments(dir), 0)       # unchanged: nothing
+  expect_length(write_typst_ornaments(dir, overwrite = TRUE), 2)
 
   local_brand(brand_with_label("Acme"))
-  wrote <- write_poster_ornaments(dir)                # label added: top-right only
+  wrote <- write_typst_ornaments(dir)                # label added: top-right only
   expect_equal(basename(wrote), "drift-top-right.svg")
   expect_match(rawToChar(read_file_bytes(wrote)), ">M</text>", fixed = TRUE)
 })

@@ -232,12 +232,7 @@ create_brand_shiny_steps <- function(path = ".", overwrite = FALSE) {
 
 scaffold_shiny_app <- function(path, template, overwrite, packages) {
 
-  if (!dir.exists(path)) {
-    dir.create(path, recursive = TRUE)
-    message("Created directory: ", path)
-  }
-  path <- normalizePath(path, mustWork = TRUE)
-  ensure_cache_for_path(path)
+  path <- scaffold_dir(path)
 
   copied <- character(0)
 
@@ -258,11 +253,8 @@ scaffold_shiny_app <- function(path, template, overwrite, packages) {
     message("Copied app.R (", template, ")")
   }
 
-  # --- Font files (if local fonts are defined) ---
-  copy_brand_fonts(path, overwrite)
-
-  # --- Logo files ---
-  copy_brand_logo(path, overwrite)
+  # --- Font and logo files ---
+  copy_brand_assets(path, overwrite)
 
   warn_missing_packages(packages)
 
@@ -344,14 +336,10 @@ bslib_brand_cfg <- function(cfg,
                             brand_dir = dirname(brand_env$path),
                             keep_logo = NULL) {
 
-  color_keys <- c("primary", "secondary", "success", "danger",
-                  "warning", "info", "light", "dark",
-                  "foreground", "background")
-
   light <- list()
   dark  <- as.list(cfg[["color-dark"]] %||% list())
 
-  for (k in color_keys) {
+  for (k in brand_color_keys) {
     val <- cfg$color[[k]]
     if (is.null(val)) next
 
@@ -373,21 +361,7 @@ bslib_brand_cfg <- function(cfg,
   out <- list()
   if (!is.null(cfg$meta)) out$meta <- cfg$meta
 
-  # Only reference a logo if its file(s) will actually be copied
-  # alongside this _brand.yml — otherwise a stale or cross-project cache
-  # can produce a scaffold that references a logo bslib can never find.
-  if (!is.null(cfg$logo)) {
-    if (keep_logo %||% logo_files_exist(cfg$logo, brand_dir)) {
-      out$logo <- cfg$logo
-    } else if (is.null(keep_logo)) {
-      message(
-        "Note: the cached brand references a logo, but its file could ",
-        "not be found \u2014 omitting logo: from _brand.yml. Run ",
-        "configure_brand() in this project (or copy the logo file in ",
-        "manually) if you want a logo here."
-      )
-    }
-  }
+  out$logo <- convert_logo(cfg, brand_dir, keep_logo)
 
   if (length(light))            out$color        <- light
   if (length(dark))             out[["color-dark"]] <- dark

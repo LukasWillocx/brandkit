@@ -226,15 +226,16 @@ build_widget_overrides <- function() {
 
 
 # --------------------------------------------------------------------------
-# Dark mode Shiny helper — generates <style> tag for datepicker / Shiny
-# containers that load CSS independently of bslib.
+# Dark mode Shiny helper — generates <style> tag for the datepicker, which
+# loads CSS independently of bslib.
 # --------------------------------------------------------------------------
 
 #' Dark Mode CSS for Third-Party Widgets
 #'
-#' Returns a `tags$head(tags$style(...))` block for widgets that load their
-#' own stylesheets outside bslib (datepicker, Shiny checkbox/radio
-#' containers). Place in your UI alongside `brand_theme()`.
+#' Returns a `tags$head(tags$style(...))` block for the datepicker, which
+#' loads its own stylesheet outside bslib. (The other widgets, checkboxes and
+#' radios included, are covered by rules compiled into [brand_theme()].)
+#' Place in your UI alongside `brand_theme()`.
 #'
 #' @return An `htmltools::tags$head()` element.
 #' @export
@@ -242,8 +243,6 @@ brand_dark_css <- function() {
   ensure_cache()
   dk <- brand_env$colors_dark
   if (is.null(dk)) return(htmltools::tags$head())
-
-  rgb_primary <- hex_to_rgb_str(dk$primary)
 
   css <- paste0('
 /* brandkit: datepicker dark mode overrides */
@@ -262,16 +261,6 @@ html[data-bs-theme="dark"] .datepicker table tr td.today:hover {
   background-color: color-mix(in srgb, ', dk$primary, ' 30%, ', dk$background, ' 70%) !important;
   background-image: none !important;
 }
-html[data-bs-theme="dark"] .shiny-input-container .checkbox input:checked,
-html[data-bs-theme="dark"] .shiny-input-container .radio input:checked {
-  background-color: ', dk$primary, ' !important;
-  border-color: ', dk$primary, ' !important;
-}
-html[data-bs-theme="dark"] .shiny-input-container .checkbox input:focus,
-html[data-bs-theme="dark"] .shiny-input-container .radio input:focus {
-  border-color: ', dk$primary, ' !important;
-  box-shadow: 0 0 0 0.25rem rgba(', rgb_primary, ', 0.25) !important;
-}
 ')
 
   htmltools::tags$head(htmltools::tags$style(htmltools::HTML(css)))
@@ -288,12 +277,11 @@ html[data-bs-theme="dark"] .shiny-input-container .radio input:focus {
 #' `theme()` that track `bslib::input_dark_mode()`.
 #'
 #' @param input Shiny `input` object.
-#' @param session Shiny `session` object (kept for API compat).
 #' @param input_id ID of the `input_dark_mode()` widget. Default `"dark_mode"`.
 #'
 #' @return List with reactive `mode` (`"light"` / `"dark"`) and `theme`.
 #' @export
-brand_dark_mode <- function(input, session = NULL, input_id = "dark_mode") {
+brand_dark_mode <- function(input, input_id = "dark_mode") {
   light <- brand_theme("light")
   dark_cache <- NULL
 

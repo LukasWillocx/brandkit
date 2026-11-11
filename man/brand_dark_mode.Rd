@@ -4,12 +4,10 @@
 \alias{brand_dark_mode}
 \title{Enable Dark Mode Toggling in Shiny}
 \usage{
-brand_dark_mode(input, session = NULL, input_id = "dark_mode")
+brand_dark_mode(input, input_id = "dark_mode")
 }
 \arguments{
 \item{input}{Shiny \code{input} object.}
-
-\item{session}{Shiny \code{session} object (kept for API compat).}
 
 \item{input_id}{ID of the \code{input_dark_mode()} widget. Default \code{"dark_mode"}.}
 }

@@ -7,15 +7,25 @@
 brand_register_fonts(font_dir = NULL)
 }
 \arguments{
-\item{font_dir}{Directory containing \code{.ttf}/\code{.otf} files. Defaults to
-\code{inst/fonts} inside the package, or the directory containing
-\verb{_brand.yml} if fonts use relative paths.}
+\item{font_dir}{Directory that relative \verb{files:} paths of local
+(\code{source: file}) fonts are resolved against. Defaults to the directory
+containing \verb{_brand.yml}.}
 }
 \value{
 Invisible \code{NULL}. Called for side effects.
 }
 \description{
 Reads font definitions from the brand cache and registers them via
-sysfonts/showtext. Called automatically in \code{.onLoad} when both
-packages are available.
+sysfonts/showtext, so base and ggplot2 graphics can draw in the brand's
+typefaces. Called when brandkit loads, if both packages are installed;
+set \code{options(brandkit.register_fonts = FALSE)} before loading to skip
+that.
+}
+\details{
+A font entry with no \verb{source:} is a Google font, as in Quarto. Google
+fonts are downloaded, so registering one needs a network connection and
+takes a moment; a family that is already registered in this session is
+skipped, so calling this again costs nothing. A failed download is
+reported with a message, not an error. \code{showtext} is only switched on
+once at least one family is registered.
 }
