@@ -123,8 +123,11 @@ Everything below is relative to 0.3.0.
 * `brand_dark_css()` no longer repeats the checkbox, radio and focus rules that
   `brand_theme()` already compiles in; it keeps the datepicker rules, which are
   the ones that need it. Nothing changes on the page.
-* Declared dependencies that were used but not listed: `later` and `utils` in
-  Imports, `htmlwidgets` in Suggests. DESCRIPTION also gains `URL` and
+* Declared dependencies that were used but not listed: `later`, `utils` and
+  `brand.yml` in Imports, `htmlwidgets` in Suggests. `brand_theme()` builds its
+  theme with `bslib::bs_theme(brand = )`, which needs `brand.yml` but only
+  suggests it, so a fresh install (and CI) lacked it and every
+  `brand_page_*()` call failed. DESCRIPTION also gains `URL` and
   `BugReports`.
 
 ## Internal

@@ -13,6 +13,9 @@ jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
 
+    # A stuck R install once held a job for two hours; a check takes about two minutes.
+    timeout-minutes: 30
+
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:

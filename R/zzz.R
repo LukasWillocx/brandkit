@@ -4,6 +4,9 @@
 # --------------------------------------------------------------------------
 
 #' @importFrom rlang %||%
+# bslib::bs_theme(brand = ) reads _brand.yml through brand.yml, which bslib only
+# suggests. brandkit builds its theme that way, so it is a hard dependency here.
+#' @importFrom brand.yml read_brand_yml
 #' @importFrom methods as
 #' @importFrom graphics axis lines par
 NULL
