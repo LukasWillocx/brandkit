@@ -69,6 +69,10 @@ brand_page_sidebar <- function(...,
 #' @param dark_mode Include a dark-mode toggle in the navbar? Default `TRUE`.
 #' @param dark_mode_id ID for the toggle widget.
 #' @param theme_args Extra args passed to `brand_theme()`.
+#' @param style `"classic"` (default) or `"drift"`; see
+#'   [brand_page_sidebar()]. With `"drift"` the navbar loses its bar and
+#'   rule, so the title and the tabs sit on the page with the ornaments
+#'   showing behind them.
 #'
 #' @return A Shiny UI definition.
 #' @export
@@ -77,17 +81,19 @@ brand_page_navbar <- function(...,
                               logo = TRUE,
                               dark_mode = TRUE,
                               dark_mode_id = "dark_mode",
-                              theme_args = list()) {
+                              theme_args = list(),
+                              style = c("classic", "drift")) {
 
-  setup <- build_page_setup(dark_mode, dark_mode_id, theme_args)
+  style <- match.arg(style)
+  setup <- build_page_setup(dark_mode, dark_mode_id, theme_args, style)
   title <- build_branded_title(title, logo)
 
   # page_navbar only accepts nav_panel items in ..., so inject
-  # head tags and toggle via the header parameter.
+  # head tags, toggle and ornaments via the header parameter.
   bslib::page_navbar(
     theme  = setup$theme,
     title  = title,
-    header = htmltools::tagList(setup$head_tags, setup$toggle),
+    header = htmltools::tagList(setup$head_tags, setup$toggle, setup$ornaments),
     ...,
   )
 }
@@ -103,6 +109,8 @@ brand_page_navbar <- function(...,
 #' @param dark_mode Include a dark-mode toggle? Default `TRUE`.
 #' @param dark_mode_id ID for the toggle widget.
 #' @param theme_args Extra args passed to `brand_theme()`.
+#' @param style `"classic"` (default) or `"drift"`; see
+#'   [brand_page_sidebar()].
 #'
 #' @return A Shiny UI definition.
 #' @export
@@ -111,9 +119,11 @@ brand_page_fluid <- function(...,
                              logo = TRUE,
                              dark_mode = TRUE,
                              dark_mode_id = "dark_mode",
-                             theme_args = list()) {
+                             theme_args = list(),
+                             style = c("classic", "drift")) {
 
-  setup <- build_page_setup(dark_mode, dark_mode_id, theme_args)
+  style <- match.arg(style)
+  setup <- build_page_setup(dark_mode, dark_mode_id, theme_args, style)
   title <- build_branded_title(title, logo)
 
   bslib::page_fluid(
@@ -121,6 +131,7 @@ brand_page_fluid <- function(...,
     title = title,
     setup$head_tags,
     setup$toggle,
+    setup$ornaments,
     ...,
     setup$thematic_script
   )

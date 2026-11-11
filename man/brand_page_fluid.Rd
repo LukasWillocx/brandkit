@@ -10,7 +10,8 @@ brand_page_fluid(
   logo = TRUE,
   dark_mode = TRUE,
   dark_mode_id = "dark_mode",
-  theme_args = list()
+  theme_args = list(),
+  style = c("classic", "drift")
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ brand_page_fluid(
 \item{dark_mode_id}{ID for the toggle widget.}
 
 \item{theme_args}{Extra args passed to \code{brand_theme()}.}
+
+\item{style}{\code{"classic"} (default) or \code{"drift"}; see
+\code{\link[=brand_page_sidebar]{brand_page_sidebar()}}.}
 }
 \value{
 A Shiny UI definition.

@@ -3,7 +3,7 @@
    The "drift" page style: soft corner ornaments behind the page, plain type
    for the title, and section cards instead of floating shadowed boxes. It
    is the interactive counterpart of the poster template, and it is opt-in
-   (brand_page_sidebar(style = "drift")): every rule is scoped to
+   (brand_page_*(style = "drift")): every rule is scoped to
    html.bk-drift, which a script in the page head adds, so a page that does
    not ask for it is untouched.
 
@@ -27,11 +27,18 @@ html.bk-drift .navbar.navbar-static-top {
   box-shadow: none !important;
   padding-top: 0.6rem;
 }
-html.bk-drift .bslib-page-title {
+html.bk-drift .bslib-page-title,
+html.bk-drift .navbar-brand {
   color: var(--bs-primary) !important;
   font-weight: 700;
   font-size: clamp(1.5rem, 2.6vw, 2.2rem);
   letter-spacing: -0.01em;
+}
+/* A navbar page draws its own rule between the bar and the page content (a
+   border on the content container), which would still cut across the
+   ornament once the bar's own rule is gone. */
+html.bk-drift .navbar.navbar-static-top + .container-fluid {
+  border-top: 0 !important;
 }
 
 /* --- Cards: tinted surface, solid header bar --- */

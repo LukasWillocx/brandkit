@@ -191,6 +191,8 @@ The poster template's look, carried into the browser. It is opt-in, and `"classi
 
 All of it is scoped to a class the page adds to `<html>`, so none of it can leak into a classic page.
 
+`brand_page_navbar()` and `brand_page_fluid()` take the same `style` argument. On a navbar page the bar and its rule go, so the title and the tabs sit on the page with the ornaments behind them; a fluid page has no bar, so it gets the ornaments, tinted cards and tables.
+
 ### `brand_page_navbar()`
 
 ```r
@@ -200,7 +202,8 @@ brand_page_navbar(
   logo = TRUE,
   dark_mode = TRUE,
   dark_mode_id = "dark_mode",
-  theme_args = list()
+  theme_args = list(),
+  style = "classic"             # "classic" or "drift" (see above)
 )
 ```
 
@@ -215,7 +218,8 @@ brand_page_fluid(
   logo = TRUE,
   dark_mode = TRUE,
   dark_mode_id = "dark_mode",
-  theme_args = list()
+  theme_args = list(),
+  style = "classic"             # "classic" or "drift" (see above)
 )
 ```
 

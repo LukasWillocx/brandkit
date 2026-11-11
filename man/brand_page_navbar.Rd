@@ -10,7 +10,8 @@ brand_page_navbar(
   logo = TRUE,
   dark_mode = TRUE,
   dark_mode_id = "dark_mode",
-  theme_args = list()
+  theme_args = list(),
+  style = c("classic", "drift")
 )
 }
 \arguments{
@@ -25,6 +26,11 @@ brand_page_navbar(
 \item{dark_mode_id}{ID for the toggle widget.}
 
 \item{theme_args}{Extra args passed to \code{brand_theme()}.}
+
+\item{style}{\code{"classic"} (default) or \code{"drift"}; see
+\code{\link[=brand_page_sidebar]{brand_page_sidebar()}}. With \code{"drift"} the navbar loses its bar and
+rule, so the title and the tabs sit on the page with the ornaments
+showing behind them.}
 }
 \value{
 A Shiny UI definition.

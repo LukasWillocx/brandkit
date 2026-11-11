@@ -1,5 +1,10 @@
 # brandkit (development version)
 
+* `brand_page_navbar()` and `brand_page_fluid()` now take `style = "drift"`,
+  as `brand_page_sidebar()` already did (the 0.3.0 notes said all three did,
+  but only the sidebar wrapper had the argument). On a navbar page the bar
+  loses its rule as well as its background, and the brand name is set as plain
+  type like the sidebar page's title.
 * The `create_brand_shiny_map()` template, the README and
   `examples/app_fluid_leaflet.R` no longer use CARTO's Positron / DarkMatter
   tiles (they now watermark every tile without an API key) or Stadia's Toner.
