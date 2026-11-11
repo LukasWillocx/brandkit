@@ -1,0 +1,59 @@
+---
+title: "Troubleshooting"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Troubleshooting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+The problems people actually hit, by where they show up. Each row is a symptom,
+what's behind it and what to do.
+
+## The brand file
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Quarto fails to render with a YAML validation error from `readAndValidateYamlFromFile` | `_brand.yml` is in the Shiny/bslib dialect (`color-dark:`, `theme:`), which Quarto rejects | Run any `create_brand_quarto_*()` in the project (it converts the file), or save from `configure_brand()` with **Output format: Quarto** |
+| A Shiny app won't start: `color.primary must be a single string or NULL, not a list` | The file is in Quarto's dialect (nested `light:` / `dark:`), which bslib rejects | Run any `create_brand_shiny_*()` in the project, or save from `configure_brand()` with **Output format: Shiny / bslib** |
+| The border radius you configured has no effect in bslib | bslib doesn't read a `theme:` key, so it silently uses Bootstrap's default | Put Bootstrap variables under `defaults: bootstrap: defaults:`. The scaffolds write them there |
+| A directory with an app and a document keeps flipping format | Each scaffold converts `_brand.yml` to its own dialect | Choose one format on purpose; see `vignette("getting-started")` |
+| brandkit uses the wrong brand | The cache holds the first `_brand.yml` found when the package loaded | `brand_init("path/to/_brand.yml")` |
+
+## Shiny
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Navigation containers expect a collection of nav_panel()s` | `brand_page_navbar()` only takes `nav_panel()` / `nav_menu()` items | Put the content inside a `nav_panel()` |
+| A gt table stays light in dark mode | gt ignores Bootstrap's CSS variables | Style it from `brand_colors(mode)`; see `vignette("shiny-apps")` |
+| A plotly chart doesn't follow the dark-mode toggle in an app | It needs to be told the mode there | `brand_plotly(p, mode = dm$mode())` with `dm <- brand_dark_mode(input)` |
+| A leaflet map has a "key required" watermark | CARTO's `Positron` / `DarkMatter` tiles need an API key | Use Esri's grey canvas (a light and a dark version); `create_brand_shiny_map()` ships a helper |
+| Map tiles don't change with the mode | Tiles are set when the map renders | Read `dm$mode()` inside `renderLeaflet()` so the map redraws |
+| `configure_brand()` fails with "Can't call runApp() from within runApp()" after an interrupted launch | A previous launch left Shiny's running flag set | Install `httpuv`; the configurator clears stuck servers before it starts |
+
+## Documents and PDFs
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| The HTML report's toggle only changes code colours | The theme was written in the flat form | Use `theme: light: [brand, drift.scss]` / `dark: [...]` |
+| Plots don't follow the toggle | Figures are static images | `brand_quarto_setup(adaptive = TRUE)`; not available with `embed-resources: true` |
+| A plotly chart overflows a slide | It sizes itself to its container | `brand_plotly(p, width = 1000, height = 600)` |
+| `quarto render dashboard.qmd` produces files but no running page | The dashboard declares `server: shiny` | `quarto serve dashboard.qmd` |
+| A print PDF has a tinted page that clips at the printer's edge | Quarto fills the page with `color.background` | Set `color.background` to white for a print-targeted brand |
+| A poster runs onto a second page | Typst doesn't shrink content to fit | Cut content, or use `columns = 4`; a single card taller than a column also overflows |
+| The poster's type is the wrong size after changing `papersize:` | The type scale is baked in at scaffold time | Re-run `create_brand_quarto_poster(paper =, columns =)` |
+| Generated ornaments or extension values look out of date | They're drawn from the brand at scaffold time | Re-run the `create_brand_quarto_*()` function; changed files are rewritten |
+
+## Fonts
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `**bold**` or `*italic*` renders plain in a PDF | Typst synthesises neither; a family without a 700 or an italic face can't show them | Use a family that ships both. Every pairing the configurator offers does |
+| The brand font is missing from a PDF and Typst's default serif appears | Families with an optical-size axis are served as `<Family> <n>pt` (for example `DM Sans 9pt`), which never matches the name you asked for | Pick another family. Check what was downloaded with `quarto typst fonts --font-path <project>/.quarto/typst-font-cache --ignore-system-fonts` |
+| Inline code looks too big or too small next to the text | The base font's x-height is far from the code font's | Pick a base font close to IBM Plex Mono's x-height (the offered ones are within 4%, Jost in its pairing about 12% off) |
+| Plots (ggplot2, base graphics) don't use the brand font | The fonts aren't registered | Install `sysfonts` and `showtext`; Google fonts need a network connection on first load. `brand_register_fonts()` re-runs registration |
+| `library(brandkit)` is slow | Registration downloads Google fonts the first time | `options(brandkit.register_fonts = FALSE)` before loading, then call `brand_register_fonts()` when you want them |

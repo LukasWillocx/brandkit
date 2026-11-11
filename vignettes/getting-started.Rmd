@@ -1,0 +1,162 @@
+---
+title: "Getting started: the brand file and the configurator"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started: the brand file and the configurator}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Everything brandkit does starts from one file, `_brand.yml`. This article
+covers what goes in it, how to make one with the configurator, the two
+dialects it comes in, and how to read it back from R.
+
+## The brand file
+
+brandkit reads and extends the [brand.yml](https://posit-dev.github.io/brand-yml/)
+specification. A complete file:
+
+```yaml
+meta:
+  name: My Brand
+color:
+  primary: "#2c3e50"
+  secondary: "#1abc9c"
+  success: "#27ae60"
+  danger: "#e74c3c"
+  warning: "#f39c12"
+  info: "#2980b9"
+  light: "#ecf0f1"          # background in light mode
+  dark: "#1a252f"           # foreground in light mode
+  foreground: "#1a252f"
+  background: "#ecf0f1"
+color-dark:                 # dark mode (bslib dialect, see below)
+  primary: "#5a8a9f"
+  secondary: "#4edfc0"
+  background: "#121a20"
+  foreground: "#e8eff5"
+  # ... the rest of the colours, as above
+typography:
+  fonts:
+    - family: Inter
+      source: google        # "google", or "file" for local .ttf files
+    - family: Montserrat
+      source: google
+  base:
+    family: Inter
+    size: 1rem
+    line-height: 1.65
+    weight: 400
+  headings:
+    family: Montserrat
+    weight: 700
+logo:
+  small: "logo/brand.png"
+  medium: "logo/brand.png"
+  large: "logo/brand.png"
+defaults:
+  bootstrap:
+    defaults:               # Bootstrap Sass variables
+      border-radius: "0.75rem"
+```
+
+A few details worth knowing:
+
+- The `logo:` section uses `small`, `medium` and `large` (not `light`/`dark`).
+- A font entry with no `source:` is a Google font, as in Quarto.
+  `source: file` needs the `.ttf` files listed under `files:`.
+- Optional `meta:` keys: `ornament-label` and `ornament-label-corner`, for
+  the text on the corner ornaments (see `vignette("pdf-and-posters")`).
+
+## Make one with the configurator
+
+```{r}
+library(brandkit)
+configure_brand()
+```
+
+This opens a Shiny app with colour presets, font pairings, logo upload and a
+live preview. Saving writes `_brand.yml` (and any logo) to the project and
+closes the app.
+
+```{r}
+configure_brand(path = ".")                     # opens on the brand already there
+configure_brand(path = ".", reset = TRUE)       # ignore it, start from defaults
+configure_brand(path = ".", format = "quarto")  # preselect the output format
+```
+
+**Starting from an existing brand.** If `path` already holds a `_brand.yml`,
+every input opens on its current values (colours, font pairing, sizes, border
+radius, name, logo), so adjusting a configured project is a nudge rather than
+a new run. The preset and font-pairing menus land on the matching entry, or on
+*Custom* for a hand-tuned brand.
+
+Things the app has no control for are carried through, not dropped: a named
+`color.palette`, and font definitions for local (`source: file`) families. The
+one thing not preserved is hand-edited dark colours: the dark palette is
+always derived from the light one (the "Auto-generate dark mode palette"
+box, which starts ticked whenever the file has dark colours).
+
+**Presets and fonts.** There are 12 colour presets, from *Corporate Navy* and
+*Slate & Teal* to *Mint & Peach*, and 10 font pairings plus *Custom*. Every
+family offered survives the Typst/PDF path (a bold and an italic face, and a
+name that matches what Typst downloads); if you type a custom family in, see
+the troubleshooting article for how to check yours.
+
+## Two dialects, one filename
+
+bslib (Shiny) and Quarto read the same file name but disagree about how dark
+colours are written, and each rejects the other's form:
+
+| | Shiny / bslib | Quarto |
+|---|---|---|
+| Dark colours | separate `color-dark:` section | nested `light:` / `dark:` values per colour |
+| Bootstrap variables | `defaults: bootstrap: defaults:` | `defaults: bootstrap: defaults:` |
+| Read by | bslib | Quarto **and** bslib |
+
+You rarely have to think about this:
+
+- `configure_brand()` has an **Output format** toggle that picks the dialect to
+  write. It starts on the format of the file already in `path`.
+- Every `create_brand_*()` scaffold writes the dialect its target needs, and
+  converts a file in the wrong one regardless of `overwrite`.
+- A directory serving both a Shiny app and a Quarto document needs one format
+  chosen on purpose, since each scaffold converts the file to its own.
+
+brandkit's own functions read either dialect.
+
+## Reading the brand from R
+
+brandkit parses `_brand.yml` when the package loads (the one found by walking
+up from the working directory, or the default brand bundled in the package)
+and caches it. Everything else reads from the cache.
+
+| Function | Returns |
+|---|---|
+| `brand_init(path)` | (re)loads a specific `_brand.yml` into the cache |
+| `brand_colors(mode)` | named list of colours, for `"light"` or `"dark"` |
+| `brand_fonts()` | list with `base`, `heading`, `all` and `raw` |
+| `brand_logo(size)` | resolved path to the logo, or `NULL` |
+| `brand_logo_tag(height)` | an inline `<img>` tag for Shiny titles |
+| `brand_raw()` | the full parsed YAML, as an escape hatch |
+
+```{r}
+brand_init("path/to/_brand.yml")
+brand_colors("dark")$primary
+```
+
+Fonts are registered for ggplot2 and base graphics through `sysfonts` and
+`showtext` when both are installed. Google fonts are downloaded, so the first
+load needs a network connection; set `options(brandkit.register_fonts = FALSE)`
+before loading to skip it.
+
+## Next
+
+- Apps: `vignette("shiny-apps")`
+- Plots: `vignette("plots")`
+- Documents: `vignette("quarto-documents")` and `vignette("pdf-and-posters")`
+- When something looks wrong: `vignette("troubleshooting")`

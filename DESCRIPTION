@@ -38,8 +38,12 @@ Suggests:
     leaflet,
     plotly,
     quarto,
+    rmarkdown,
     showtext,
     sysfonts,
     testthat (>= 3.0.0),
     withr
 Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/LukasWillocx/brandkit
+BugReports: https://github.com/LukasWillocx/brandkit/issues

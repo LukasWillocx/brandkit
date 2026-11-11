@@ -1,0 +1,152 @@
+---
+title: "Plots: ggplot2, plotly and palettes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Plots: ggplot2, plotly and palettes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+## Branded by default
+
+Attaching brandkit does two things:
+
+1. `ggplot2::theme_set(theme_brand())`: every plot uses the brand theme.
+2. `options(ggplot2.discrete.colour = brand_pal_discrete())` (and `.fill`):
+   discrete colour mappings use brand colours.
+
+```{r}
+library(ggplot2)
+library(brandkit)
+
+ggplot(airquality, aes(Temp, Ozone, colour = factor(Month))) +
+  geom_point(size = 3)
+```
+
+That plot is fully branded with no extra calls. brandkit uses the `_brand.yml`
+it finds from the working directory upwards, or the default brand bundled with
+the package.
+
+## The theme
+
+```{r}
+theme_brand(base_size = 14, mode = "light", transparent = NULL)
+```
+
+It returns an ordinary ggplot2 theme: brand fonts (the heading font, bold, for
+titles; the base font for the rest), dashed primary-coloured grid lines at 25%
+opacity, no minor grid, and a transparent legend.
+
+**Backgrounds.** By default the plot and panel are transparent, so a plot takes
+the colour of whatever it sits on: a page, a poster card, a dashboard panel.
+Pass `transparent = FALSE` to fill them with the brand's background instead,
+which is what you want for a plot saved with `ggsave()`, since a file has no
+container behind it. Inside a running Shiny app the default flips to `FALSE`:
+`thematic` paints each plot to match its container by remapping the fills in the
+theme, and a theme with no fills gives it nothing to remap.
+
+## Scales and palettes
+
+```{r}
+# Discrete
+scale_color_brand_d()
+scale_fill_brand_d()
+
+# Continuous, sequential: type is "warm", "cool" or "green"
+scale_color_brand_c(type = "cool")
+scale_fill_brand_c()
+
+# Continuous, diverging
+scale_color_brand_div()
+scale_fill_brand_div()
+```
+
+All of them take `mode = "light"` or `"dark"`, and default to the mode set by
+`brand_quarto_setup()` (or light). The same palettes are available as plain
+colour vectors:
+
+```{r}
+brand_pal_discrete(n = NULL, mode = "light")   # up to 15 colours
+brand_pal_seq(type = "warm", n = 9, reverse = FALSE)
+brand_pal_div(n = 11, reverse = FALSE)
+```
+
+The discrete palette starts with the six semantic brand colours (primary,
+secondary, success, warning, danger, info) and fills up to 15 by rotating hue
+from the primary in HCL space. Nothing is hard-coded; every colour derives from
+`_brand.yml`.
+
+## Interactive plots
+
+`brand_plotly()` turns a ggplot into a plotly widget with brand colours, fonts
+and grid:
+
+```{r}
+p <- ggplot(airquality, aes(Temp, Ozone, colour = factor(Month))) + geom_point()
+brand_plotly(p, tooltip = c("x", "y", "colour"))
+```
+
+```{r}
+brand_plotly(
+  p,
+  mode = NULL,       # "light", "dark", or NULL to detect
+  base_size = 14,
+  tooltip = "y",     # aesthetics shown on hover
+  width = NULL,      # pixels; NULL is automatic
+  height = NULL
+)
+```
+
+Text, axes, legend and colourbar use the brand's foreground colour and font;
+grid lines are primary at 25%; the background is transparent so the widget
+inherits its container's.
+
+Which mode it draws in, in order of priority:
+
+1. An explicit `mode =`.
+2. Inside a Shiny render, the light or dark **background of the card it sits
+   on**, redrawing when that changes. This is what makes it work in a Quarto
+   dashboard, whose toggle gives Shiny no input to read.
+3. After `brand_quarto_setup(adaptive = TRUE)`, both modes at once (a pair of
+   widgets, one shown at a time).
+4. The mode set by `brand_quarto_setup()`, else light.
+
+A few practical points:
+
+- In a Shiny *app* the starter templates still pass `mode = dm$mode()`; see
+  `vignette("shiny-apps")`.
+- In revealjs slides pass fixed dimensions, `brand_plotly(p, width = 1000,
+  height = 600)`, or the plot overflows the slide. For HTML documents leave
+  them `NULL`.
+- For a continuous colour scale use `tooltip = c("x", "y")`; `"colour"` works
+  for discrete colours only.
+- Hover-label placement near the container's edge is plotly's own behaviour.
+
+## Static documents
+
+In Quarto, one call at the top sets everything up:
+
+```{r}
+brand_quarto_setup()                    # light mode
+brand_quarto_setup("dark")              # for brand-mode: dark documents
+brand_quarto_setup(adaptive = TRUE)     # HTML pages with a dark-mode toggle
+brand_quarto_setup(shiny = TRUE)        # server: shiny documents
+```
+
+It:
+
+1. sets the ggplot2 theme for the mode;
+2. registers the brand's discrete palette as the ggplot2 default;
+3. sets the knitr device background to transparent, so plots take the colour of
+   the page or card behind them (`transparent = FALSE` paints the brand
+   background instead);
+4. registers a knitr hook that sets `par()` colours for base graphics;
+5. stores the active mode, which `brand_plotly()` and the palettes read;
+6. with `adaptive = TRUE`, draws every figure in both modes (see
+   `vignette("quarto-documents")`);
+7. with `shiny = TRUE`, switches on thematic, so live plots follow the page's
+   toggle.

@@ -1,0 +1,235 @@
+---
+title: "Branded Shiny apps"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Branded Shiny apps}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+brandkit gives a Shiny app its theme through three page functions that
+replace the bslib ones. This article covers them, the optional "drift" look,
+how light and dark mode reach your plots and widgets, and the four app
+templates.
+
+## Page wrappers
+
+| brandkit | Replaces | `...` takes |
+|---|---|---|
+| `brand_page_sidebar()` | `bslib::page_sidebar()` | any UI (plus `sidebar =`) |
+| `brand_page_navbar()` | `bslib::page_navbar()` | `nav_panel()` / `nav_menu()` items only |
+| `brand_page_fluid()` | `bslib::page_fluid()` | any UI |
+
+```{r}
+library(shiny)
+library(bslib)
+library(ggplot2)
+library(brandkit)
+
+ui <- brand_page_sidebar(
+  title = "New York air quality",
+  sidebar = sidebar(selectInput("var", "Variable", c("Temp", "Wind", "Solar.R"))),
+  card(card_header("Ozone"), plotOutput("plot"))
+)
+
+server <- function(input, output, session) {
+  output$plot <- renderPlot({
+    ggplot(airquality, aes(.data[[input$var]], Ozone)) + geom_point(size = 3)
+  })
+}
+
+shinyApp(ui, server)
+```
+
+There is no `theme =`, no `+ theme_brand()`, no colour scale and no dark-mode
+code. Each wrapper does this for you:
+
+1. Builds the bslib Bootstrap 5 theme from `_brand.yml` (`brand_theme()`).
+2. Injects dark-mode CSS for the datepicker (`brand_dark_css()`).
+3. Adds a dark-mode toggle, fixed to the top right.
+4. Puts the brand logo next to the title, if there is one.
+5. Switches on `thematic`, so every `renderPlot()` gets the brand font and a
+   background matching its card. Discrete colour and fill scales pick the
+   brand's light or dark palette according to the card the plot sits on.
+6. Hides plots while they lay out for the first time, so they don't flash at
+   the wrong size.
+7. Sets the app-wide ggplot theme to the opaque `theme_brand(transparent =
+   FALSE)`, which thematic needs to repaint plot backgrounds.
+
+All three take `title`, `logo`, `dark_mode`, `dark_mode_id`, `theme_args`
+(extra arguments for `brand_theme()`) and `style`. `brand_page_sidebar()` also
+takes `fillable`.
+
+A navbar page only accepts navigation items. Content that isn't inside a
+`nav_panel()` fails with *"Navigation containers expect a collection of
+nav_panel()s"*:
+
+```{r}
+# Fails
+brand_page_navbar(title = "App", card("content"), nav_panel("Tab", "..."))
+
+# Works
+brand_page_navbar(title = "App", nav_panel("Main", card("content")))
+```
+
+### The "drift" style
+
+`style = "drift"` is the poster template's look in the browser. It is opt-in;
+`"classic"` (the default) leaves the page as bslib draws it.
+
+```{r}
+brand_page_sidebar(title = "App", sidebar = sidebar(), style = "drift")
+```
+
+What it changes:
+
+- Soft **corner ornaments** at the top right and bottom left of the window,
+  drawn in the brand colours and following the dark-mode toggle (also
+  available alone as `brand_ornaments_tag()`).
+- A **plain-type title**: the navbar's bar and rule go, so the title sits on
+  the page with the ornament behind it.
+- **Cards as tinted surfaces**: the brand's primary mixed 7% into the
+  background, a solid header, no shadow.
+- A **transparent sidebar**, so the bottom-left ornament shows through.
+- **Tables and text output** take the card colour, with a faint stripe.
+
+Everything is scoped to a class the page adds to `<html>`, so it can't leak
+into a classic page. On a fluid page there is no bar, so you get the ornaments,
+cards and tables.
+
+## Light and dark mode
+
+### Plots drawn with `renderPlot()`
+
+Nothing to do. `thematic` reads the colours of the card each plot sits on and
+redraws it when the mode changes, theme, discrete palette and background
+included.
+
+### Anything that needs to know the mode
+
+`brand_dark_mode()` gives you the current mode as a reactive, for outputs
+Bootstrap and thematic can't reach: plotly, gt tables, leaflet palettes, base
+graphics and file downloads.
+
+```{r}
+server <- function(input, output, session) {
+  dm <- brand_dark_mode(input)       # dm$mode() is "light" or "dark"
+
+  output$p <- plotly::renderPlotly({
+    mode <- dm$mode()
+    p <- ggplot(airquality, aes(Temp, Ozone, colour = factor(Month))) +
+      geom_point() +
+      scale_color_brand_d(mode = mode)
+    brand_plotly(p, mode = mode, tooltip = c("x", "y"))
+  })
+}
+```
+
+| Output | What to do |
+|---|---|
+| `renderPlot()` with ggplot2 | nothing |
+| HTML and Bootstrap UI | nothing (CSS variables follow the mode) |
+| DT tables | nothing (with `class = "table-striped"`) |
+| `brand_plotly()` | pass `mode = dm$mode()` |
+| gt tables | style with `brand_colors(mode)` |
+| leaflet | pass `mode` to `brand_pal_seq()`, and choose tiles by mode |
+| base `plot()` / `barplot()` | use `brand_colors(mode)` for `col.axis` and so on |
+| downloads | `ggsave(bg = brand_colors(mode)$background)` |
+
+## Interactive plots
+
+`brand_plotly()` converts a ggplot to a plotly widget with brand colours,
+fonts and grid. In a Shiny *app*, pass `mode` as above. In a Quarto dashboard
+(`server: shiny`) leave `mode` out: it reads the background of the card it sits
+on (see `vignette("quarto-documents")`). Plotly's tooltip for a continuous colour
+scale needs `tooltip = c("x", "y")`; adding `"colour"` only works for discrete
+colours.
+
+## Tables
+
+DT inherits Bootstrap's styling, and brandkit's CSS covers its pagination,
+search box and stripes in both modes:
+
+```{r}
+DT::datatable(airquality, class = "table-striped", rownames = FALSE,
+              options = list(pageLength = 10, dom = "tip"))
+```
+
+gt ignores Bootstrap's variables, so style it from the brand:
+
+```{r}
+cols <- brand_colors(mode)
+
+gt::gt(head(airquality)) |>
+  gt::tab_style(
+    style = list(gt::cell_fill(color = cols$primary),
+                 gt::cell_text(color = "white", weight = "bold")),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::tab_options(
+    table.background.color = cols$background,
+    table.width = gt::pct(100)
+  )
+```
+
+## Maps
+
+leaflet maps sit outside Bootstrap, but brandkit supplies a marker palette
+(`brand_pal_seq()`, which takes `mode`) and dark-mode CSS for the zoom buttons,
+attribution and legend. Pick the tiles by mode too. CARTO's `Positron` and
+`DarkMatter` basemaps now need an API key and watermark every tile without
+one, so use Esri's keyless grey canvas, which has a light and a dark version.
+The map template ships this as a small helper:
+
+```{r}
+add_basemap <- function(map, mode = "light") {
+  canvas <- function(layer) {
+    sprintf(paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+                   "Canvas/World_%s_Gray_%s/MapServer/tile/{z}/{y}/{x}"),
+            if (mode == "dark") "Dark" else "Light", layer)
+  }
+  tiles <- tileOptions(maxNativeZoom = 16)   # the canvas stops at zoom 16
+  map |>
+    addTiles(canvas("Base"), options = tiles,
+             attribution = "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ") |>
+    addTiles(canvas("Reference"), options = tiles)   # place names
+}
+
+output$map <- renderLeaflet({
+  mode <- dm$mode()
+  pal <- colorNumeric(brand_pal_seq("warm", n = 9, mode = mode), domain = d$value)
+
+  leaflet(d) |>
+    add_basemap(mode) |>
+    addCircleMarkers(~lng, ~lat, color = ~pal(value), fillOpacity = 0.7) |>
+    addLegend("bottomright", pal = pal, values = ~value)
+})
+```
+
+## Templates
+
+There is one template per wrapper. Each writes a bslib-format `_brand.yml`, an
+`app.R` and any local font and logo files into `path` (created if it doesn't
+exist), then tells you how to run it. Nothing is overwritten unless you pass
+`overwrite = TRUE`, and there is no stylesheet to copy: the wrappers load their
+CSS at runtime.
+
+```{r}
+create_brand_shiny_app(path = "my-app")
+shiny::runApp("my-app")
+```
+
+| Template | Wrapper | Shows | Needs |
+|---|---|---|---|
+| `create_brand_shiny_app()` | `brand_page_sidebar(style = "drift")` | sidebar inputs, one scatter plot as a ggplot and as a `brand_plotly()` widget, a palette swatch, ornaments | `plotly` |
+| `create_brand_shiny_dashboard()` | `brand_page_navbar()` | a row of value boxes, charts, three tabs, a DT table | `DT` |
+| `create_brand_shiny_map()` | `brand_page_fluid()` | a leaflet colour ramp, tiles that follow the mode, `brand_plotly()` | `leaflet`, `plotly` |
+| `create_brand_shiny_steps()` | `brand_page_sidebar(style = "drift")` | a workflow in order: numbered pills in the sidebar, Back / Next buttons | nothing extra |
+
+The templates use R's built-in `airquality` data as their sample, except the map,
+which needs coordinates and uses `quakes`. A template that needs a suggested package says so when you scaffold it instead of
+failing at app start; the files are written either way.

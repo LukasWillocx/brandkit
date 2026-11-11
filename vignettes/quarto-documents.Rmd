@@ -1,0 +1,173 @@
+---
+title: "Quarto documents: reports, slides and dashboards"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Quarto documents: reports, slides and dashboards}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Quarto applies `_brand.yml` to its HTML formats on its own. brandkit adds the
+"drift" look on top, a setup call that brands your plots, and templates for
+three HTML outputs: a report, a slide deck and a dashboard. (PDFs and posters
+have their own article: `vignette("pdf-and-posters")`.) Quarto 1.8 or later is
+required.
+
+## The scaffolds
+
+```{r}
+library(brandkit)
+
+create_brand_quarto_html(path = "my-project")       # report.qmd
+create_brand_quarto_slides(path = "my-project")     # slides.qmd, revealjs
+create_brand_quarto_dashboard(path = "my-project")  # dashboard.qmd, Shiny runtime
+```
+
+| Function | Copies |
+|---|---|
+| `create_brand_quarto_html()` | `_brand.yml`, `drift.scss`, `_ornaments.html`, `report.qmd`, fonts, logo |
+| `create_brand_quarto_slides()` | `_brand.yml`, `drift.scss`, `_ornaments.html`, `slides.qmd`, fonts, logo |
+| `create_brand_quarto_dashboard()` | `_brand.yml`, `drift.scss`, `_ornaments.html`, `dashboard.qmd`, fonts, logo |
+
+Each function is standalone and copies one example `.qmd`, so you can run
+several in the same directory: they share `_brand.yml`, the fonts and the logo
+without overwriting each other. The directory is created if it doesn't exist.
+Nothing is overwritten unless you pass `overwrite = TRUE`, except a
+`_brand.yml` in the wrong dialect, which is converted (see
+`vignette("getting-started")`).
+
+The files that make the look:
+
+- **`drift.scss`**: the stylesheet, built from the brand's own Sass variables
+  and compiled once per colour mode. It is sectioned into shared rules (tables),
+  document rules (masthead, headings, code, footer), slide rules and dashboard
+  rules (navbar, cards, sidebar), and you can edit it.
+- **`_ornaments.html`**: the two corner ornaments, included after the page
+  body. They are filled with the page's CSS colour variables rather than hex
+  values, so they follow the brand and the dark-mode toggle and never go stale.
+
+All three templates use R's built-in `airquality` data.
+
+## HTML reports
+
+```yaml
+---
+title: "My Report"
+subtitle: "A branded HTML report"
+author: "Your Name"
+date: today
+format:
+  html:
+    title-block-style: none   # the .brand-masthead div supplies the title block
+    theme:
+      light: [brand, drift.scss]
+      dark: [brand, drift.scss]
+    include-after-body: _ornaments.html
+---
+```
+
+```{r}
+# In the document's setup chunk (`#| include: false`)
+library(brandkit)
+brand_quarto_setup(adaptive = TRUE)
+```
+
+The nested `light:` / `dark:` form of `theme:` is what gives readers a working
+light/dark toggle: Quarto compiles one Bootstrap stylesheet per mode and the
+toggle swaps them. The flat `theme: [brand, drift.scss]` form still shows a
+toggle, but only the syntax highlighting switches, so keep the nested form.
+
+The report opens with a `.brand-masthead` div (the logo, the title in the
+brand's primary colour, the subtitle, a short bar in the secondary colour above
+the author and date) and ends with a `.brand-footer` div. Both pull their text
+from the YAML header with `{{< meta ... >}}` and are plain divs, meant to be
+edited.
+
+### Plots that follow the toggle
+
+Plots are normally static images, so they can't follow a light/dark toggle.
+`brand_quarto_setup(adaptive = TRUE)` gets round that by drawing every figure
+twice, once per mode, and showing whichever matches the page. Your chunks don't
+change: after each chunk that drew figures, brandkit runs its code again in dark
+mode into twin files (`<label>-dark-<n>.png`), and a small script swaps the
+images when the toggle flips. `brand_plotly()` writes a light and a dark widget
+and a stylesheet shows the matching one. The dark version gets the dark text
+colours *and* the brand's dark palette.
+
+The costs: every plot chunk runs twice; the dark files must stay beside the page
+(so `embed-resources: true` isn't supported); and a `brand_plotly()` result is a
+pair of widgets that can't be piped into further plotly calls. Leave `adaptive`
+off, or pass `mode =`, for a document with a single mode.
+
+## Slides
+
+```yaml
+---
+title: "My Slides"
+format:
+  revealjs:
+    theme: [brand, drift.scss]
+    include-after-body: _ornaments.html
+    logo: medium
+    slide-number: true
+    footer: "{{< meta title >}}"
+---
+```
+
+The title slide is plain type with no panel; content slides carry headings in
+the primary colour; every slide has the pair of corner ornaments behind it.
+
+Revealjs defines none of Bootstrap's colour variables, so the Slides section of
+`drift.scss` defines the three the ornaments use from the brand colours of the
+deck's mode, and it moves the page background onto `<html>` (reveal paints its
+viewport opaque, which would hide the ornaments).
+
+For a dark deck add `brand-mode: dark` to the YAML and call
+`brand_quarto_setup("dark")`. For plotly in slides always pass fixed
+dimensions: `brand_plotly(p, width = 1000, height = 600)`. Slides have no
+toggle, so there is no adaptive mode for them.
+
+## Dashboards
+
+`create_brand_quarto_dashboard()` scaffolds a small Shiny-backed dashboard of
+`airquality`: month and temperature filters in the sidebar, a row of value
+boxes, two charts (one an interactive `brand_plotly()` widget) and a table.
+
+```{r}
+# In the setup chunk (`#| context: setup`)
+library(brandkit)
+brand_quarto_setup(shiny = TRUE)
+```
+
+Dark mode is on by default: the document declares a theme per mode, which puts
+the toggle in the navbar. Plots are drawn live by Shiny, so, unlike the static
+report, they follow the toggle. `brand_quarto_setup(shiny = TRUE)` is the one
+line that arranges it: it switches on thematic, which gives each `renderPlot()`
+the colours, font and background of its card and redraws it when the mode
+changes, including the discrete palette. The plotly chart follows too, with no
+`mode` argument, because inside a Shiny render `brand_plotly()` reads the
+background of its card.
+
+Because the document declares `server: shiny` it is served, not rendered:
+
+```{r}
+# in a terminal
+# quarto serve dashboard.qmd
+```
+
+Add `# Page` headings for more pages; the tab strip appears once there are two.
+The sample needs the `plotly` package.
+
+## The logo in a document
+
+```markdown
+::: {.brand-logo-container}
+{{< brand logo medium >}}
+:::
+```
+
+The `.brand-logo-container` class limits the logo to `max-height: 48px`.

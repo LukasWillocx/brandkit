@@ -1,0 +1,194 @@
+---
+title: "PDFs and posters with Typst"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PDFs and posters with Typst}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+brandkit renders PDFs through Quarto's built-in Typst engine, so no LaTeX is
+needed (Quarto 1.8 or later). Quarto's own `_brand.yml` support colours and sets
+the fonts of headings, links and body text; brandkit adds a Typst format
+extension for what it leaves out: a title area, code styling, coloured
+footers, and, for posters, a whole page layout.
+
+## Three formats
+
+```{r}
+library(brandkit)
+
+create_brand_quarto_pdf(path = "my-report")         # full-bleed striped banner
+create_brand_quarto_print_pdf(path = "my-report")   # plain masthead, for paper
+create_brand_quarto_poster(path = "my-poster")      # landscape sheet, A0 by default
+```
+
+| | `create_brand_quarto_pdf()` | `create_brand_quarto_print_pdf()` | `create_brand_quarto_poster()` |
+|---|---|---|---|
+| Format | `brandkit-typst` | `brandkit-print-typst` | `brandkit-poster-typst` |
+| Extension | `_extensions/brandkit/` | `_extensions/brandkit-print/` | `_extensions/brandkit-poster/` |
+| Example file | `report-pdf.qmd` | `report-print.qmd` | `poster.qmd` |
+| Title | full-bleed diagonal-stripe banner | plain masthead | plain type on the sheet |
+| Corner ornaments | no | first page | yes |
+| Best for | screen | printing | one large sheet |
+
+All three share the same template files, so the brand colours, code styling,
+coloured headings and type ramp match. The formats can live in one project:
+switch a document's `format:` key to render it another way. The `.typ` files are
+plain text copied into your project, so you can edit them (margins, title page,
+footer).
+
+PDFs have no light/dark toggle, so plots are baked in in whichever mode you give
+`brand_quarto_setup()`. Widgets (plotly, DT, leaflet) don't apply; use static
+ggplot2 plots and `knitr::kable()` or gt tables.
+
+## The striped PDF
+
+```yaml
+---
+title: "My Report"
+subtitle: "A branded PDF"
+author: "Your Name"
+date: today
+format:
+  brandkit-typst:
+    toc: false
+---
+```
+
+```{r}
+brand_quarto_setup()   # in the setup chunk
+```
+
+```{r}
+quarto::quarto_render("report-pdf.qmd")
+```
+
+Page one opens with a full-bleed title banner: a diagonal-stripe field, drawn as
+Typst polygons rather than an image, primary-coloured behind the title and
+switching to secondary-coloured stripes past an angled seam. The logo, if there
+is one, sits inline in it. With no title the banner is skipped and the logo
+becomes a plain corner mark on page one. The extension also gives you coloured
+headings, a footer with the title and page number, and rounded code blocks that
+use the brand's border radius.
+
+The generated `_extension.yml` carries the brand's base font size and radius, so
+re-run the function after changing the brand. Existing files are kept unless you
+pass `overwrite = TRUE`, but a stale font size and radius are brought back up to
+date on every re-run.
+
+## The print-friendly PDF
+
+`create_brand_quarto_print_pdf()` is the "drift" look for paper. Instead of the
+banner it opens with a plain masthead (the logo on the right, the title in the
+brand's primary, the subtitle, a short bar, then the author and date) and frames
+the first page with a pair of soft corner ornaments.
+
+It prints well for three reasons: nothing is full-bleed, so no ink goes near an
+ordinary printer's unprintable edge; there is no solid panel to show through
+lighter paper; and the ornaments are drawn at low opacity, so the header uses a
+fraction of the striped banner's ink. The ornaments appear on the first page
+only; the running footer starts on page two. The masthead is flow content, so a
+long title simply wraps.
+
+One caveat for print: Quarto fills the page with `_brand.yml`'s
+`color.background`, independently of the ornaments. If your brand's background
+isn't white, that tint is itself full-bleed and will clip at the printer's
+edge, so set `color.background` to white for a print-targeted brand.
+
+```yaml
+format:
+  brandkit-print-typst:
+    toc: false
+```
+
+## Posters
+
+```{r}
+create_brand_quarto_poster(path = "my-poster", paper = "a0", columns = 3)
+```
+
+`paper` is one of `"a0"` to `"a4"` (always landscape). It still is a plain
+`.qmd`: knitr chunks, `brand_quarto_setup()`, `theme_brand()` and the palettes
+work as in a report. What differs follows from it being one big sheet:
+
+- **Corner ornaments instead of a title panel.** A pair of soft shapes, top
+  right and bottom left, in the brand's colours; the title is plain type.
+- **Page columns.** The body flows down column one, then two, then three; the
+  masthead spans them.
+- **Every `##` section is a card**: a tinted panel with a primary header bar and
+  the brand's corner radius, grouped by the `poster.lua` filter. A card never
+  splits across columns. Mark a heading `## Something {.plain}` to opt it out.
+- **Type sized to the measure.** About 70 characters to a line, so the body size
+  follows from `paper` and `columns` (A0 with three columns gives roughly 36 pt;
+  with four, 26 pt), with a viewing-distance floor under it (24 pt on A0) and the
+  masthead 1.6 times larger.
+- **No running footer.** `poster-footer:` in the YAML adds an optional standing
+  band for affiliations, funding or a URL.
+
+```yaml
+---
+title: "A Branded Conference Poster"
+subtitle: "Landscape, three columns, all inferred from _brand.yml"
+author: "Your Name"
+date: today
+poster-footer: "Department of Everything | you@example.org"
+format:
+  brandkit-poster-typst:
+    columns: 3
+execute:
+  echo: false        # a poster shows findings, not source
+---
+```
+
+`paper` and `columns` are arguments to the scaffold, not YAML, because the type
+scale is baked into the extension. Setting `papersize:` in a document changes the
+sheet but not the type sized for it, so re-run the function instead.
+
+A poster is a fixed sheet and Typst won't shrink content to fit: material that
+overruns spills onto a second page, as does any single card taller than a
+column. Cut content, or move to four columns.
+
+## Corner ornaments
+
+The ornaments are SVG drawn from `_brand.yml`. For the Typst formats they are
+generated at scaffold time next to the extension (`drift-top-right.svg` and
+`drift-bottom-left.svg`) and drawn as the page background; re-run the scaffold
+after changing the brand and they are rewritten if they changed. The top-right
+piece leads with the primary colour and the bottom-left with the secondary, so
+a sheet is balanced rather than mirrored. Each shape is a full brand colour at a
+low opacity, so the extra shades come from overlaps, and one `softness` value
+controls the whole drawing.
+
+The generator is exported for anywhere an SVG will do:
+
+```{r}
+cat(brand_ornament("drift", "top-right"))
+brand_ornament("drift", "bottom-left", softness = 0.1, file = "corner.svg")
+brand_ornaments_tag()    # the pair, as HTML for a web page
+```
+
+Posters use a lower softness (0.12) than the function's default (0.17), since
+the same opacity over an A0 sheet reads as large flat blocks.
+
+### Text on an ornament
+
+A short line (a brand name, say, up to 16 characters) can be set along the swell
+of one ornament, in capitals in the heading font, on the part of the largest
+circle the swell doesn't cover. Set it in the configurator's *Meta & Logo* tab,
+or in `_brand.yml`:
+
+```yaml
+meta:
+  ornament-label: Acme Group
+  ornament-label-corner: bottom-left   # omit for the default, top-right
+```
+
+`ornament-label-corner` also accepts `top` and `bottom`. The text reads left to
+right on either corner. `brand_ornament()` draws the brand's text on the corner
+the brand picks; a `label =` you pass is drawn on whichever corner you ask for,
+and `label = NULL` draws none.
