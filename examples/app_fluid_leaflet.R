@@ -10,6 +10,22 @@ library(plotly)
 library(leaflet)
 library(brandkit)
 
+# Keyless Esri grey canvas (CARTO's tiles now need an API key); any other
+# `style` goes to addProviderTiles(). Same helper as the map template.
+add_basemap <- function(map, style = "grey", mode = "light") {
+  if (style != "grey") return(addProviderTiles(map, style))
+  canvas <- function(layer) {
+    sprintf(paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+                   "Canvas/World_%s_Gray_%s/MapServer/tile/{z}/{y}/{x}"),
+            if (mode == "dark") "Dark" else "Light", layer)
+  }
+  tiles <- tileOptions(maxNativeZoom = 16)
+  map |>
+    addTiles(canvas("Base"), options = tiles,
+             attribution = "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ") |>
+    addTiles(canvas("Reference"), options = tiles)
+}
+
 ui <- brand_page_fluid(
   title = "Geospatial Explorer",
 
@@ -25,9 +41,8 @@ ui <- brand_page_fluid(
       sliderInput("quake_depth", "Depth Range (km):",
                   min = 0, max = 700, value = c(0, 300)),
       selectInput("map_tile", "Map Style:",
-                  c("Default" = "OpenStreetMap",
-                    "Dark" = "CartoDB.DarkMatter",
-                    "Toner" = "Stadia.StamenTonerLite",
+                  c("Grey (follows dark mode)" = "grey",
+                    "OpenStreetMap" = "OpenStreetMap",
                     "Terrain" = "Esri.WorldTopoMap")),
       hr(),
       checkboxInput("show_clusters", "Cluster markers", TRUE),
@@ -78,7 +93,7 @@ server <- function(input, output, session) {
     )
 
     m <- leaflet(d) |>
-      addProviderTiles(input$map_tile)
+      add_basemap(input$map_tile, mode)
 
     if (input$show_clusters) {
       m <- m |> addCircleMarkers(

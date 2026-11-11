@@ -506,7 +506,7 @@ Leaflet maps are not themed by Bootstrap, but brandkit provides:
 
 1. **Brand palettes for markers:** Use `brand_pal_seq()` with `leaflet::colorNumeric()` or `colorBin()`
 2. **Dark mode CSS overrides:** Zoom buttons, attribution, and legend backgrounds adapt automatically
-3. **Dark tile provider:** Use `CartoDB.DarkMatter` for a dark-mode-appropriate base map
+3. **Light and dark base maps:** `create_brand_shiny_map()` ships an `add_basemap()` helper that draws Esri's grey canvas in the matching mode (sketched in [the pitfall below](#pitfall-leaflet-tiles-dont-auto-switch)). Don't use CARTO's `Positron` / `DarkMatter` providers: they now need an API key and watermark every tile without one.
 
 ```r
 dm <- brand_dark_mode(input)
@@ -520,7 +520,7 @@ output$map <- renderLeaflet({
   )
 
   leaflet(data) |>
-    addProviderTiles(if (mode == "dark") "CartoDB.DarkMatter" else "OpenStreetMap") |>
+    add_basemap(mode) |>
     addCircleMarkers(~lng, ~lat, color = ~pal(value), fillOpacity = 0.7) |>
     addLegend("bottomright", pal = pal, values = ~value)
 })
@@ -999,10 +999,23 @@ Unlike DT, gt renders its own HTML/CSS and ignores Bootstrap variables. Always s
 
 ### Pitfall: Leaflet tiles don't auto-switch
 
-Leaflet tile providers are set at render time. To match dark mode, conditionally use `CartoDB.DarkMatter`:
+Leaflet tiles are set at render time, so the map has to be redrawn when the mode changes (reading `dm$mode()` inside `renderLeaflet()` does that). CARTO's `Positron` / `DarkMatter` tiles now need an API key, so use Esri's keyless grey canvas, which has a light and a dark version. Leaflet's provider list has no dark Esri canvas, so both are plain tile URLs (this is the helper in the map template):
 
 ```r
-leaflet() |> addProviderTiles(if (mode == "dark") "CartoDB.DarkMatter" else "OpenStreetMap")
+add_basemap <- function(map, mode = "light") {
+  canvas <- function(layer) {
+    sprintf(paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+                   "Canvas/World_%s_Gray_%s/MapServer/tile/{z}/{y}/{x}"),
+            if (mode == "dark") "Dark" else "Light", layer)
+  }
+  tiles <- tileOptions(maxNativeZoom = 16)  # the canvas stops at zoom 16
+  map |>
+    addTiles(canvas("Base"), options = tiles,
+             attribution = "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ") |>
+    addTiles(canvas("Reference"), options = tiles)  # place names
+}
+
+leaflet() |> add_basemap(mode)
 ```
 
 ### Pitfall: Continuous colour scales in plotly tooltips

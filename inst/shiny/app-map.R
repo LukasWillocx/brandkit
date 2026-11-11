@@ -21,6 +21,28 @@ library(leaflet)
 library(plotly)
 library(brandkit)
 
+# The base map. CARTO's Positron / DarkMatter tiles now need an API key and
+# watermark every tile without one, so the default is Esri's grey canvas
+# instead: keyless, and the closest match to Positron (light) and DarkMatter
+# (dark). Leaflet's provider list has no dark Esri canvas, so both are plain
+# tile URLs. Zoom is capped at the canvas's last real level (16), past which
+# leaflet stretches it rather than showing blank tiles. Any other `style` is
+# passed to addProviderTiles().
+add_basemap <- function(map, style = "grey", mode = "light") {
+  if (style != "grey") return(addProviderTiles(map, style))
+
+  canvas <- function(layer) {
+    sprintf(paste0("https://server.arcgisonline.com/ArcGIS/rest/services/",
+                   "Canvas/World_%s_Gray_%s/MapServer/tile/{z}/{y}/{x}"),
+            if (mode == "dark") "Dark" else "Light", layer)
+  }
+  tiles <- tileOptions(maxNativeZoom = 16)
+  map |>
+    addTiles(canvas("Base"), options = tiles,
+             attribution = "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ") |>
+    addTiles(canvas("Reference"), options = tiles)  # place names, on top
+}
+
 
 ui <- brand_page_fluid(
   title = "Geospatial Explorer",
@@ -36,15 +58,10 @@ ui <- brand_page_fluid(
       sliderInput("depth", "Depth range (km)",
                   min = 0, max = 700, value = c(0, 700)),
       checkboxInput("cluster", "Cluster markers", TRUE),
-      checkboxInput("auto_tiles", "Match tiles to dark mode", TRUE),
-      conditionalPanel(
-        "!input.auto_tiles",
-        selectInput("tile", "Map style",
-                    c("OpenStreetMap"     = "OpenStreetMap",
-                      "Carto Light"       = "CartoDB.Positron",
-                      "Carto Dark"        = "CartoDB.DarkMatter",
-                      "Esri Topo"         = "Esri.WorldTopoMap"))
-      ),
+      selectInput("tile", "Map style",
+                  c("Grey (follows dark mode)" = "grey",
+                    "OpenStreetMap"            = "OpenStreetMap",
+                    "Esri Topo"                = "Esri.WorldTopoMap")),
       hr(),
       verbatimTextOutput("stats")
     ),
@@ -81,15 +98,6 @@ server <- function(input, output, session) {
     d[d$depth >= input$depth[1] & d$depth <= input$depth[2], ]
   })
 
-  # Tile layer either follows the dark-mode toggle or is picked manually.
-  tile_provider <- reactive({
-    if (isTRUE(input$auto_tiles)) {
-      if (dm$mode() == "dark") "CartoDB.DarkMatter" else "CartoDB.Positron"
-    } else {
-      input$tile
-    }
-  })
-
   output$map <- renderLeaflet({
     d <- filtered()
     mode <- dm$mode()
@@ -102,7 +110,7 @@ server <- function(input, output, session) {
     )
 
     m <- leaflet(d) |>
-      addProviderTiles(tile_provider()) |>
+      add_basemap(input$tile, mode) |>
       addCircleMarkers(
         ~long, ~lat,
         radius      = ~mag * 2,

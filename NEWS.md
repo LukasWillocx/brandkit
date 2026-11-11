@@ -1,5 +1,13 @@
 # brandkit (development version)
 
+* The `create_brand_shiny_map()` template, the README and
+  `examples/app_fluid_leaflet.R` no longer use CARTO's Positron / DarkMatter
+  tiles (they now watermark every tile without an API key) or Stadia's Toner.
+  The template draws Esri's grey canvas through a small `add_basemap()` helper,
+  in the light or dark version to match the page, and keeps OpenStreetMap and
+  Esri Topo as manual choices. Re-run `create_brand_shiny_map(overwrite = TRUE)`
+  to get it in an existing project.
+
 * Inline code now matches the text around it. In the HTML templates (report,
   slides, dashboard) it is set in the body font at the surrounding size, in a
   small-cornered box padded sideways only, so a span can no longer reach the
