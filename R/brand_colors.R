@@ -8,11 +8,12 @@
 #' @param type `"warm"`, `"cool"`, or `"green"`.
 #' @param n Number of colours (default 9).
 #' @param reverse Flip direction.
-#' @param mode `"light"` or `"dark"`.
+#' @param mode `"light"` or `"dark"`. Defaults to the mode set by
+#'   [brand_quarto_setup()], or `"light"` if none has been.
 #' @return Character vector of hex codes.
 #' @export
 brand_pal_seq <- function(type = "warm", n = 9, reverse = FALSE,
-                          mode = "light") {
+                          mode = brand_env$active_mode %||% "light") {
   cols <- brand_colors(mode)
   anchors <- switch(type,
     warm  = c(cols$background, cols$primary, cols$danger),
@@ -30,10 +31,12 @@ brand_pal_seq <- function(type = "warm", n = 9, reverse = FALSE,
 #'
 #' @param n Number of colours (default 11, use odd for a neutral midpoint).
 #' @param reverse Flip direction.
-#' @param mode `"light"` or `"dark"`.
+#' @param mode `"light"` or `"dark"`. Defaults to the mode set by
+#'   [brand_quarto_setup()], or `"light"` if none has been.
 #' @return Character vector of hex codes.
 #' @export
-brand_pal_div <- function(n = 11, reverse = FALSE, mode = "light") {
+brand_pal_div <- function(n = 11, reverse = FALSE,
+                          mode = brand_env$active_mode %||% "light") {
   cols <- brand_colors(mode)
   anchors <- c(
     cols$info,       # cool end

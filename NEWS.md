@@ -1,5 +1,26 @@
 # brandkit (development version)
 
+* The `create_brand_quarto_*()` scaffolds now all create a missing project
+  directory, as the dashboard and Shiny scaffolds already did (the HTML,
+  slides, PDF, print and poster ones stopped with an error instead).
+* `scale_*_brand_*()`, `brand_pal_seq()` and `brand_pal_div()` default to the
+  mode set by `brand_quarto_setup()` (or `"light"`), as `brand_pal_discrete()`
+  already did, instead of always `"light"`. In a dark document the scales no
+  longer need `mode = "dark"` spelled out.
+* `brand_dark_css()` no longer repeats the checkbox, radio and focus rules that
+  `brand_theme()` already compiles in; it keeps the datepicker rules, which
+  are the ones that need it. Nothing changes on the page.
+* Internal tidy-up with no change in behaviour: the scaffolds share their
+  directory, template and asset handling (`R/brand_scaffold.R`), the Typst
+  extension code moved to `R/brand_typst.R`, the bslib and Quarto `_brand.yml`
+  converters share their logo and colour handling, and the ornament files the
+  print report and poster share are no longer named for the poster. The print
+  report's `_extension.yml` is titled "brandkit Typst Print Report".
+* New tests for `brand_theme()`, `theme_brand()` and the scales,
+  `brand_dark_mode()`, `brand_quarto_setup()` (including the light/dark twin
+  figures, rendered through knitr), the output-mode detection and the
+  scaffold helpers.
+
 * Removed code nothing used: `shift_color()`, the exported
   `brand_activate_thematic()` (superseded by what the `brand_page_*()`
   wrappers and `brand_quarto_setup(shiny = TRUE)` do, and its docs pointed at

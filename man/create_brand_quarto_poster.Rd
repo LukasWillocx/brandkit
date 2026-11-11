@@ -13,7 +13,8 @@ create_brand_quarto_poster(
 )
 }
 \arguments{
-\item{path}{Project directory. Defaults to the current working directory.}
+\item{path}{Project directory. Defaults to the current working
+directory. Created if it doesn't exist.}
 
 \item{paper}{Paper size, one of \code{"a0"} (default), \code{"a1"}, \code{"a2"},
 \code{"a3"}, \code{"a4"}. Always rendered landscape. This is a scaffold-time

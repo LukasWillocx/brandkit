@@ -7,7 +7,8 @@
 create_brand_quarto_print_pdf(path = ".", examples = TRUE, overwrite = FALSE)
 }
 \arguments{
-\item{path}{Project directory. Defaults to the current working directory.}
+\item{path}{Project directory. Defaults to the current working
+directory. Created if it doesn't exist.}
 
 \item{examples}{Logical. Copy an example \code{.qmd} report? Default \code{TRUE}.}
 

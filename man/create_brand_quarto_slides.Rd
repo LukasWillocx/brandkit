@@ -7,7 +7,8 @@
 create_brand_quarto_slides(path = ".", examples = TRUE, overwrite = FALSE)
 }
 \arguments{
-\item{path}{Project directory. Defaults to the current working directory.}
+\item{path}{Project directory. Defaults to the current working
+directory. Created if it doesn't exist.}
 
 \item{examples}{Logical. Copy the example \code{slides.qmd}? Default \code{TRUE}.}
 

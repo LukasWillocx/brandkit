@@ -75,3 +75,11 @@ local_brand <- function(cfg = test_brand_bslib(), .env = parent.frame()) {
   brand_init(path, quiet = TRUE)
   path
 }
+
+# What a piece of UI puts in <head>, which as.character() leaves out.
+head_html <- function(tags) htmltools::renderTags(tags)$head
+
+# shiny::testServer() attaches shiny the first time it runs; do it here, where
+# a "built under a newer R" warning from a local library does not land on
+# whichever test happens to be first.
+suppressWarnings(suppressPackageStartupMessages(library(shiny)))

@@ -10,22 +10,31 @@
 \alias{scale_fill_brand_div}
 \title{Branded ggplot2 Colour / Fill Scales}
 \usage{
-scale_color_brand_d(..., mode = "light")
+scale_color_brand_d(..., mode = brand_env$active_mode \%||\% "light")
 
-scale_fill_brand_d(..., mode = "light")
+scale_fill_brand_d(..., mode = brand_env$active_mode \%||\% "light")
 
-scale_color_brand_c(type = "warm", ..., mode = "light")
+scale_color_brand_c(
+  type = "warm",
+  ...,
+  mode = brand_env$active_mode \%||\% "light"
+)
 
-scale_fill_brand_c(type = "warm", ..., mode = "light")
+scale_fill_brand_c(
+  type = "warm",
+  ...,
+  mode = brand_env$active_mode \%||\% "light"
+)
 
-scale_color_brand_div(..., mode = "light")
+scale_color_brand_div(..., mode = brand_env$active_mode \%||\% "light")
 
-scale_fill_brand_div(..., mode = "light")
+scale_fill_brand_div(..., mode = brand_env$active_mode \%||\% "light")
 }
 \arguments{
 \item{...}{Passed to the underlying ggplot2 scale function.}
 
-\item{mode}{\code{"light"} or \code{"dark"}.}
+\item{mode}{\code{"light"} or \code{"dark"}. Defaults to the mode set by
+\code{\link[=brand_quarto_setup]{brand_quarto_setup()}}, or \code{"light"} if none has been.}
 
 \item{type}{For continuous scales: \code{"warm"}, \code{"cool"}, or \code{"green"}.}
 }

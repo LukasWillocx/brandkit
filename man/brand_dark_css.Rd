@@ -10,7 +10,8 @@ brand_dark_css()
 An \code{htmltools::tags$head()} element.
 }
 \description{
-Returns a \code{tags$head(tags$style(...))} block for widgets that load their
-own stylesheets outside bslib (datepicker, Shiny checkbox/radio
-containers). Place in your UI alongside \code{brand_theme()}.
+Returns a \code{tags$head(tags$style(...))} block for the datepicker, which
+loads its own stylesheet outside bslib. (The other widgets, checkboxes and
+radios included, are covered by rules compiled into \code{\link[=brand_theme]{brand_theme()}}.)
+Place in your UI alongside \code{brand_theme()}.
 }

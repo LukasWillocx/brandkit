@@ -83,19 +83,19 @@ theme_brand <- function(base_size = 14, mode = "light", transparent = NULL) {
 
 #' @rdname brand_scales
 #' @export
-scale_color_brand_d <- function(..., mode = "light") {
+scale_color_brand_d <- function(..., mode = brand_env$active_mode %||% "light") {
   ggplot2::scale_color_manual(values = brand_pal_discrete(mode = mode), ...)
 }
 
 #' @rdname brand_scales
 #' @export
-scale_fill_brand_d <- function(..., mode = "light") {
+scale_fill_brand_d <- function(..., mode = brand_env$active_mode %||% "light") {
   ggplot2::scale_fill_manual(values = brand_pal_discrete(mode = mode), ...)
 }
 
 #' @rdname brand_scales
 #' @export
-scale_color_brand_c <- function(type = "warm", ..., mode = "light") {
+scale_color_brand_c <- function(type = "warm", ..., mode = brand_env$active_mode %||% "light") {
   ggplot2::scale_color_gradientn(
     colors = brand_pal_seq(type = type, mode = mode), ...
   )
@@ -103,7 +103,7 @@ scale_color_brand_c <- function(type = "warm", ..., mode = "light") {
 
 #' @rdname brand_scales
 #' @export
-scale_fill_brand_c <- function(type = "warm", ..., mode = "light") {
+scale_fill_brand_c <- function(type = "warm", ..., mode = brand_env$active_mode %||% "light") {
   ggplot2::scale_fill_gradientn(
     colors = brand_pal_seq(type = type, mode = mode), ...
   )
@@ -111,7 +111,7 @@ scale_fill_brand_c <- function(type = "warm", ..., mode = "light") {
 
 #' @rdname brand_scales
 #' @export
-scale_color_brand_div <- function(..., mode = "light") {
+scale_color_brand_div <- function(..., mode = brand_env$active_mode %||% "light") {
   ggplot2::scale_color_gradientn(
     colors = brand_pal_div(mode = mode), ...
   )
@@ -123,12 +123,13 @@ scale_color_brand_div <- function(..., mode = "light") {
 #' etc. that pull colours from the brand cache.
 #'
 #' @param type For continuous scales: `"warm"`, `"cool"`, or `"green"`.
-#' @param mode `"light"` or `"dark"`.
+#' @param mode `"light"` or `"dark"`. Defaults to the mode set by
+#'   [brand_quarto_setup()], or `"light"` if none has been.
 #' @param ... Passed to the underlying ggplot2 scale function.
 #'
 #' @name brand_scales
 #' @export
-scale_fill_brand_div <- function(..., mode = "light") {
+scale_fill_brand_div <- function(..., mode = brand_env$active_mode %||% "light") {
   ggplot2::scale_fill_gradientn(
     colors = brand_pal_div(mode = mode), ...
   )

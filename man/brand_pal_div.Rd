@@ -4,14 +4,19 @@
 \alias{brand_pal_div}
 \title{Diverging Palette}
 \usage{
-brand_pal_div(n = 11, reverse = FALSE, mode = "light")
+brand_pal_div(
+  n = 11,
+  reverse = FALSE,
+  mode = brand_env$active_mode \%||\% "light"
+)
 }
 \arguments{
 \item{n}{Number of colours (default 11, use odd for a neutral midpoint).}
 
 \item{reverse}{Flip direction.}
 
-\item{mode}{\code{"light"} or \code{"dark"}.}
+\item{mode}{\code{"light"} or \code{"dark"}. Defaults to the mode set by
+\code{\link[=brand_quarto_setup]{brand_quarto_setup()}}, or \code{"light"} if none has been.}
 }
 \value{
 Character vector of hex codes.

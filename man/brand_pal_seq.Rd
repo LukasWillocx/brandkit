@@ -4,7 +4,12 @@
 \alias{brand_pal_seq}
 \title{Sequential Palette}
 \usage{
-brand_pal_seq(type = "warm", n = 9, reverse = FALSE, mode = "light")
+brand_pal_seq(
+  type = "warm",
+  n = 9,
+  reverse = FALSE,
+  mode = brand_env$active_mode \%||\% "light"
+)
 }
 \arguments{
 \item{type}{\code{"warm"}, \code{"cool"}, or \code{"green"}.}
@@ -13,7 +18,8 @@ brand_pal_seq(type = "warm", n = 9, reverse = FALSE, mode = "light")
 
 \item{reverse}{Flip direction.}
 
-\item{mode}{\code{"light"} or \code{"dark"}.}
+\item{mode}{\code{"light"} or \code{"dark"}. Defaults to the mode set by
+\code{\link[=brand_quarto_setup]{brand_quarto_setup()}}, or \code{"light"} if none has been.}
 }
 \value{
 Character vector of hex codes.

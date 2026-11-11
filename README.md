@@ -878,9 +878,11 @@ brandkit/
 |   +-- brand_ornaments.R    # Corner ornaments: SVG generator + web tag (poster, drift)
 |   +-- brand_pages.R        # Zero-boilerplate Shiny page wrappers + thematic
 |   +-- brand_plotly.R       # Branded ggplotly conversion
-|   +-- brand_quarto.R       # Quarto scaffolding + render-time setup
+|   +-- brand_quarto.R       # Quarto scaffolding + render-time setup (+ Quarto _brand.yml writer)
+|   +-- brand_scaffold.R     # What the scaffolds share: project dir, template/asset copying, logo and colour helpers
 |   +-- brand_shiny.R        # Shiny app scaffolding (+ bslib _brand.yml writer)
 |   +-- brand_theme.R        # bslib theme + dark mode CSS generation
+|   +-- brand_typst.R        # The Typst extension: _extension.yml, unit conversions, poster type scale
 |   +-- utils.R              # Hex-to-RGB/RGBA helpers
 |   +-- zzz.R                # .onLoad / .onAttach (auto-apply theme + scales)
 +-- inst/

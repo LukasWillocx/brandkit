@@ -15,9 +15,6 @@ local_page_state <- function(.env = parent.frame()) {
 # which fetches the brand's web fonts.
 page_html <- function(ui) as.character(ui)
 
-# What a page puts in <head>, which as.character() leaves out.
-head_html <- function(tags) htmltools::renderTags(tags)$head
-
 test_that("the page wrappers leave the classic page without drift", {
   skip_if_not_installed("thematic")
   local_brand()
