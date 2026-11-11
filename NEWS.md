@@ -1,3 +1,16 @@
+# brandkit 0.4.1
+
+* Fixed a missing dependency. `brand_theme()` builds its theme with
+  `bslib::bs_theme(brand = )`, which reads `_brand.yml` through the `brand.yml`
+  package but only suggests it. brandkit never declared `brand.yml`, so a fresh
+  install did not have it and every `brand_page_*()` call failed with *The
+  package "brand.yml" is required* (it was invisible wherever `brand.yml`
+  happened to be installed already, which is how 0.4.0 shipped with it).
+  `brand.yml` is now in Imports. If you installed 0.4.0 and hit this, update,
+  or `install.packages("brand.yml")`.
+* The GitHub Actions check job now has a 30-minute timeout, so a stuck R
+  install cannot hold a runner for hours.
+
 # brandkit 0.4.0
 
 Everything below is relative to 0.3.0.
@@ -123,11 +136,8 @@ Everything below is relative to 0.3.0.
 * `brand_dark_css()` no longer repeats the checkbox, radio and focus rules that
   `brand_theme()` already compiles in; it keeps the datepicker rules, which are
   the ones that need it. Nothing changes on the page.
-* Declared dependencies that were used but not listed: `later`, `utils` and
-  `brand.yml` in Imports, `htmlwidgets` in Suggests. `brand_theme()` builds its
-  theme with `bslib::bs_theme(brand = )`, which needs `brand.yml` but only
-  suggests it, so a fresh install (and CI) lacked it and every
-  `brand_page_*()` call failed. DESCRIPTION also gains `URL` and
+* Declared dependencies that were used but not listed: `later` and `utils` in
+  Imports, `htmlwidgets` in Suggests. DESCRIPTION also gains `URL` and
   `BugReports`.
 
 ## Internal
