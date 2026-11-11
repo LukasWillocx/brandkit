@@ -68,8 +68,8 @@ brand_with_label <- function(label) {
 
 # The number in the first `name="..."` attribute of an SVG string.
 attr_num <- function(svg, name) {
-  hit <- regmatches(svg, regexpr(paste0(name, '="[0-9.]+"'), svg))
-  as.numeric(gsub("[^0-9.]", "", sub(name, "", hit, fixed = TRUE)))
+  hit <- regmatches(svg, regexpr(paste0(name, '="-?[0-9.]+"'), svg))
+  as.numeric(gsub("[^0-9.-]", "", sub(name, "", hit, fixed = TRUE)))
 }
 
 test_that("an ornament has no label unless the brand asks for one", {
@@ -135,9 +135,102 @@ test_that("an explicit label overrides the brand, and NULL or blank removes it",
   expect_no_match(brand_ornament(label = "  "), "<text", fixed = TRUE)
 })
 
-test_that("the label is drawn in the top-right corner only", {
+test_that("the label is drawn on the top-right corner unless the brand says otherwise", {
   local_brand(brand_with_label("Acme"))
+  expect_equal(brand_ornament_label_corner(), "top-right")
+  expect_match(brand_ornament("drift", "top-right"), "<text", fixed = TRUE)
   expect_no_match(brand_ornament("drift", "bottom-left"), "<text", fixed = TRUE)
+})
+
+brand_with_label_corner <- function(corner, label = "Acme") {
+  cfg <- brand_with_label(label)
+  cfg$meta$`ornament-label-corner` <- corner
+  cfg
+}
+
+test_that("meta: ornament-label-corner moves the label to the bottom-left ornament", {
+  for (corner in c("bottom-left", "bottom", " Bottom-Left ")) {
+    local_brand(brand_with_label_corner(corner))
+    expect_equal(brand_ornament_label_corner(), "bottom-left", info = corner)
+    expect_no_match(brand_ornament("drift", "top-right"), "<text", fixed = TRUE)
+    expect_match(brand_ornament("drift", "bottom-left"), "<text", fixed = TRUE)
+  }
+})
+
+test_that("an unrecognised or top label corner means the top-right", {
+  for (corner in list("top", "top-right", "middle", "", 3)) {
+    local_brand(brand_with_label_corner(corner))
+    expect_equal(brand_ornament_label_corner(), "top-right", info = format(corner))
+  }
+})
+
+test_that("the corner follows the label: no label, no text on either", {
+  local_brand(brand_with_label_corner("bottom-left", label = ""))
+  expect_no_match(brand_ornament("drift", "bottom-left"), "<text", fixed = TRUE)
+  expect_no_match(brand_ornament("drift", "top-right"), "<text", fixed = TRUE)
+})
+
+test_that("an explicit label is drawn on whichever corner is asked for", {
+  local_brand()
+  expect_match(brand_ornament("drift", "bottom-left", label = "Acme", vars = TRUE), "ACME", fixed = TRUE)
+  expect_match(brand_ornament("drift", "top-right", label = "Acme", vars = TRUE), "ACME", fixed = TRUE)
+})
+
+test_that("the bottom label reads upright, left to right, on the far side of the curve", {
+  svg <- ornament_svg("drift", "bottom-left", 0.12, "#111111", "#222222",
+                      "#333333", label = "Acme", font = "Inter",
+                      label_layout = "path")
+  # The turned curve is walked from its left-edge end, so the text runs
+  # left to right; the offset is the other way (up, in the glyphs' frame),
+  # a mirror of the top label's.
+  expect_match(svg, '<path id="bk-orn-label-bl" d="M 0 26 ', fixed = TRUE)
+  expect_lt(attr_num(svg, "dy"), 0)
+
+  top <- ornament_svg("drift", "top-right", 0.12, "#111111", "#222222",
+                      "#333333", label = "Acme", font = "Inter",
+                      label_layout = "path")
+  expect_equal(abs(attr_num(svg, "dy")) + 0.72 * attr_num(svg, "font-size"),
+               attr_num(top, "dy"), tolerance = 0.05)
+})
+
+test_that("the bottom label is not drawn inside the corner's half turn", {
+  svg <- ornament_svg("drift", "bottom-left", 0.12, "#111111", "#222222",
+                      "#333333", label = "Acme", font = "Inter")
+  start <- regexpr('<g transform="rotate(180 50 50)">', svg, fixed = TRUE)
+  stop  <- regexpr("</g>", svg, fixed = TRUE)
+  rotated <- substr(svg, start, stop)
+  expect_no_match(rotated, "<text", fixed = TRUE)
+  expect_match(svg, "<text", fixed = TRUE)
+})
+
+test_that("each corner's label path has its own id", {
+  svg <- function(corner) ornament_svg("drift", corner, 0.12, "#111111", "#222222",
+                                       "#333333", label = "A", font = "Inter",
+                                       label_layout = "path")
+  expect_match(svg("top-right"), 'id="bk-orn-label-tr"', fixed = TRUE)
+  expect_match(svg("top-right"), 'href="#bk-orn-label-tr"', fixed = TRUE)
+  expect_match(svg("bottom-left"), 'href="#bk-orn-label-bl"', fixed = TRUE)
+})
+
+test_that("a page's pair of web ornaments carries the label once", {
+  local_brand(brand_with_label_corner("bottom-left"))
+  html <- as.character(brand_ornaments_tag())
+  expect_equal(lengths(regmatches(html, gregexpr("<textPath", html))), 1L)
+  expect_match(html, "bk-orn-label-bl", fixed = TRUE)
+})
+
+test_that("moving the label rewrites both Typst ornaments, and only those", {
+  dir <- withr::local_tempdir()
+  local_brand(brand_with_label("Acme"))
+  write_typst_ornaments(dir)
+
+  local_brand(brand_with_label_corner("bottom-left"))
+  wrote <- write_typst_ornaments(dir)
+  expect_setequal(basename(wrote), c("drift-top-right.svg", "drift-bottom-left.svg"))
+  expect_no_match(rawToChar(read_file_bytes(file.path(dir, "drift-top-right.svg"))),
+                  "<text", fixed = TRUE)
+  expect_match(rawToChar(read_file_bytes(file.path(dir, "drift-bottom-left.svg"))),
+               ">M</text>", fixed = TRUE)
 })
 
 test_that("a label is escaped and cannot break out of the SVG", {

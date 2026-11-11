@@ -163,3 +163,29 @@ test_that("the ornament label survives conversion to the Quarto dialect", {
   cfg$meta$`ornament-label` <- "Acme"
   expect_equal(quarto_brand_cfg(cfg, keep_logo = FALSE)$meta$`ornament-label`, "Acme")
 })
+
+test_that("configurator_defaults carries the ornament label's corner, top by default", {
+  corner <- function(cfg) {
+    configurator_defaults(cfg, test_presets(), test_font_pairs())$ornament_label_corner
+  }
+  expect_equal(corner(NULL), "top-right")
+
+  cfg <- test_brand_bslib()
+  cfg$meta$`ornament-label` <- "Acme"
+  expect_equal(corner(cfg), "top-right")
+
+  cfg$meta$`ornament-label-corner` <- "bottom-left"
+  expect_equal(corner(cfg), "bottom-left")
+  cfg$meta$`ornament-label-corner` <- "Bottom"
+  expect_equal(corner(cfg), "bottom-left")
+  cfg$meta$`ornament-label-corner` <- "sideways"
+  expect_equal(corner(cfg), "top-right")
+})
+
+test_that("the ornament label's corner survives conversion to the Quarto dialect", {
+  cfg <- test_brand_bslib()
+  cfg$meta$`ornament-label` <- "Acme"
+  cfg$meta$`ornament-label-corner` <- "bottom-left"
+  expect_equal(quarto_brand_cfg(cfg, keep_logo = FALSE)$meta$`ornament-label-corner`,
+               "bottom-left")
+})

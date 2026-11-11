@@ -729,7 +729,7 @@ cat(brand_ornament("drift", "top-right"))
 brand_ornament("drift", "bottom-left", softness = 0.1, file = "corner.svg")
 ```
 
-To personalise the top-right ornament, add a short line of text (a brand name, say) in the configurator's *Meta & Logo* tab, or set `meta: ornament-label:` in `_brand.yml`. It is set in capitals along the swell's curve, in the heading font, on the side of the curve away from the wave: the part of the largest circle the swell does not cover, so it never sits on the overlap. It is blank by default, top-right only, and truncated at 16 characters. Pass `label =` to `brand_ornament()` to set or override it, or `label = NULL` for none.
+To personalise an ornament, add a short line of text (a brand name, say) in the configurator's *Meta & Logo* tab, or set `meta: ornament-label:` in `_brand.yml`. It is set in capitals along the swell's curve, in the heading font, on the side of the curve away from the wave: the part of the largest circle the swell does not cover, so it never sits on the overlap. It is blank by default and truncated at 16 characters. The text sits on one ornament, the top-right by default; the configurator's *Ornament text sits on the* toggle moves it to the bottom-left one (it still reads left to right), and in `_brand.yml` that is `meta: ornament-label-corner: bottom-left`. Pass `label =` to `brand_ornament()` to set or override it on whichever corner you ask for, or `label = NULL` for none.
 
 The poster uses a lower opacity (0.12) than the function's default (0.17): the default was tuned on page-sized layouts, and the same value across an A0 sheet reads as large flat blocks of colour. Re-run `create_brand_quarto_poster(overwrite = TRUE)` after changing the brand to redraw them in the new colours.
 

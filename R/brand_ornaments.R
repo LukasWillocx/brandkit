@@ -82,7 +82,7 @@ orn_motifs <- "drift"
 
 # --------------------------------------------------------------------------
 # The label: a short line of text set along the swell, beside its largest
-# orb. Top-right corner only, and only for the drift motif.
+# orb. Either corner (the brand picks one), and only for the drift motif.
 #
 # The text runs along the swell's own curve, so it follows the wave rather
 # than cutting across it, and sits on the side of that curve away from the
@@ -95,9 +95,27 @@ orn_motifs <- "drift"
 # the point of the curve nearest the orb's centre. The size shrinks with the
 # length of the text so it stays within the orb, down to a floor below
 # which it would be too small to read at any scale this is drawn at.
+#
+# The bottom-left ornament is the same drawing turned half a circle, so its
+# label cannot simply ride along inside that rotation: the text would end up
+# upside down. It is laid out on the turned curve instead, run the other way
+# so it still reads left to right, and offset to the other side of the curve
+# (the glyphs' "up", which is away from the wave there) by the same clearance.
 # --------------------------------------------------------------------------
 
 orn_label_max_chars <- 16
+
+# Capitals stand about this tall, in em, above their baseline.
+orn_cap_height <- 0.72
+
+# The baseline's offset from the curve, in em, in the glyphs' own frame
+# (positive is below the baseline). The top-right label hangs below the
+# curve, its capitals spanning 0.43 to 1.15 em from it; the bottom-left one
+# is the mirror image, standing on a baseline 0.43 em above it, so its
+# capitals span the same range on the other side.
+orn_label_drop <- function(corner) {
+  if (corner == "top-right") 1.15 else -(1.15 - orn_cap_height)
+}
 
 orn_xml_escape <- function(x) {
   x <- gsub("&", "&amp;", x, fixed = TRUE)
@@ -127,8 +145,10 @@ orn_cap_width <- function(ch) {
 # the end, whatever the path is made of), but lays out a straight line of
 # text exactly, so the files Typst draws get the second form.
 orn_label_svg <- function(label, font, fill, vars = FALSE,
-                          layout = c("path", "glyphs")) {
+                          layout = c("path", "glyphs"),
+                          corner = c("top-right", "bottom-left")) {
   layout <- match.arg(layout)
+  corner <- match.arg(corner)
   label <- toupper(trimws(label))
   if (nchar(label) > orn_label_max_chars) {
     warning("Ornament label is longer than ", orn_label_max_chars,
@@ -146,9 +166,23 @@ orn_label_svg <- function(label, font, fill, vars = FALSE,
     cbind(bez(pt$p0[1], pt$c1[1], pt$p1[1], t), bez(pt$p0[2], pt$c1[2], pt$p1[2], t)),
     cbind(bez(pt$p1[1], c2[1],    pt$p2[1], t), bez(pt$p1[2], c2[2],    pt$p2[2], t))[-1, ]
   )
+  orb <- orn_drift_orb[1:2]
+  # The path in the form the text-on-path layout takes: start, first control
+  # point, joint, end (`T` reflects the control point through the joint).
+  anchors <- list(a = pt$p0, b = pt$c1, c = pt$p1, d = pt$p2)
+
+  if (corner == "bottom-left") {
+    # Half a turn about the middle of the box, then walked the other way.
+    flip <- function(p) 100 - p
+    curve <- flip(curve)[nrow(curve):1, , drop = FALSE]
+    orb <- flip(orb)
+    anchors <- list(a = flip(pt$p2), b = flip(c2), c = flip(pt$p1), d = flip(pt$p0))
+  }
   along <- c(0, cumsum(sqrt(rowSums(diff(curve)^2))))
-  centre <- which.min((curve[, 1] - orn_drift_orb[1])^2 +
-                      (curve[, 2] - orn_drift_orb[2])^2)
+  centre <- which.min((curve[, 1] - orb[1])^2 + (curve[, 2] - orb[2])^2)
+  drop <- orn_label_drop(corner)
+  # One per corner, so a page that carries both can tell the two paths apart.
+  id <- if (corner == "top-right") "bk-orn-label-tr" else "bk-orn-label-bl"
 
   # Capitals in a bold heading face run about 0.72em wide, plus the
   # tracking; the room is the chord of the orb at the label's offset.
@@ -156,10 +190,10 @@ orn_label_svg <- function(label, font, fill, vars = FALSE,
   size <- min(5.2, max(2.5, 34 / (nchar(label) * (0.72 + tracking))))
 
   path <- sprintf("M %s %s Q %s %s %s %s T %s %s",
-                  orn_num(pt$p0[1]), orn_num(pt$p0[2]),
-                  orn_num(pt$c1[1]), orn_num(pt$c1[2]),
-                  orn_num(pt$p1[1]), orn_num(pt$p1[2]),
-                  orn_num(pt$p2[1]), orn_num(pt$p2[2]))
+                  orn_num(anchors$a[1]), orn_num(anchors$a[2]),
+                  orn_num(anchors$b[1]), orn_num(anchors$b[2]),
+                  orn_num(anchors$c[1]), orn_num(anchors$c[2]),
+                  orn_num(anchors$d[1]), orn_num(anchors$d[2]))
 
   family <- paste0("'", gsub("['\"]", "", font), "', sans-serif")
   paint  <- if (vars) {
@@ -187,7 +221,7 @@ orn_label_svg <- function(label, font, fill, vars = FALSE,
     glyphs <- sprintf(
       '<text transform="translate(%s %s) rotate(%s)" y="%s">%s</text>',
       orn_num(px[keep], 3), orn_num(py[keep], 3), orn_num(ang[keep], 2),
-      orn_num(1.15 * size, 3), orn_xml_escape(chars[keep])
+      orn_num(drop * size, 3), orn_xml_escape(chars[keep])
     )
     return(paste0(
       sprintf('<g %s font-size="%s" font-weight="700" fill-opacity="0.8" text-anchor="middle">',
@@ -197,15 +231,15 @@ orn_label_svg <- function(label, font, fill, vars = FALSE,
   }
 
   paste0(
-    '<defs><path id="bk-orn-label" d="', path, '" fill="none"/></defs>
+    '<defs><path id="', id, '" d="', path, '" fill="none"/></defs>
 ',
     sprintf(
       paste0('<text %s font-size="%s" font-weight="700" letter-spacing="%s" ',
              'fill-opacity="0.8" text-anchor="middle">',
-             '<textPath href="#bk-orn-label" startOffset="%s">',
+             '<textPath href="#%s" startOffset="%s">',
              '<tspan dy="%s">%s</tspan></textPath></text>'),
       paint, orn_num(size), orn_num(tracking * size, 3),
-      orn_num(along[centre]), orn_num(1.15 * size), orn_xml_escape(label)
+      id, orn_num(along[centre]), orn_num(drop * size), orn_xml_escape(label)
     ),
     "
 "
@@ -247,10 +281,13 @@ ornament_svg <- function(motif, corner, softness, primary, secondary, accent,
 
   if (corner == "bottom-left") {
     body <- c('<g transform="rotate(180 50 50)">', body, "</g>")
-  } else if (!is.null(label) && nzchar(trimws(label))) {
-    # Top-right only. Appended after the shapes so it is drawn over them.
+  }
+  if (!is.null(label) && nzchar(trimws(label))) {
+    # Appended after the shapes so it is drawn over them, and outside the
+    # bottom-left corner's rotation, which would turn the text upside down
+    # (orn_label_svg() lays it out on the turned curve itself).
     body <- c(body, orn_label_svg(label, font %||% "sans-serif", primary, vars,
-                                  layout = label_layout))
+                                  layout = label_layout, corner = corner))
   }
 
   paste0(
@@ -296,13 +333,15 @@ ornament_svg <- function(motif, corner, softness, primary, secondary, accent,
 #'   build up from this, so useful values are small; the default is `0.17`.
 #' @param mode `"light"` or `"dark"`: which of the brand's palettes to draw
 #'   with.
-#' @param label Optional short text set along the swell of the `"top-right"`
-#'   ornament, in capitals in the brand's heading font, beside its largest
-#'   orb: a brand name or a tagline. It sits on the part of the orb the swell
-#'   does not cover, and is ignored for `"bottom-left"`. Short text reads
-#'   best, and anything over 16 characters is truncated. Defaults to the
-#'   brand's `meta: ornament-label:` (which [configure_brand()] writes); `NULL`
-#'   or `""` draws none.
+#' @param label Optional short text set along the swell of the ornament, in
+#'   capitals in the brand's heading font, beside its largest orb: a brand name
+#'   or a tagline. It sits on the part of the orb the swell does not cover,
+#'   reading left to right in either corner. Short text reads best, and
+#'   anything over 16 characters is truncated. Defaults to the brand's
+#'   `meta: ornament-label:` (which [configure_brand()] writes) on the one
+#'   corner the brand picks with `meta: ornament-label-corner:` (`"top-right"`
+#'   unless set to `"bottom-left"`), and to none on the other. A `label` you
+#'   pass is drawn on whichever corner you ask for; `NULL` or `""` draws none.
 #' @param file Optional path. If given, the SVG is also written there.
 #' @param vars Logical. `FALSE` (default) writes the brand colours into the
 #'   SVG as hex values, which is what a standalone file, an `<img>` or a
@@ -326,7 +365,7 @@ brand_ornament <- function(motif = "drift",
                            corner = c("top-right", "bottom-left"),
                            softness = 0.17,
                            mode = c("light", "dark"),
-                           label = brand_ornament_label(),
+                           label = brand_ornament_label_for(corner),
                            file = NULL,
                            vars = FALSE) {
 
@@ -373,6 +412,25 @@ brand_ornament_label <- function() {
   } else {
     NULL
   }
+}
+
+# Which corner carries the brand's label: `meta: ornament-label-corner:`,
+# "top-right" (the default) or "bottom-left". The plainer "top" and "bottom"
+# are accepted too, for a file written by hand; anything else is the default.
+brand_ornament_label_corner <- function() {
+  ensure_cache()
+  corner <- tolower(trimws(brand_env$meta[["ornament-label-corner"]] %||% ""))
+  if (length(corner) == 1 && corner %in% c("bottom-left", "bottom")) {
+    "bottom-left"
+  } else {
+    "top-right"
+  }
+}
+
+# The brand's label if `corner` is the one that carries it, otherwise NULL:
+# the default of brand_ornament(), so the label is drawn once, not on both.
+brand_ornament_label_for <- function(corner) {
+  if (identical(corner, brand_ornament_label_corner())) brand_ornament_label()
 }
 
 # `t` of colour `a` mixed into colour `b`, as a hex string: the same mix the

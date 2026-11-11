@@ -1,5 +1,16 @@
 # brandkit (development version)
 
+* The ornament text can sit on the bottom-left ornament instead of the
+  top-right one. The configurator's *Meta & Logo* tab has a new "Ornament text
+  sits on the" toggle (Top / Bottom), with the live preview following it; it is
+  stored as `meta: ornament-label-corner: bottom-left` in `_brand.yml` (absent
+  for the default, the top). The bottom text is laid out on the turned curve so
+  it still reads left to right, on the side of the curve away from the wave,
+  and each corner's text path now has its own id. `brand_ornament()` draws the
+  brand's text only on the corner the brand picks; a `label` you pass is drawn
+  on whichever corner you ask for. Re-run the `create_brand_quarto_*()`
+  functions to refresh the generated ornament files.
+
 * The `create_brand_quarto_*()` scaffolds now all create a missing project
   directory, as the dashboard and Shiny scaffolds already did (the HTML,
   slides, PDF, print and poster ones stopped with an error instead).

@@ -342,8 +342,13 @@ configure_brand <- function(path = ".",
           )$find("input")$addAttrs(maxlength = 16)$allTags(),
           htmltools::div(
             style = "font-size: 0.8rem; color: #666; margin-top: -0.5rem; margin-bottom: 0.5rem;",
-            "Set along the top-right corner ornament, in the heading font. ",
+            "Set along a corner ornament, in the heading font. ",
             "Short text reads best (up to 16 characters)."
+          ),
+          shiny::radioButtons(
+            "ornament_label_corner", "Ornament text sits on the:",
+            choices = c("Top ornament" = "top-right", "Bottom ornament" = "bottom-left"),
+            selected = d$ornament_label_corner, inline = TRUE
           ),
           shiny::fileInput("logo_file", "Logo (optional):",
                            accept = c("image/png", "image/svg+xml", "image/jpeg")),
@@ -576,7 +581,10 @@ configure_brand <- function(path = ".",
         svg <- ornament_svg("drift", corner, web_ornament_softness,
                             primary = lc$primary, secondary = lc$secondary,
                             accent = lc$info,
-                            label = input$ornament_label,
+                            # Only the corner the brand puts it on.
+                            label = if (identical(corner, input$ornament_label_corner)) {
+                              input$ornament_label
+                            },
                             font = input$font_heading,
                             # The preview is a web page, so it shows the form
                             # the web pages get, not the one baked for Typst.
@@ -722,7 +730,14 @@ configure_brand <- function(path = ".",
           # there and nowhere else; omitted when blank, so a brand that does
           # not use it is unchanged.
           if (nzchar(trimws(input$ornament_label %||% ""))) {
-            list(`ornament-label` = trimws(input$ornament_label))
+            c(
+              list(`ornament-label` = trimws(input$ornament_label)),
+              # The top is the default, so a brand that leaves the text there
+              # is written as before.
+              if (identical(input$ornament_label_corner, "bottom-left")) {
+                list(`ornament-label-corner` = "bottom-left")
+              }
+            )
           }
         ),
         color = list(
@@ -1006,6 +1021,7 @@ configurator_defaults <- function(cfg, presets, font_pairs) {
   d <- list(
     brand_name    = "My Brand",
     ornament_label = "",
+    ornament_label_corner = "top-right",
     cols          = presets[["Wine & Sage"]],
     preset        = "Wine & Sage",
     auto_dark     = TRUE,
@@ -1045,6 +1061,10 @@ configurator_defaults <- function(cfg, presets, font_pairs) {
   if (!is.null(cfg$meta$name)) d$brand_name <- cfg$meta$name
   lab <- cfg$meta[["ornament-label"]]
   if (is.character(lab) && length(lab) == 1 && !is.na(lab)) d$ornament_label <- lab
+  corner <- tolower(trimws(cfg$meta[["ornament-label-corner"]] %||% ""))
+  if (length(corner) == 1 && corner %in% c("bottom-left", "bottom")) {
+    d$ornament_label_corner <- "bottom-left"
+  }
 
   # -- Typography --
   ty <- cfg$typography
